@@ -39,7 +39,10 @@ const Index: FC = () => {
             <Link to="/explore" className="text-sm font-medium hover:text-primary transition-colors">Explore</Link>
             <Link to="/about" className="text-sm font-medium hover:text-primary transition-colors">About</Link>
           </nav>
-          <div>
+          <div className="flex items-center gap-3">
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/login">Log in</Link>
+            </Button>
             <Button asChild variant="outline" className="rounded-full">
               <Link to="/dashboard">Get Started</Link>
             </Button>
