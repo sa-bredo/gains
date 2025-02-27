@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -17,7 +16,8 @@ import {
   Calendar,
   DollarSign,
   BarChart,
-  Briefcase
+  Briefcase,
+  ListCheck
 } from "lucide-react"
 
 import {
@@ -56,7 +56,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ChevronsUpDown, LogOut, BadgeCheck } from "lucide-react"
 
-// This is sample data.
 const user = {
   name: "John Doe",
   email: "john@example.com",
@@ -81,6 +80,25 @@ const navMain = [
       {
         title: "Progress",
         url: "/dashboard/progress",
+      },
+    ],
+  },
+  {
+    title: "Tasks",
+    url: "/table-example",
+    icon: ListCheck,
+    items: [
+      {
+        title: "All Tasks",
+        url: "/table-example",
+      },
+      {
+        title: "My Tasks",
+        url: "/table-example?filter=my",
+      },
+      {
+        title: "Assigned",
+        url: "/table-example?filter=assigned",
       },
     ],
   },
@@ -318,7 +336,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   );
 }
 
-// Custom hook for sidebar
 function useSidebar() {
   const isMobile = window.innerWidth < 768;
   return { isMobile };
