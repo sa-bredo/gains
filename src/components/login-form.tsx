@@ -23,7 +23,7 @@ export function LoginForm({
         <img 
           src="https://images.squarespace-cdn.com/content/v1/66dfede09053481feac2a1aa/1725951490906-BM3OIHGXHDGQNEZRAU74/SA_whitegb.png?format=1500w" 
           alt="Studio Anatomy Logo" 
-          className="h-12 w-auto mb-4"
+          className="h-6 w-auto mb-4" // Reduced from h-12 to h-6 (50% reduction)
         />
       </div>
       <Card className="border-border/50">
