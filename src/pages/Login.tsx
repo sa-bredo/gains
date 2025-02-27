@@ -1,5 +1,4 @@
 
-import { Heart } from "lucide-react"
 import { LoginForm } from "@/components/login-form"
 import { Link } from "react-router-dom"
 
@@ -9,10 +8,11 @@ export default function LoginPage() {
       <div className="flex flex-col gap-4 p-6 md:p-10">
         <div className="flex justify-center gap-2 md:justify-start">
           <Link to="/" className="flex items-center gap-2 font-medium hover:text-primary transition-colors">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Heart className="h-4 w-4" />
-            </div>
-            Studio Anatomy
+            <img 
+              src="https://images.squarespace-cdn.com/content/v1/66dfede09053481feac2a1aa/1725951490906-BM3OIHGXHDGQNEZRAU74/SA_whitegb.png?format=1500w" 
+              alt="Studio Anatomy Logo" 
+              className="h-8 w-auto"
+            />
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-center">

@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Heart, Github } from "lucide-react"
+import { Github } from "lucide-react"
 import { Link } from "react-router-dom"
 
 export function LoginForm({
@@ -14,8 +14,11 @@ export function LoginForm({
     <form className={cn("flex flex-col gap-6", className)} {...props}>
       <div className="flex flex-col items-center gap-2 text-center">
         <div className="flex items-center gap-2 mb-2">
-          <Heart className="h-6 w-6 text-primary" />
-          <span className="text-xl font-medium">Studio Anatomy</span>
+          <img 
+            src="https://images.squarespace-cdn.com/content/v1/66dfede09053481feac2a1aa/1725951490906-BM3OIHGXHDGQNEZRAU74/SA_whitegb.png?format=1500w" 
+            alt="Studio Anatomy Logo" 
+            className="h-12 w-auto"
+          />
         </div>
         <h1 className="text-2xl font-bold">Login to your account</h1>
         <p className="text-balance text-sm text-muted-foreground">
