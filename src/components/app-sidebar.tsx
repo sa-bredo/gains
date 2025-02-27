@@ -13,7 +13,11 @@ import {
   Activity,
   Search,
   Lightbulb,
-  ChevronRight
+  ChevronRight,
+  Calendar,
+  DollarSign,
+  BarChart,
+  Briefcase
 } from "lucide-react"
 
 import {
@@ -81,74 +85,78 @@ const navMain = [
     ],
   },
   {
-    title: "Human Body",
-    url: "/body",
-    icon: Layers,
+    title: "Rota",
+    url: "/rota",
+    icon: Calendar,
     items: [
       {
-        title: "Systems",
-        url: "/body/systems",
+        title: "Schedule",
+        url: "/rota/schedule",
       },
       {
-        title: "Regions",
-        url: "/body/regions",
+        title: "Staff",
+        url: "/rota/staff",
       },
       {
-        title: "3D Models",
-        url: "/body/models",
+        title: "Leave",
+        url: "/rota/leave",
       },
     ],
   },
   {
-    title: "Learning",
-    url: "/learning",
-    icon: Brain,
+    title: "Payroll",
+    url: "/payroll",
+    icon: DollarSign,
     items: [
       {
-        title: "Tutorials",
-        url: "/learning/tutorials",
+        title: "Salaries",
+        url: "/payroll/salaries",
       },
       {
-        title: "Quizzes",
-        url: "/learning/quizzes",
+        title: "Expenses",
+        url: "/payroll/expenses",
       },
       {
-        title: "Flashcards",
-        url: "/learning/flashcards",
+        title: "Reports",
+        url: "/payroll/reports",
       },
     ],
   },
   {
-    title: "Resources",
-    url: "/resources",
-    icon: BookOpen,
+    title: "Analytics",
+    url: "/analytics",
+    icon: BarChart,
     items: [
       {
-        title: "Library",
-        url: "/resources/library",
+        title: "Performance",
+        url: "/analytics/performance",
       },
       {
-        title: "References",
-        url: "/resources/references",
+        title: "Trends",
+        url: "/analytics/trends",
       },
       {
-        title: "Downloads",
-        url: "/resources/downloads",
+        title: "Forecasts",
+        url: "/analytics/forecasts",
       },
     ],
   },
   {
-    title: "Community",
-    url: "/community",
-    icon: Users,
+    title: "Operations",
+    url: "/operations",
+    icon: Briefcase,
     items: [
       {
-        title: "Forums",
-        url: "/community/forums",
+        title: "Processes",
+        url: "/operations/processes",
       },
       {
-        title: "Groups",
-        url: "/community/groups",
+        title: "Resources",
+        url: "/operations/resources",
+      },
+      {
+        title: "Management",
+        url: "/operations/management",
       },
     ],
   },
