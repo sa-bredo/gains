@@ -243,7 +243,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenuButton asChild>
                 <Link to="/explore">
                   <Search className="h-5 w-5" />
-                  <span>Explore Content</span>
+                  <span>Knowledge</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
