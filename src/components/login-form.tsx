@@ -28,7 +28,7 @@ export function LoginForm({
       </div>
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="text-2xl">Login to your account</CardTitle>
+          <CardTitle className="text-2xl">Login2 to your account</CardTitle>
           <CardDescription>
             Enter your email below to login to your account
           </CardDescription>
