@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, Heart, Brain, Lungs, Eye, Bone, Activity, ArrowRight } from 'lucide-react';
+import { Search, Filter, Heart, Brain, Activity, Eye, Bone, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Explore = () => {
@@ -37,7 +37,7 @@ const Explore = () => {
       description: "Complete walkthrough of the lungs and breathing mechanisms",
       category: "Respiratory",
       image: "https://images.unsplash.com/photo-1584555613483-3b107cbe85c3?q=80&w=500&auto=format&fit=crop",
-      icon: <Lungs />,
+      icon: <Activity />,
       popularity: 92
     },
     {

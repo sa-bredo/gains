@@ -4,7 +4,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, Heart, Lungs, ActivitySquare, Eye, ScrollText, Users, BookOpen } from "lucide-react";
+import { Brain, Heart, Activity, ActivitySquare, Eye, ScrollText, Users, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Dashboard() {
@@ -151,7 +151,7 @@ export default function Dashboard() {
                     {[
                       { title: "Nervous System", icon: <Brain className="h-8 w-8" />, count: "42 models" },
                       { title: "Cardiovascular", icon: <Heart className="h-8 w-8" />, count: "28 models" },
-                      { title: "Respiratory", icon: <Lungs className="h-8 w-8" />, count: "18 models" },
+                      { title: "Respiratory", icon: <Activity className="h-8 w-8" />, count: "18 models" },
                       { title: "Digestive", icon: <ActivitySquare className="h-8 w-8" />, count: "24 models" },
                       { title: "Musculoskeletal", icon: <ActivitySquare className="h-8 w-8" />, count: "36 models" },
                       { title: "Urinary", icon: <ActivitySquare className="h-8 w-8" />, count: "14 models" },
