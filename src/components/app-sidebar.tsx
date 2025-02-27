@@ -1,0 +1,332 @@
+
+"use client"
+
+import * as React from "react"
+import { Link } from "react-router-dom";
+import {
+  Heart,
+  Brain,
+  BookOpen,
+  Layers,
+  Users,
+  Settings,
+  Activity,
+  Search,
+  Lightbulb,
+  ChevronRight
+} from "lucide-react"
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarRail,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+} from "@/components/ui/sidebar"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { ChevronsUpDown, LogOut, Bell, CreditCard, BadgeCheck, Sparkles } from "lucide-react"
+
+// This is sample data.
+const user = {
+  name: "John Doe",
+  email: "john@example.com",
+  avatar: "https://randomuser.me/api/portraits/men/21.jpg",
+};
+
+const navMain = [
+  {
+    title: "Dashboard",
+    url: "/dashboard",
+    icon: Activity,
+    isActive: true,
+    items: [
+      {
+        title: "Overview",
+        url: "/dashboard",
+      },
+      {
+        title: "Analytics",
+        url: "/dashboard/analytics",
+      },
+      {
+        title: "Progress",
+        url: "/dashboard/progress",
+      },
+    ],
+  },
+  {
+    title: "Human Body",
+    url: "/body",
+    icon: Layers,
+    items: [
+      {
+        title: "Systems",
+        url: "/body/systems",
+      },
+      {
+        title: "Regions",
+        url: "/body/regions",
+      },
+      {
+        title: "3D Models",
+        url: "/body/models",
+      },
+    ],
+  },
+  {
+    title: "Learning",
+    url: "/learning",
+    icon: Brain,
+    items: [
+      {
+        title: "Tutorials",
+        url: "/learning/tutorials",
+      },
+      {
+        title: "Quizzes",
+        url: "/learning/quizzes",
+      },
+      {
+        title: "Flashcards",
+        url: "/learning/flashcards",
+      },
+    ],
+  },
+  {
+    title: "Resources",
+    url: "/resources",
+    icon: BookOpen,
+    items: [
+      {
+        title: "Library",
+        url: "/resources/library",
+      },
+      {
+        title: "References",
+        url: "/resources/references",
+      },
+      {
+        title: "Downloads",
+        url: "/resources/downloads",
+      },
+    ],
+  },
+  {
+    title: "Community",
+    url: "/community",
+    icon: Users,
+    items: [
+      {
+        title: "Forums",
+        url: "/community/forums",
+      },
+      {
+        title: "Groups",
+        url: "/community/groups",
+      },
+    ],
+  },
+  {
+    title: "Settings",
+    url: "/settings",
+    icon: Settings,
+    items: [
+      {
+        title: "Account",
+        url: "/settings/account",
+      },
+      {
+        title: "Preferences",
+        url: "/settings/preferences",
+      },
+      {
+        title: "Notifications",
+        url: "/settings/notifications",
+      },
+    ],
+  },
+];
+
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { isMobile } = useSidebar();
+
+  return (
+    <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg">
+              <div className="flex items-center gap-2 text-lg font-medium">
+                <Heart className="h-5 w-5 text-primary" />
+                <span>Studio Anatomy</span>
+              </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Main Navigation</SidebarGroupLabel>
+          <SidebarMenu>
+            {navMain.map((item) => (
+              <Collapsible
+                key={item.title}
+                asChild
+                defaultOpen={item.isActive}
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip={item.title}>
+                      {item.icon && <item.icon className="h-5 w-5" />}
+                      <span>{item.title}</span>
+                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {item.items?.map((subItem) => (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton asChild>
+                            <Link to={subItem.url}>
+                              <span>{subItem.title}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+        
+        <SidebarGroup className="mt-6">
+          <SidebarGroupLabel>Discover</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link to="/explore">
+                  <Search className="h-5 w-5" />
+                  <span>Explore Content</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link to="/about">
+                  <Lightbulb className="h-5 w-5" />
+                  <span>Learn About Us</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                >
+                  <Avatar className="h-8 w-8 rounded-lg">
+                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarFallback className="rounded-lg">JD</AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">{user.name}</span>
+                    <span className="truncate text-xs">{user.email}</span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto size-4" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                side={isMobile ? "bottom" : "right"}
+                align="end"
+                sideOffset={4}
+              >
+                <DropdownMenuLabel className="p-0 font-normal">
+                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                    <Avatar className="h-8 w-8 rounded-lg">
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarFallback className="rounded-lg">JD</AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">{user.name}</span>
+                      <span className="truncate text-xs">{user.email}</span>
+                    </div>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Upgrade to Pro
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem>
+                    <BadgeCheck className="mr-2 h-4 w-4" />
+                    Account
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Billing
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Bell className="mr-2 h-4 w-4" />
+                    Notifications
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
+  );
+}
+
+// Custom hook for sidebar
+function useSidebar() {
+  const isMobile = window.innerWidth < 768;
+  return { isMobile };
+}
