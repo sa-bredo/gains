@@ -7,17 +7,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Updated GoCardless API URL
 const GOCARDLESS_API_URL = "https://bankaccountdata.gocardless.com/api/v2";
 
 serve(async (req) => {
+  console.log("Request received to create-gocardless-link");
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
   }
 
   try {
-    // Get authorization header
+    // Get the authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -26,233 +30,135 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client
+    // Set up the Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verify JWT
+    // Verify the JWT and get the user
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
       console.error('User auth error:', userError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized', details: userError?.message }),
+        JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Parse the request to get the selected bank ID
-    let bankId = null;
-    if (req.method === 'POST') {
-      try {
-        const requestData = await req.json();
-        bankId = requestData.bank_id;
-      } catch (parseError) {
-        console.error('Failed to parse request body:', parseError);
-      }
-    }
+    console.log(`Authenticated user: ${user.id}`);
 
-    // Fallback to a default bank if none selected (should not happen with UI)
-    if (!bankId) {
+    // Parse the request body
+    const requestBody = await req.json();
+    
+    // Get both bank_id and institution_id from request
+    // bank_id is kept for backward compatibility
+    const bankId = requestBody.bank_id || '';
+    const institutionId = requestBody.institution_id || bankId; // Use bankId as fallback
+    
+    console.log(`Bank ID: ${bankId}, Institution ID: ${institutionId}`);
+    
+    if (!institutionId) {
       return new Response(
-        JSON.stringify({ error: 'Bank ID is required' }),
+        JSON.stringify({ error: 'Missing institution_id in request' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Using bank ID:', bankId);
-
-    // Get GoCardless credentials from environment variables
+    // Get API credentials
     const clientId = Deno.env.get('GOCARDLESS_CLIENT_ID');
     const clientSecret = Deno.env.get('GOCARDLESS_CLIENT_SECRET');
     
     if (!clientId || !clientSecret) {
-      console.error('Missing GoCardless credentials');
       return new Response(
-        JSON.stringify({ error: 'GoCardless credentials not configured' }),
+        JSON.stringify({ error: 'GoCardless API credentials not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Step 1: Get JWT access token from GoCardless using client credentials
-    console.log('Obtaining access token from GoCardless...');
-    
-    const tokenRequestBody = {
-      secret_id: clientId,
-      secret_key: clientSecret
-    };
-    
+    // Get access token from GoCardless
+    console.log('Getting access token from GoCardless');
     const tokenResponse = await fetch(`${GOCARDLESS_API_URL}/token/new/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify(tokenRequestBody),
-    });
-
-    const tokenResponseText = await tokenResponse.text();
-    console.log('Token response status:', tokenResponse.status);
-    
-    if (!tokenResponse.ok) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Failed to obtain GoCardless access token',
-          details: tokenResponseText,
-          status: tokenResponse.status
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    let tokenData;
-    try {
-      tokenData = JSON.parse(tokenResponseText);
-    } catch (parseError) {
-      console.error('Failed to parse token response:', parseError);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Invalid token response format',
-          details: tokenResponseText
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    const accessToken = tokenData.access;
-    
-    if (!accessToken) {
-      console.error('No access token returned from GoCardless');
-      return new Response(
-        JSON.stringify({ 
-          error: 'No access token returned from GoCardless', 
-          details: JSON.stringify(tokenData)
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Step 2: Create an End User Agreement (required for creating requisitions)
-    console.log('Creating end user agreement...');
-    console.log('Using institution ID:', bankId);
-    
-    const agreementResponse = await fetch(`${GOCARDLESS_API_URL}/agreements/enduser/`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
       body: JSON.stringify({
-        institution_id: bankId,
-        max_historical_days: 90,
-        access_valid_for_days: 90,
-        access_scope: ["balances", "details", "transactions"]
+        secret_id: clientId,
+        secret_key: clientSecret,
       }),
     });
 
-    const agreementResponseText = await agreementResponse.text();
-    console.log('Agreement response status:', agreementResponse.status);
-    
-    if (!agreementResponse.ok) {
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error('Failed to get access token:', tokenResponse.status, errorText);
       return new Response(
-        JSON.stringify({ 
-          error: 'Failed to create GoCardless end user agreement',
-          details: agreementResponseText,
-          status: agreementResponse.status
-        }),
+        JSON.stringify({ error: 'Failed to authenticate with GoCardless API' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    let agreementData;
-    try {
-      agreementData = JSON.parse(agreementResponseText);
-    } catch (parseError) {
-      console.error('Failed to parse agreement response:', parseError);
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access;
+    
+    if (!accessToken) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Invalid agreement response format',
-          details: agreementResponseText
-        }),
+        JSON.stringify({ error: 'No access token in response' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Access token obtained successfully');
+
+    // Create a requisition (link) to the bank
+    const siteHost = Deno.env.get('PUBLIC_URL') || 'https://preview--studio-anatomy-wizard.lovable.app';
+    const redirectUrl = `${siteHost}/financials/transactions-gocardless?status=success`;
     
-    // Step 3: Create a requisition that links the user to their bank
-    // The redirect URL is where the user will be sent after connecting their bank
-    const appUrl = Deno.env.get('PUBLIC_URL') || 'http://localhost:5173';
-    const redirectUrl = `${appUrl}/financials/transactions-gocardless?status=success`;
-    
-    console.log('Creating new requisition with GoCardless...');
-    console.log('Requisition details:', {
-      redirect: redirectUrl,
-      institution_id: bankId,
-      reference: user.id.substring(0, 20),
-      agreement: agreementData.id
-    });
+    console.log(`Creating requisition with redirect URL: ${redirectUrl}`);
+    console.log(`Using institution ID: ${institutionId}`);
     
     const requisitionResponse = await fetch(`${GOCARDLESS_API_URL}/requisitions/`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
       },
       body: JSON.stringify({
         redirect: redirectUrl,
-        institution_id: bankId,
-        reference: user.id.substring(0, 20), // Using the user's ID as a reference
-        agreement: agreementData.id,
-        user_language: 'EN', // Default to English
+        institution_id: institutionId,
+        reference: user.id,
+        agreement: "premium",
+        user_language: "EN",
       }),
     });
 
-    const requisitionResponseText = await requisitionResponse.text();
-    console.log('Requisition response status:', requisitionResponse.status);
-    
     if (!requisitionResponse.ok) {
+      const errorText = await requisitionResponse.text();
+      console.error('Failed to create requisition:', requisitionResponse.status, errorText);
       return new Response(
-        JSON.stringify({ 
-          error: 'Failed to create GoCardless requisition',
-          details: requisitionResponseText,
-          status: requisitionResponse.status
-        }),
+        JSON.stringify({ error: 'Failed to create bank connection' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    let requisitionData;
-    try {
-      requisitionData = JSON.parse(requisitionResponseText);
-    } catch (parseError) {
-      console.error('Failed to parse requisition response:', parseError);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Invalid requisition response format',
-          details: requisitionResponseText
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    console.log('Requisition created successfully:', requisitionData.id);
-    console.log('Link URL:', requisitionData.link);
+    const requisitionData = await requisitionResponse.json();
+    console.log('Requisition created successfully', requisitionData);
 
-    // Return the link URL to the client
+    // Return the link URL
     return new Response(
       JSON.stringify({
         redirect_url: requisitionData.link,
         requisition_id: requisitionData.id,
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
-    console.error('Error creating GoCardless link:', error);
+    console.error('Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || 'An unexpected error occurred' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

@@ -111,7 +111,10 @@ export function GoCardlessLink({ onSuccess, onExit, isOpen }: GoCardlessLinkProp
             'Authorization': `Bearer ${session.access_token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ bank_id: bankId })
+          body: JSON.stringify({ 
+            bank_id: bankId,
+            institution_id: bankId // Passing the bank ID as institution_id
+          })
         });
 
         // Get detailed error information
@@ -181,7 +184,8 @@ export function GoCardlessLink({ onSuccess, onExit, isOpen }: GoCardlessLinkProp
       onSuccess(redirectUrl, { 
         timestamp: new Date().toISOString(),
         bankId: selectedBank?.id,
-        bankName: selectedBank?.name
+        bankName: selectedBank?.name,
+        institutionId: selectedBank?.id // Include the institution ID in the metadata
       });
     }
   };
