@@ -10,7 +10,7 @@ import { tasks } from "./table-example/data/data";
 export default function TableExample() {
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex">
+      <div className="min-h-screen flex w-full">
         <AppSidebar />
         <SidebarInset className="bg-background">
           <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4">
