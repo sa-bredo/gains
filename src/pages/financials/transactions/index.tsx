@@ -4,7 +4,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { motion } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
@@ -65,7 +65,7 @@ export default function FinancialsTransactions() {
       if (!session) return;
 
       // Correctly format the API URL with the Supabase URL
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-accounts`;
+      const apiUrl = `${SUPABASE_URL}/functions/v1/get-accounts`;
       console.log('Fetching accounts from:', apiUrl);
 
       // Real API call to get accounts
@@ -138,7 +138,7 @@ export default function FinancialsTransactions() {
       const startDateStr = startDate.toISOString().split('T')[0];
 
       // Correctly format the API URL
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-transactions`;
+      const apiUrl = `${SUPABASE_URL}/functions/v1/get-transactions`;
       console.log('Fetching transactions from:', apiUrl);
 
       // Real API call to get transactions
@@ -200,7 +200,7 @@ export default function FinancialsTransactions() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/exchange-public-token`;
+      const apiUrl = `${SUPABASE_URL}/functions/v1/exchange-public-token`;
       console.log('Exchanging public token at:', apiUrl);
 
       const response = await fetch(apiUrl, {

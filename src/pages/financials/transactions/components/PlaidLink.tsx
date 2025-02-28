@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -71,22 +71,11 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
           return;
         }
 
-        // Make sure we have a valid Supabase URL
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        if (!supabaseUrl) {
-          console.error('Missing VITE_SUPABASE_URL environment variable');
-          const errorMessage = "Configuration error. Please contact support.";
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: errorMessage
-          });
-          onExit();
-          return;
-        }
-
+        // Use the SUPABASE_URL from the client
+        console.log('Using Supabase URL:', SUPABASE_URL);
+        
         // Get a link token from our backend with the correctly formatted URL
-        const apiUrl = `${supabaseUrl}/functions/v1/create-link-token`;
+        const apiUrl = `${SUPABASE_URL}/functions/v1/create-link-token`;
         console.log('Requesting link token from:', apiUrl);
         
         const response = await fetch(apiUrl, {
