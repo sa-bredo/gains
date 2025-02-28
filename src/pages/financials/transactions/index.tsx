@@ -11,6 +11,13 @@ import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PlaidLink } from "./components/PlaidLink";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 export default function FinancialsTransactions() {
   const { isAuthenticated } = useAuth();
@@ -260,91 +267,88 @@ export default function FinancialsTransactions() {
                 
                 <Separator />
                 
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-                  <div className="col-span-1">
-                    <div className="bg-card p-4 rounded-lg border shadow-sm">
-                      <h3 className="font-semibold mb-2">Your Accounts</h3>
-                      {isLoading ? (
-                        <div className="text-center py-4">
-                          <div className="animate-pulse h-6 bg-muted rounded mb-2"></div>
-                          <div className="animate-pulse h-6 bg-muted rounded mb-2 w-3/4"></div>
-                        </div>
-                      ) : accounts.length > 0 ? (
-                        <ul className="space-y-2">
-                          {accounts.map((account) => (
-                            <li 
-                              key={account.id}
-                              className={`p-2 rounded cursor-pointer transition-colors ${
-                                selectedAccountId === account.id ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
-                              }`}
-                              onClick={() => handleAccountSelect(account.id)}
-                            >
-                              <div className="font-medium">{account.name}</div>
-                              <div className="text-sm text-muted-foreground">{account.mask ? `••••${account.mask}` : ''}</div>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <div className="text-center py-4 text-muted-foreground">
-                          <p>No accounts linked yet.</p>
-                          <p className="text-sm">Click "Add Bank Account" to get started.</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="col-span-1 md:col-span-3">
-                    <div className="bg-card p-4 rounded-lg border shadow-sm">
-                      <h3 className="font-semibold mb-4">Transactions</h3>
-                      {!selectedAccountId ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <p>Select an account to view transactions</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <div className="text-sm text-muted-foreground">Filter by date</div>
-                              <div className="flex gap-2">
-                                <Button variant="outline" size="sm">Last 30 days</Button>
-                                <Button variant="outline" size="sm">This month</Button>
-                                <Button variant="outline" size="sm">This year</Button>
-                              </div>
-                            </div>
-                            <div>
-                              <Button variant="outline" size="sm">
-                                <span className="mr-2">Export</span>
-                              </Button>
-                            </div>
-                          </div>
-                          
-                          <div className="border rounded-md overflow-hidden">
-                            <div className="bg-muted p-2 text-sm grid grid-cols-12 gap-2">
-                              <div className="col-span-3 font-medium">Date</div>
-                              <div className="col-span-5 font-medium">Description</div>
-                              <div className="col-span-2 font-medium">Category</div>
-                              <div className="col-span-2 font-medium text-right">Amount</div>
-                            </div>
-                            
-                            <div className="divide-y">
-                              {isLoading ? (
-                                Array(5).fill(0).map((_, i) => (
-                                  <div key={i} className="p-2 grid grid-cols-12 gap-2 animate-pulse">
-                                    <div className="col-span-3 h-4 bg-muted rounded"></div>
-                                    <div className="col-span-5 h-4 bg-muted rounded"></div>
-                                    <div className="col-span-2 h-4 bg-muted rounded"></div>
-                                    <div className="col-span-2 h-4 bg-muted rounded"></div>
+                <div className="bg-card p-4 rounded-lg border shadow-sm">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <label htmlFor="account-select" className="text-sm font-medium text-muted-foreground mb-1 block">
+                            Select Account
+                          </label>
+                          <Select
+                            value={selectedAccountId || ""}
+                            onValueChange={handleAccountSelect}
+                            disabled={isLoading || accounts.length === 0}
+                          >
+                            <SelectTrigger className="w-[220px]">
+                              <SelectValue placeholder="Select an account" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {accounts.map((account) => (
+                                <SelectItem key={account.id} value={account.id}>
+                                  <div className="flex flex-col">
+                                    <span>{account.name}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {account.mask ? `••••${account.mask}` : ''}
+                                    </span>
                                   </div>
-                                ))
-                              ) : (
-                                <div className="p-8 text-center text-muted-foreground">
-                                  <p>No transactions to display.</p>
-                                  <p className="text-sm">Transactions will appear here once synced.</p>
-                                </div>
+                                </SelectItem>
+                              ))}
+                              {accounts.length === 0 && (
+                                <SelectItem value="none" disabled>
+                                  No accounts available
+                                </SelectItem>
                               )}
-                            </div>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <div className="text-sm text-muted-foreground mb-1">Filter by date</div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm">Last 30 days</Button>
+                            <Button variant="outline" size="sm">This month</Button>
+                            <Button variant="outline" size="sm">This year</Button>
                           </div>
                         </div>
-                      )}
+                      </div>
+                      
+                      <div>
+                        <Button variant="outline" size="sm">
+                          <span className="mr-2">Export</span>
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="border rounded-md overflow-hidden">
+                      <div className="bg-muted p-2 text-sm grid grid-cols-12 gap-2">
+                        <div className="col-span-3 font-medium">Date</div>
+                        <div className="col-span-5 font-medium">Description</div>
+                        <div className="col-span-2 font-medium">Category</div>
+                        <div className="col-span-2 font-medium text-right">Amount</div>
+                      </div>
+                      
+                      <div className="divide-y">
+                        {isLoading ? (
+                          Array(5).fill(0).map((_, i) => (
+                            <div key={i} className="p-2 grid grid-cols-12 gap-2 animate-pulse">
+                              <div className="col-span-3 h-4 bg-muted rounded"></div>
+                              <div className="col-span-5 h-4 bg-muted rounded"></div>
+                              <div className="col-span-2 h-4 bg-muted rounded"></div>
+                              <div className="col-span-2 h-4 bg-muted rounded"></div>
+                            </div>
+                          ))
+                        ) : !selectedAccountId ? (
+                          <div className="p-8 text-center text-muted-foreground">
+                            <p>Select an account to view transactions.</p>
+                          </div>
+                        ) : (
+                          <div className="p-8 text-center text-muted-foreground">
+                            <p>No transactions to display.</p>
+                            <p className="text-sm">Transactions will appear here once synced.</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
