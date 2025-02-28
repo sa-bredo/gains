@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, Github } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
 
@@ -24,9 +24,17 @@ export function LoginForm({
   const [password, setPassword] = useState("F0rever21!!")
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const { login } = useAuth()
+  const { login, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const { toast } = useToast()
+
+  // Check if already authenticated and redirect if needed
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log("User is already authenticated, redirecting to dashboard");
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -43,18 +51,34 @@ export function LoginForm({
     setIsLoading(true)
     
     try {
+      console.log("Attempting login with:", email);
       await login(email, password)
+      
+      // Clear any existing session error messages
+      const sessionErrorEl = document.querySelector('.session-error');
+      if (sessionErrorEl) {
+        sessionErrorEl.remove();
+      }
+      
       toast({
         title: "Success",
         description: "Logged in successfully",
       })
-      navigate("/dashboard")
+      
+      // Small timeout to ensure state updates before redirect
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 100);
     } catch (error) {
+      console.error("Login error:", error);
       toast({
         title: "Error",
         description: "Invalid credentials. Please try again.",
         variant: "destructive",
       })
+      
+      // Clear local storage to ensure clean state
+      localStorage.removeItem("isAuthenticated");
     } finally {
       setIsLoading(false)
     }
