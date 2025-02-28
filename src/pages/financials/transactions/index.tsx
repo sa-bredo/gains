@@ -27,6 +27,7 @@ export default function FinancialsTransactions() {
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [dateFilter, setDateFilter] = useState("last30days");
+  const [apiError, setApiError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fadeIn = {
@@ -61,6 +62,7 @@ export default function FinancialsTransactions() {
   const fetchAccounts = async () => {
     try {
       setIsLoading(true);
+      setApiError(null);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
@@ -77,24 +79,33 @@ export default function FinancialsTransactions() {
         }
       });
 
+      let responseText;
+      try {
+        responseText = await response.text();
+        console.log('Raw API response:', responseText);
+      } catch (textError) {
+        console.error('Failed to get response text:', textError);
+        responseText = 'Failed to get response text';
+      }
+
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API response error:', response.status, errorText);
-        throw new Error(`API error (${response.status}): ${errorText}`);
+        console.error('API response error:', response.status, responseText);
+        setApiError(`Accounts API Error (${response.status}): ${responseText}`);
+        throw new Error(`API error (${response.status}): ${responseText}`);
       }
 
       let data;
       try {
-        const responseText = await response.text();
-        console.log('Raw API response:', responseText);
         data = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse JSON response:', parseError);
+        console.error('Failed to parse JSON response:', parseError, 'Raw:', responseText);
+        setApiError(`Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}, Raw: ${responseText}`);
         throw new Error('Invalid response from server. Please try again.');
       }
       
       if (data.error) {
         console.error('Error fetching accounts:', data.error);
+        setApiError(`API returned error: ${data.error}`);
         toast({
           title: "Error fetching accounts",
           description: data.error,
@@ -108,6 +119,7 @@ export default function FinancialsTransactions() {
       }
     } catch (error) {
       console.error('Error fetching accounts:', error);
+      setApiError(`Account fetch error: ${error instanceof Error ? error.message : String(error)}`);
       toast({
         title: "Error",
         description: "Failed to fetch accounts. Please try again.",
@@ -121,6 +133,7 @@ export default function FinancialsTransactions() {
   const fetchTransactions = async (accountId) => {
     try {
       setIsLoading(true);
+      setApiError(null);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
@@ -150,6 +163,7 @@ export default function FinancialsTransactions() {
       // Use a hardcoded full URL
       const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/get-transactions";
       console.log('Fetching transactions from hardcoded URL:', apiUrl);
+      console.log('Request payload:', { accountId, startDate: startDateStr, endDate });
 
       // API call to get transactions
       const response = await fetch(apiUrl, {
@@ -165,24 +179,33 @@ export default function FinancialsTransactions() {
         }),
       });
 
+      let responseText;
+      try {
+        responseText = await response.text();
+        console.log('Raw API response:', responseText);
+      } catch (textError) {
+        console.error('Failed to get response text:', textError);
+        responseText = 'Failed to get response text';
+      }
+
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API response error:', response.status, errorText);
-        throw new Error(`API error (${response.status}): ${errorText}`);
+        console.error('API response error:', response.status, responseText);
+        setApiError(`Transactions API Error (${response.status}): ${responseText}`);
+        throw new Error(`API error (${response.status}): ${responseText}`);
       }
 
       let data;
       try {
-        const responseText = await response.text();
-        console.log('Raw API response:', responseText);
         data = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse JSON response:', parseError);
+        console.error('Failed to parse JSON response:', parseError, 'Raw:', responseText);
+        setApiError(`Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}, Raw: ${responseText}`);
         throw new Error('Invalid response from server. Please try again.');
       }
       
       if (data.error) {
         console.error('Error fetching transactions:', data.error);
+        setApiError(`API returned error: ${data.error}`);
         toast({
           title: "Error fetching transactions",
           description: data.error,
@@ -193,6 +216,7 @@ export default function FinancialsTransactions() {
       }
     } catch (error) {
       console.error('Error fetching transactions:', error);
+      setApiError(`Transaction fetch error: ${error instanceof Error ? error.message : String(error)}`);
       toast({
         title: "Error",
         description: "Failed to fetch transactions. Please try again.",
@@ -214,6 +238,7 @@ export default function FinancialsTransactions() {
   const handlePlaidSuccess = async (publicToken, metadata) => {
     try {
       setIsLoading(true);
+      setApiError(null);
       console.log('Plaid success, exchanging public token...', metadata);
       
       const { data: { session } } = await supabase.auth.getSession();
@@ -232,24 +257,33 @@ export default function FinancialsTransactions() {
         body: JSON.stringify({ publicToken, metadata }),
       });
 
+      let responseText;
+      try {
+        responseText = await response.text();
+        console.log('Raw API response:', responseText);
+      } catch (textError) {
+        console.error('Failed to get response text:', textError);
+        responseText = 'Failed to get response text';
+      }
+
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API response error:', response.status, errorText);
-        throw new Error(`API error (${response.status}): ${errorText}`);
+        console.error('API response error:', response.status, responseText);
+        setApiError(`Token Exchange API Error (${response.status}): ${responseText}`);
+        throw new Error(`API error (${response.status}): ${responseText}`);
       }
 
       let data;
       try {
-        const responseText = await response.text();
-        console.log('Raw API response:', responseText);
         data = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse JSON response:', parseError);
+        console.error('Failed to parse JSON response:', parseError, 'Raw:', responseText);
+        setApiError(`Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}, Raw: ${responseText}`);
         throw new Error('Invalid response from server. Please try again.');
       }
       
       if (data.error) {
         console.error('Error linking account:', data.error);
+        setApiError(`API returned error: ${data.error}`);
         toast({
           title: "Error linking account",
           description: data.error,
@@ -264,6 +298,7 @@ export default function FinancialsTransactions() {
       }
     } catch (error) {
       console.error('Error linking account:', error);
+      setApiError(`Account linking error: ${error instanceof Error ? error.message : String(error)}`);
       toast({
         title: "Error",
         description: "Failed to link account. Please try again.",
@@ -348,6 +383,21 @@ export default function FinancialsTransactions() {
                 </div>
                 
                 <Separator />
+
+                {apiError && (
+                  <div className="bg-red-50 border border-red-200 rounded-md p-4 text-sm text-red-800">
+                    <p className="font-bold mb-1">Error Details:</p>
+                    <pre className="whitespace-pre-wrap font-mono overflow-x-auto text-xs">{apiError}</pre>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2" 
+                      onClick={() => setApiError(null)}
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                )}
                 
                 <div className="bg-card p-4 rounded-lg border shadow-sm">
                   <div className="space-y-4">

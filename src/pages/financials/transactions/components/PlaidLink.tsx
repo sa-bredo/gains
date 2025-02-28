@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
   const { toast } = useToast();
   const { isAuthenticated, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleSessionError = async () => {
@@ -40,6 +41,7 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
     const initPlaidLink = async () => {
       try {
         setIsLoading(true);
+        setErrorDetails(null);
         
         // Use the isAuthenticated state from AuthContext
         if (!isAuthenticated) {
@@ -75,83 +77,99 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
         const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/create-link-token";
         console.log('Requesting link token from hardcoded URL:', apiUrl);
         
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('API response error:', response.status, errorText);
-          throw new Error(`API error (${response.status}): ${errorText}`);
-        }
-
-        let data;
         try {
-          const responseText = await response.text();
-          console.log('Raw API response:', responseText);
-          data = JSON.parse(responseText);
-        } catch (parseError) {
-          console.error('Failed to parse JSON response:', parseError);
-          throw new Error('Invalid response from server. Please try again.');
-        }
-        
-        if (data.error) {
-          console.error('Error creating link token:', data.error);
-          const errorMessage = data.error || "Failed to initialize Plaid Link. Please try again.";
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: errorMessage
+          const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json'
+            }
           });
-          onExit();
-          return;
-        }
 
-        const linkToken = data.link_token;
-        console.log('Link token received:', linkToken);
+          // Get detailed error information
+          let errorText = '';
+          try {
+            errorText = await response.text();
+            console.log('Raw API response:', errorText);
+          } catch (textError) {
+            errorText = 'Failed to get response text: ' + (textError instanceof Error ? textError.message : String(textError));
+          }
 
-        // Load the Plaid Link script
-        script = document.createElement('script');
-        script.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
-        script.async = true;
-        script.onload = () => {
-          // Initialize Plaid Link
-          if ((window as any).Plaid) {
-            const handler = (window as any).Plaid.create({
-              token: linkToken,
-              onSuccess: (public_token: string, metadata: any) => {
-                console.log('Plaid Link success', metadata);
-                onSuccess(public_token, metadata);
-                setIsLoading(false);
-              },
-              onExit: (err: any, metadata: any) => {
-                console.log('Plaid Link exited', err, metadata);
-                setIsLoading(false);
-                onExit();
-              },
-              onLoad: () => {
-                // Open the Plaid Link interface automatically
-                handler.open();
-              },
-            });
-          } else {
-            console.error('Plaid not loaded');
-            const errorMessage = "Failed to load Plaid. Please try again.";
+          if (!response.ok) {
+            console.error('API response error:', response.status, errorText);
+            setErrorDetails(`Status: ${response.status}, Body: ${errorText}`);
+            throw new Error(`API error (${response.status}): ${errorText}`);
+          }
+
+          let data;
+          try {
+            data = JSON.parse(errorText);
+          } catch (parseError) {
+            console.error('Failed to parse JSON response:', parseError, 'Raw:', errorText);
+            setErrorDetails(`Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}, Raw: ${errorText}`);
+            throw new Error('Invalid response from server. Please try again.');
+          }
+          
+          if (data.error) {
+            console.error('Error creating link token:', data.error);
+            setErrorDetails(`Error from API: ${data.error}`);
+            const errorMessage = data.error || "Failed to initialize Plaid Link. Please try again.";
             toast({
               variant: "destructive",
               title: "Error",
               description: errorMessage
             });
-            setIsLoading(false);
             onExit();
+            return;
           }
-        };
-        
-        document.head.appendChild(script);
+
+          const linkToken = data.link_token;
+          console.log('Link token received:', linkToken);
+
+          // Load the Plaid Link script
+          script = document.createElement('script');
+          script.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
+          script.async = true;
+          script.onload = () => {
+            // Initialize Plaid Link
+            if ((window as any).Plaid) {
+              const handler = (window as any).Plaid.create({
+                token: linkToken,
+                onSuccess: (public_token: string, metadata: any) => {
+                  console.log('Plaid Link success', metadata);
+                  onSuccess(public_token, metadata);
+                  setIsLoading(false);
+                },
+                onExit: (err: any, metadata: any) => {
+                  console.log('Plaid Link exited', err, metadata);
+                  setIsLoading(false);
+                  onExit();
+                },
+                onLoad: () => {
+                  // Open the Plaid Link interface automatically
+                  handler.open();
+                },
+              });
+            } else {
+              console.error('Plaid not loaded');
+              setErrorDetails('Plaid library failed to load');
+              const errorMessage = "Failed to load Plaid. Please try again.";
+              toast({
+                variant: "destructive",
+                title: "Error",
+                description: errorMessage
+              });
+              setIsLoading(false);
+              onExit();
+            }
+          };
+          
+          document.head.appendChild(script);
+        } catch (fetchError) {
+          console.error('Fetch error:', fetchError);
+          setErrorDetails(`Fetch error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`);
+          throw fetchError;
+        }
       } catch (error) {
         console.error('Error initializing Plaid Link:', error);
         const errorMessage = error instanceof Error ? error.message : "Failed to initialize Plaid Link. Please try again.";
@@ -182,14 +200,23 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
         <DialogHeader>
           <DialogTitle>Connect Your Bank</DialogTitle>
           <DialogDescription>
-            Loading the secure connection to your bank. This may take a moment...
+            {errorDetails ? 
+              "Error connecting to your bank. Technical details below:" :
+              "Loading the secure connection to your bank. This may take a moment..."}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex justify-center py-6">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
+        {errorDetails ? (
+          <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-2 mb-4 text-sm text-red-800 font-mono overflow-x-auto">
+            <p className="font-bold mb-1">Error Details:</p>
+            <pre className="whitespace-pre-wrap">{errorDetails}</pre>
+          </div>
+        ) : (
+          <div className="flex justify-center py-6">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        )}
         <div className="flex justify-end">
-          <Button variant="outline" onClick={onExit} disabled={isLoading}>Cancel</Button>
+          <Button variant="outline" onClick={onExit} disabled={isLoading && !errorDetails}>Cancel</Button>
         </div>
       </DialogContent>
     </Dialog>
