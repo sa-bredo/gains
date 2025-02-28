@@ -4,7 +4,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { motion } from "framer-motion";
-import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
@@ -64,24 +64,34 @@ export default function FinancialsTransactions() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      // Correctly format the API URL with the Supabase URL
-      const apiUrl = `${SUPABASE_URL}/functions/v1/get-accounts`;
-      console.log('Fetching accounts from:', apiUrl);
+      // Use a hardcoded full URL
+      const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/get-accounts";
+      console.log('Fetching accounts from hardcoded URL:', apiUrl);
 
-      // Real API call to get accounts
+      // API call to get accounts
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
         }
       });
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('API response error:', response.status, errorText);
         throw new Error(`API error (${response.status}): ${errorText}`);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        const responseText = await response.text();
+        console.log('Raw API response:', responseText);
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        throw new Error('Invalid response from server. Please try again.');
+      }
       
       if (data.error) {
         console.error('Error fetching accounts:', data.error);
@@ -137,11 +147,11 @@ export default function FinancialsTransactions() {
       
       const startDateStr = startDate.toISOString().split('T')[0];
 
-      // Correctly format the API URL
-      const apiUrl = `${SUPABASE_URL}/functions/v1/get-transactions`;
-      console.log('Fetching transactions from:', apiUrl);
+      // Use a hardcoded full URL
+      const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/get-transactions";
+      console.log('Fetching transactions from hardcoded URL:', apiUrl);
 
-      // Real API call to get transactions
+      // API call to get transactions
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -157,10 +167,19 @@ export default function FinancialsTransactions() {
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('API response error:', response.status, errorText);
         throw new Error(`API error (${response.status}): ${errorText}`);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        const responseText = await response.text();
+        console.log('Raw API response:', responseText);
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        throw new Error('Invalid response from server. Please try again.');
+      }
       
       if (data.error) {
         console.error('Error fetching transactions:', data.error);
@@ -200,8 +219,9 @@ export default function FinancialsTransactions() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const apiUrl = `${SUPABASE_URL}/functions/v1/exchange-public-token`;
-      console.log('Exchanging public token at:', apiUrl);
+      // Use a hardcoded full URL
+      const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/exchange-public-token";
+      console.log('Exchanging public token at hardcoded URL:', apiUrl);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -214,10 +234,19 @@ export default function FinancialsTransactions() {
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('API response error:', response.status, errorText);
         throw new Error(`API error (${response.status}): ${errorText}`);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        const responseText = await response.text();
+        console.log('Raw API response:', responseText);
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        throw new Error('Invalid response from server. Please try again.');
+      }
       
       if (data.error) {
         console.error('Error linking account:', data.error);

@@ -71,26 +71,33 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
           return;
         }
 
-        // Use the SUPABASE_URL from the client
-        console.log('Using Supabase URL:', SUPABASE_URL);
-        
-        // Get a link token from our backend with the correctly formatted URL
-        const apiUrl = `${SUPABASE_URL}/functions/v1/create-link-token`;
-        console.log('Requesting link token from:', apiUrl);
+        // Hardcoded full URL to the Supabase function
+        const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/create-link-token";
+        console.log('Requesting link token from hardcoded URL:', apiUrl);
         
         const response = await fetch(apiUrl, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
           }
         });
 
         if (!response.ok) {
           const errorText = await response.text();
+          console.error('API response error:', response.status, errorText);
           throw new Error(`API error (${response.status}): ${errorText}`);
         }
 
-        const data = await response.json();
+        let data;
+        try {
+          const responseText = await response.text();
+          console.log('Raw API response:', responseText);
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Failed to parse JSON response:', parseError);
+          throw new Error('Invalid response from server. Please try again.');
+        }
         
         if (data.error) {
           console.error('Error creating link token:', data.error);
