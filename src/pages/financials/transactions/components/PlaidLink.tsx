@@ -57,9 +57,10 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
         console.log('User is authenticated, proceeding with Plaid connection');
         
         // Get the session explicitly for the API call
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          console.error('Session not found despite authentication');
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !session) {
+          console.error('Session not found despite authentication:', sessionError);
           const errorMessage = "Session error. Please try logging out and back in.";
           toast({
             variant: "destructive",

@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 // Define the shape of our auth context
 type AuthContextType = {
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 };
 
@@ -16,12 +16,20 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
-  // Check if user was previously logged in (from localStorage)
+  // Check if user was previously logged in and synchronize with Supabase
   useEffect(() => {
-    // Check Supabase session first
     const checkSession = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
+        // Check Supabase session first
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error getting session:", error);
+          setIsAuthenticated(false);
+          localStorage.removeItem("isAuthenticated");
+          return;
+        }
+        
         if (data.session) {
           console.log("Active Supabase session found");
           setIsAuthenticated(true);
@@ -29,11 +37,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
         
-        // Fallback to localStorage if no active Supabase session
+        // If no active Supabase session, try to sign in with stored credentials
+        const email = localStorage.getItem("userEmail");
+        const password = localStorage.getItem("userPassword");
+        
+        if (email && password) {
+          console.log("Attempting to sign in with stored credentials");
+          try {
+            const { data, error } = await supabase.auth.signInWithPassword({
+              email,
+              password,
+            });
+            
+            if (error) {
+              console.error("Error signing in with stored credentials:", error);
+              setIsAuthenticated(false);
+              localStorage.removeItem("isAuthenticated");
+              return;
+            }
+            
+            if (data.session) {
+              console.log("Successfully signed in with stored credentials");
+              setIsAuthenticated(true);
+              localStorage.setItem("isAuthenticated", "true");
+              return;
+            }
+          } catch (error) {
+            console.error("Exception signing in with stored credentials:", error);
+            // Clear potentially corrupted authentication state
+            localStorage.removeItem("isAuthenticated");
+            setIsAuthenticated(false);
+          }
+        }
+        
+        // If no active session and no stored credentials, check local storage as fallback
         const authStatus = localStorage.getItem("isAuthenticated");
         if (authStatus === "true") {
-          console.log("Using localStorage authentication status");
+          console.log("Using localStorage authentication status (MOCK MODE)");
           setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
         }
       } catch (error) {
         console.error("Error checking session:", error);
@@ -43,51 +86,96 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
     
+    // Initial session check
     checkSession();
-  }, []);
-
-  // Login function - in a real app, this would validate credentials against a backend
-  const login = async (email: string, password: string) => {
-    try {
-      // First, try to sign in with Supabase if available
-      try {
-        // This is just a mock implementation since we're not actually using Supabase auth directly
-        // In a real app, you'd use supabase.auth.signInWithPassword here
-        console.log("Attempting login with credentials:", { email });
-      } catch (error) {
-        console.log("Supabase auth not configured, using mock auth");
-      }
-      
-      // Mock implementation - in a real app, you'd verify these against a backend
-      if (email && password) {
-        console.log("Login successful");
+    
+    // Set up authentication state change listener
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event, session ? "Session exists" : "No session");
+      if (session) {
         setIsAuthenticated(true);
         localStorage.setItem("isAuthenticated", "true");
+      } else if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+        localStorage.removeItem("isAuthenticated");
+        localStorage.removeItem("userEmail");
+        localStorage.removeItem("userPassword");
+        localStorage.removeItem("authTimestamp");
+      }
+    });
+    
+    // Cleanup listener on unmount
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Login function
+  const login = async (email: string, password: string) => {
+    try {
+      console.log("Attempting login with credentials:", { email });
+      
+      // First, check if we can use Supabase auth
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
         
-        // Add a timestamp for session management
+        if (error) {
+          console.error("Supabase auth error:", error);
+          throw new Error(error.message);
+        }
+        
+        if (data.session) {
+          console.log("Supabase login successful");
+          setIsAuthenticated(true);
+          localStorage.setItem("isAuthenticated", "true");
+          localStorage.setItem("userEmail", email);
+          localStorage.setItem("userPassword", password);
+          localStorage.setItem("authTimestamp", Date.now().toString());
+          return { success: true };
+        }
+      } catch (error) {
+        console.log("Supabase auth not fully configured, falling back to mock auth");
+      }
+      
+      // Mock implementation - in a real app, we wouldn't use this
+      if (email && password) {
+        console.log("Mock login successful");
+        setIsAuthenticated(true);
+        localStorage.setItem("isAuthenticated", "true");
         localStorage.setItem("authTimestamp", Date.now().toString());
+        return { success: true };
       } else {
-        throw new Error("Invalid credentials");
+        const errorMsg = "Invalid credentials";
+        console.error(errorMsg);
+        return { success: false, error: errorMsg };
       }
     } catch (error) {
-      console.error("Login error:", error);
-      throw error;
+      const errorMsg = error instanceof Error ? error.message : "Login failed";
+      console.error("Login error:", errorMsg);
+      return { success: false, error: errorMsg };
     }
   };
 
   // Logout function
   const logout = () => {
     console.log("Logging out user");
-    // Try to sign out with Supabase if available
-    try {
-      supabase.auth.signOut();
-    } catch (error) {
-      console.log("Supabase auth not configured, using mock logout");
-    }
     
-    setIsAuthenticated(false);
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("authTimestamp");
+    // Try to sign out with Supabase
+    supabase.auth.signOut().then(() => {
+      console.log("Supabase signOut completed");
+    }).catch(error => {
+      console.error("Supabase signOut error:", error);
+    }).finally(() => {
+      // Always clear local state regardless of Supabase result
+      setIsAuthenticated(false);
+      localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("userEmail");
+      localStorage.removeItem("userPassword");
+      localStorage.removeItem("authTimestamp");
+    });
   };
 
   return (

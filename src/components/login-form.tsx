@@ -52,28 +52,38 @@ export function LoginForm({
     
     try {
       console.log("Attempting login with:", email);
-      await login(email, password)
+      const result = await login(email, password)
       
-      // Clear any existing session error messages
-      const sessionErrorEl = document.querySelector('.session-error');
-      if (sessionErrorEl) {
-        sessionErrorEl.remove();
+      if (result.success) {
+        // Clear any existing session error messages
+        const sessionErrorEl = document.querySelector('.session-error');
+        if (sessionErrorEl) {
+          sessionErrorEl.remove();
+        }
+        
+        toast({
+          title: "Success",
+          description: "Logged in successfully",
+        })
+        
+        // Small timeout to ensure state updates before redirect
+        setTimeout(() => {
+          console.log("Navigating to dashboard after login");
+          navigate("/dashboard");
+        }, 500);
+      } else {
+        console.error("Login failed:", result.error);
+        toast({
+          title: "Error",
+          description: result.error || "Login failed. Please try again.",
+          variant: "destructive",
+        })
       }
-      
-      toast({
-        title: "Success",
-        description: "Logged in successfully",
-      })
-      
-      // Small timeout to ensure state updates before redirect
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 100);
     } catch (error) {
       console.error("Login error:", error);
       toast({
         title: "Error",
-        description: "Invalid credentials. Please try again.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
       
