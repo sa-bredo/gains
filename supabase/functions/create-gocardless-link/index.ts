@@ -7,7 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const GOCARDLESS_API_URL = "https://bankaccountdata.gocardless.com/api/v2";
+// GoCardless Nordigen API URLs - they're using Nordigen for Open Banking
+const GOCARDLESS_API_URL = "https://ob.nordigen.com/api/v2";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -61,34 +62,42 @@ serve(async (req) => {
       );
     }
 
-    // Step 1: Obtain an access token
+    console.log('Using GoCardless credentials - Client ID exists:', !!clientId, 'Secret exists:', !!clientSecret);
+
+    // Step 1: Get JWT access token from GoCardless using client credentials
     console.log('Obtaining access token from GoCardless...');
-    const tokenResponse = await fetch(`${GOCARDLESS_API_URL}/token/`, {
+    
+    const tokenRequestBody = {
+      secret_id: clientId,
+      secret_key: clientSecret
+    };
+    
+    const tokenResponse = await fetch(`${GOCARDLESS_API_URL}/token/new/`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: clientId,
-        client_secret: clientSecret,
-      }),
+      body: JSON.stringify(tokenRequestBody),
     });
 
+    // Log the raw response for debugging
+    const tokenResponseText = await tokenResponse.text();
+    console.log('Token response status:', tokenResponse.status);
+    console.log('Token response:', tokenResponseText);
+
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error('GoCardless token error:', tokenResponse.status, errorText);
       return new Response(
         JSON.stringify({ 
           error: 'Failed to obtain GoCardless access token',
-          details: errorText
+          details: tokenResponseText
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const tokenData = await tokenResponse.json();
-    const accessToken = tokenData.access_token;
+    const tokenData = JSON.parse(tokenResponseText);
+    const accessToken = tokenData.access;
     
     if (!accessToken) {
       console.error('No access token returned from GoCardless');
@@ -100,10 +109,45 @@ serve(async (req) => {
 
     console.log('Successfully obtained GoCardless access token');
 
-    // Step 2: Create a new requisition
+    // Step 2: Create an End User Agreement (required for creating requisitions)
+    const agreementResponse = await fetch(`${GOCARDLESS_API_URL}/agreements/enduser/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        max_historical_days: 90,
+        access_valid_for_days: 90,
+        access_scope: ["balances", "details", "transactions"]
+      }),
+    });
+
+    const agreementResponseText = await agreementResponse.text();
+    console.log('Agreement response status:', agreementResponse.status);
+    console.log('Agreement response:', agreementResponseText);
+
+    if (!agreementResponse.ok) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to create GoCardless end user agreement',
+          details: agreementResponseText
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const agreementData = JSON.parse(agreementResponseText);
+    
+    // Step 3: Create a requisition that links the user to their bank
     // The redirect URL is where the user will be sent after connecting their bank
     const appUrl = Deno.env.get('PUBLIC_URL') || 'http://localhost:5173';
     const redirectUrl = `${appUrl}/financials/transactions-gocardless?status=success`;
+    
+    // For demo purposes, we'll use Santander UK as our institution
+    // In a production app, you would let users choose their bank
+    const santanderUkId = "SANTANDER_BANK_PL";
     
     console.log('Creating new requisition with GoCardless...');
     const requisitionResponse = await fetch(`${GOCARDLESS_API_URL}/requisitions/`, {
@@ -111,52 +155,33 @@ serve(async (req) => {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       body: JSON.stringify({
         redirect: redirectUrl,
-        institution_id: '', // Empty for now, user will select their bank in the GoCardless UI
-        reference: user.id, // Using the user's ID as a reference
-        agreement: tokenData.agreement, // Using the agreement from the token response if provided
+        institution_id: santanderUkId,
+        reference: user.id.substring(0, 20), // Using the user's ID as a reference
+        agreement: agreementData.id,
         user_language: 'EN', // Default to English
       }),
     });
 
+    const requisitionResponseText = await requisitionResponse.text();
+    console.log('Requisition response status:', requisitionResponse.status);
+    console.log('Requisition response:', requisitionResponseText);
+
     if (!requisitionResponse.ok) {
-      const errorText = await requisitionResponse.text();
-      console.error('GoCardless requisition error:', requisitionResponse.status, errorText);
       return new Response(
         JSON.stringify({ 
           error: 'Failed to create GoCardless requisition',
-          details: errorText
+          details: requisitionResponseText
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const requisitionData = await requisitionResponse.json();
+    const requisitionData = JSON.parse(requisitionResponseText);
     console.log('Requisition created successfully:', requisitionData.id);
-
-    // Step 3: Store the requisition details in Supabase for later retrieval
-    try {
-      const { error: insertError } = await supabase
-        .from('gocardless_requisitions')
-        .insert({
-          user_id: user.id,
-          requisition_id: requisitionData.id,
-          status: requisitionData.status,
-          created_at: new Date().toISOString(),
-          access_token: accessToken,
-          access_expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
-        });
-
-      if (insertError) {
-        console.error('Failed to store requisition details:', insertError);
-        // Continue anyway, as this is not critical
-      }
-    } catch (dbError) {
-      console.error('Database error storing requisition:', dbError);
-      // If the table doesn't exist yet, log it but don't fail the request
-    }
 
     // Return the link URL to the client
     return new Response(
