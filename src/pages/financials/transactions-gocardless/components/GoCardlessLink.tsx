@@ -108,7 +108,9 @@ export function GoCardlessLink({ onSuccess, onExit, isOpen }: GoCardlessLinkProp
         // Format the request payload with both parameters
         const requestPayload = {
           bank_id: bankId,          // Keep for backward compatibility
-          institution_id: bankId     // This is the parameter used by GoCardless
+          institution_id: bankId,    // This is the parameter used by GoCardless
+          // Add application URL for callback redirection
+          redirect_url: "https://preview--studio-anatomy-wizard.lovable.app/financials/transactions-gocardless"
         };
         
         console.log('Sending request payload:', JSON.stringify(requestPayload));
