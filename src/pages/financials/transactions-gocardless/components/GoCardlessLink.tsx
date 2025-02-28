@@ -148,14 +148,33 @@ export function GoCardlessLink({ onSuccess, onExit, isOpen }: GoCardlessLinkProp
         
         if (data.error) {
           console.error('Error creating GoCardless link:', data.error);
-          setErrorDetails(`Error from API: ${data.error}`);
-          const errorMessage = data.error || "Failed to initialize GoCardless Link. Please try again.";
+          
+          // Create a more detailed error message, including any details provided
+          let errorMessage = data.error || "Failed to initialize GoCardless Link";
+          let detailedErrorInfo = "";
+          
+          if (data.details) {
+            console.log('Error details:', data.details);
+            if (typeof data.details === 'string') {
+              detailedErrorInfo = data.details;
+            } else {
+              try {
+                detailedErrorInfo = JSON.stringify(data.details, null, 2);
+              } catch (e) {
+                detailedErrorInfo = String(data.details);
+              }
+            }
+          }
+          
+          setErrorDetails(detailedErrorInfo ? `${errorMessage}\n\nDetails: ${detailedErrorInfo}` : errorMessage);
+          
           toast({
             variant: "destructive",
             title: "Error",
             description: errorMessage
           });
-          onExit();
+          
+          setStep('selectBank');
           return;
         }
 
@@ -294,5 +313,18 @@ export function GoCardlessLink({ onSuccess, onExit, isOpen }: GoCardlessLinkProp
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Let's add a simple component to display error details in a more formatted way
+interface DialogErrorDetailsProps {
+  errorDetails: string;
+}
+
+export function DialogErrorDetails({ errorDetails }: DialogErrorDetailsProps) {
+  return (
+    <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4 max-h-[300px] overflow-auto">
+      <pre className="whitespace-pre-wrap text-xs font-mono text-red-800">{errorDetails}</pre>
+    </div>
   );
 }

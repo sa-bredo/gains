@@ -42,7 +42,7 @@ serve(async (req) => {
     if (userError || !user) {
       console.error('User auth error:', userError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Unauthorized', details: userError?.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -72,7 +72,10 @@ serve(async (req) => {
     
     if (!clientId || !clientSecret) {
       return new Response(
-        JSON.stringify({ error: 'GoCardless API credentials not configured' }),
+        JSON.stringify({ 
+          error: 'GoCardless API credentials not configured', 
+          details: 'Missing GOCARDLESS_CLIENT_ID or GOCARDLESS_CLIENT_SECRET environment variables' 
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -91,21 +94,57 @@ serve(async (req) => {
       }),
     });
 
+    // Get detailed token error if any
+    let tokenErrorDetails = null;
+    try {
+      const tokenErrorText = await tokenResponse.text();
+      console.log('Token response text:', tokenErrorText);
+      
+      if (tokenErrorText) {
+        try {
+          tokenErrorDetails = JSON.parse(tokenErrorText);
+        } catch (parseErr) {
+          tokenErrorDetails = { raw: tokenErrorText };
+        }
+      }
+    } catch (textErr) {
+      console.error('Failed to read token response text:', textErr);
+    }
+
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error('Failed to get access token:', tokenResponse.status, errorText);
+      console.error('Failed to get access token:', tokenResponse.status, tokenErrorDetails);
       return new Response(
-        JSON.stringify({ error: 'Failed to authenticate with GoCardless API' }),
+        JSON.stringify({ 
+          error: 'Failed to authenticate with GoCardless API', 
+          status: tokenResponse.status,
+          details: tokenErrorDetails
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const tokenData = await tokenResponse.json();
+    let tokenData;
+    try {
+      tokenData = tokenErrorDetails || await tokenResponse.json();
+    } catch (parseErr) {
+      console.error('Failed to parse token response JSON:', parseErr);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid response from GoCardless token API', 
+          details: tokenErrorDetails || { parseError: String(parseErr) }
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const accessToken = tokenData.access;
     
     if (!accessToken) {
       return new Response(
-        JSON.stringify({ error: 'No access token in response' }),
+        JSON.stringify({ 
+          error: 'No access token in response', 
+          details: tokenData
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -119,31 +158,79 @@ serve(async (req) => {
     console.log(`Creating requisition with redirect URL: ${redirectUrl}`);
     console.log(`Using institution ID: ${institutionId}`);
     
+    const requisitionBody = {
+      redirect: redirectUrl,
+      institution_id: institutionId,
+      reference: user.id,
+      agreement: "premium",
+      user_language: "EN",
+    };
+    console.log('Requisition request body:', JSON.stringify(requisitionBody));
+
     const requisitionResponse = await fetch(`${GOCARDLESS_API_URL}/requisitions/`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
-      body: JSON.stringify({
-        redirect: redirectUrl,
-        institution_id: institutionId,
-        reference: user.id,
-        agreement: "premium",
-        user_language: "EN",
-      }),
+      body: JSON.stringify(requisitionBody),
     });
 
+    // Get detailed requisition error if any
+    let requisitionErrorDetails = null;
+    let rawRequisitionResponse = '';
+    try {
+      rawRequisitionResponse = await requisitionResponse.text();
+      console.log('Requisition response text:', rawRequisitionResponse);
+      
+      if (rawRequisitionResponse) {
+        try {
+          requisitionErrorDetails = JSON.parse(rawRequisitionResponse);
+        } catch (parseErr) {
+          requisitionErrorDetails = { raw: rawRequisitionResponse };
+        }
+      }
+    } catch (textErr) {
+      console.error('Failed to read requisition response text:', textErr);
+    }
+
     if (!requisitionResponse.ok) {
-      const errorText = await requisitionResponse.text();
-      console.error('Failed to create requisition:', requisitionResponse.status, errorText);
+      console.error('Failed to create requisition:', requisitionResponse.status, requisitionErrorDetails);
       return new Response(
-        JSON.stringify({ error: 'Failed to create bank connection' }),
+        JSON.stringify({ 
+          error: 'Failed to create bank connection', 
+          status: requisitionResponse.status,
+          details: requisitionErrorDetails || { raw: rawRequisitionResponse }
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const requisitionData = await requisitionResponse.json();
+    let requisitionData;
+    try {
+      requisitionData = requisitionErrorDetails || JSON.parse(rawRequisitionResponse);
+    } catch (parseErr) {
+      console.error('Failed to parse requisition response JSON:', parseErr);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid response from GoCardless requisition API', 
+          details: { raw: rawRequisitionResponse, parseError: String(parseErr) }
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!requisitionData.link) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'No link URL in GoCardless response', 
+          details: requisitionData
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     console.log('Requisition created successfully', requisitionData);
 
     // Return the link URL
@@ -158,7 +245,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'An unexpected error occurred' }),
+      JSON.stringify({ 
+        error: error.message || 'An unexpected error occurred',
+        stack: error.stack,
+        details: { message: String(error) }
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
