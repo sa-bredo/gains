@@ -150,6 +150,12 @@ serve(async (req) => {
       );
     }
 
+    // Generate a unique reference by combining the user ID with a timestamp
+    const timestamp = new Date().getTime();
+    const uniqueReference = `${user.id}-${timestamp}`;
+    
+    console.log(`Generated unique reference: ${uniqueReference}`);
+
     // Create a requisition
     const requisitionResponse = await fetch('https://bankaccountdata.gocardless.com/api/v2/requisitions/', {
       method: 'POST',
@@ -161,7 +167,7 @@ serve(async (req) => {
       body: JSON.stringify({
         redirect: redirectUrl,
         institution_id: selectedInstitutionId,
-        reference: user.id,
+        reference: uniqueReference, // Use the unique reference instead of just user.id
         user_language: 'en',
       }),
     });
@@ -206,7 +212,7 @@ serve(async (req) => {
 
     console.log(`Created GoCardless requisition: ${requisitionId} with link: ${linkUrl}`);
 
-    // Store the requisition in the database
+    // Store the requisition in the database with the unique reference
     const { error: insertError } = await supabase
       .from('gocardless_requisitions')
       .insert({
@@ -214,6 +220,7 @@ serve(async (req) => {
         institution_id: selectedInstitutionId,
         user_id: user.id,
         status: 'PENDING',
+        reference: uniqueReference, // Store the reference for tracking
       });
 
     if (insertError) {
