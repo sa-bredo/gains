@@ -26,11 +26,13 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
           console.error('No session found');
           const errorMessage = "Please log in to connect your bank account.";
           toast({
-            title: (
-              <div className="flex items-center gap-2">
-                Authentication Error
+            variant: "destructive",
+            title: "Authentication Error",
+            description: (
+              <div className="flex items-center justify-between w-full">
+                <span>{errorMessage}</span>
                 <Copy 
-                  className="h-4 w-4 cursor-pointer text-muted-foreground hover:text-foreground" 
+                  className="h-4 w-4 cursor-pointer ml-2 text-muted-foreground hover:text-foreground" 
                   onClick={() => {
                     navigator.clipboard.writeText("Authentication Error: " + errorMessage);
                     toast({ title: "Copied to clipboard" });
@@ -38,8 +40,6 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
                 />
               </div>
             ),
-            description: errorMessage,
-            variant: "destructive",
           });
           onExit();
           return;
@@ -60,11 +60,13 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
           console.error('Error creating link token:', data.error);
           const errorMessage = data.error || "Failed to initialize Plaid Link. Please try again.";
           toast({
-            title: (
-              <div className="flex items-center gap-2">
-                Error
+            variant: "destructive",
+            title: "Error",
+            description: (
+              <div className="flex items-center justify-between w-full">
+                <span>{errorMessage}</span>
                 <Copy 
-                  className="h-4 w-4 cursor-pointer text-muted-foreground hover:text-foreground" 
+                  className="h-4 w-4 cursor-pointer ml-2 text-muted-foreground hover:text-foreground" 
                   onClick={() => {
                     navigator.clipboard.writeText("Error: " + errorMessage);
                     toast({ title: "Copied to clipboard" });
@@ -72,8 +74,6 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
                 />
               </div>
             ),
-            description: errorMessage,
-            variant: "destructive",
           });
           onExit();
           return;
@@ -147,11 +147,13 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
             console.error('Plaid not loaded');
             const errorMessage = "Failed to load Plaid. Please try again.";
             toast({
-              title: (
-                <div className="flex items-center gap-2">
-                  Error
+              variant: "destructive",
+              title: "Error",
+              description: (
+                <div className="flex items-center justify-between w-full">
+                  <span>{errorMessage}</span>
                   <Copy 
-                    className="h-4 w-4 cursor-pointer text-muted-foreground hover:text-foreground" 
+                    className="h-4 w-4 cursor-pointer ml-2 text-muted-foreground hover:text-foreground" 
                     onClick={() => {
                       navigator.clipboard.writeText("Error: " + errorMessage);
                       toast({ title: "Copied to clipboard" });
@@ -159,8 +161,6 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
                   />
                 </div>
               ),
-              description: errorMessage,
-              variant: "destructive",
             });
             onExit();
           }
@@ -172,11 +172,13 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
         console.error('Error initializing Plaid Link:', error);
         const errorMessage = error instanceof Error ? error.message : "Failed to initialize Plaid Link. Please try again.";
         toast({
-          title: (
-            <div className="flex items-center gap-2">
-              Error
+          variant: "destructive",
+          title: "Error",
+          description: (
+            <div className="flex items-center justify-between w-full">
+              <span>{errorMessage}</span>
               <Copy 
-                className="h-4 w-4 cursor-pointer text-muted-foreground hover:text-foreground" 
+                className="h-4 w-4 cursor-pointer ml-2 text-muted-foreground hover:text-foreground" 
                 onClick={() => {
                   navigator.clipboard.writeText("Error: " + errorMessage);
                   toast({ title: "Copied to clipboard" });
@@ -184,8 +186,6 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
               />
             </div>
           ),
-          description: errorMessage,
-          variant: "destructive",
         });
         onExit();
       }
