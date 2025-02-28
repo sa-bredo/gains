@@ -71,13 +71,35 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
           return;
         }
 
-        // Get a link token from our backend
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-link-token`, {
+        // Make sure we have a valid Supabase URL
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        if (!supabaseUrl) {
+          console.error('Missing VITE_SUPABASE_URL environment variable');
+          const errorMessage = "Configuration error. Please contact support.";
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: errorMessage
+          });
+          onExit();
+          return;
+        }
+
+        // Get a link token from our backend with the correctly formatted URL
+        const apiUrl = `${supabaseUrl}/functions/v1/create-link-token`;
+        console.log('Requesting link token from:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${session.access_token}`,
           }
         });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`API error (${response.status}): ${errorText}`);
+        }
 
         const data = await response.json();
         

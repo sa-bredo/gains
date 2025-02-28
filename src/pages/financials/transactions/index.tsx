@@ -64,13 +64,22 @@ export default function FinancialsTransactions() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
+      // Correctly format the API URL with the Supabase URL
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-accounts`;
+      console.log('Fetching accounts from:', apiUrl);
+
       // Real API call to get accounts
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-accounts`, {
+      const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
         }
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API error (${response.status}): ${errorText}`);
+      }
 
       const data = await response.json();
       
@@ -128,8 +137,12 @@ export default function FinancialsTransactions() {
       
       const startDateStr = startDate.toISOString().split('T')[0];
 
+      // Correctly format the API URL
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-transactions`;
+      console.log('Fetching transactions from:', apiUrl);
+
       // Real API call to get transactions
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-transactions`, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -141,6 +154,11 @@ export default function FinancialsTransactions() {
           endDate: endDate,
         }),
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API error (${response.status}): ${errorText}`);
+      }
 
       const data = await response.json();
       
@@ -182,7 +200,10 @@ export default function FinancialsTransactions() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/exchange-public-token`, {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/exchange-public-token`;
+      console.log('Exchanging public token at:', apiUrl);
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -190,6 +211,11 @@ export default function FinancialsTransactions() {
         },
         body: JSON.stringify({ publicToken, metadata }),
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API error (${response.status}): ${errorText}`);
+      }
 
       const data = await response.json();
       
