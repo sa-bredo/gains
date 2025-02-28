@@ -7,8 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// GoCardless Nordigen API URLs
-const GOCARDLESS_API_URL = "https://ob.nordigen.com/api/v2";
+// Updated GoCardless API URL based on the error message
+const GOCARDLESS_API_URL = "https://bankaccountdata.gocardless.com/api/v2";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -82,6 +82,8 @@ serve(async (req) => {
       secret_key: clientSecret
     };
     
+    console.log('Token request URL:', `${GOCARDLESS_API_URL}/token/new/`);
+    
     const tokenResponse = await fetch(`${GOCARDLESS_API_URL}/token/new/`, {
       method: 'POST',
       headers: {
@@ -91,18 +93,55 @@ serve(async (req) => {
       body: JSON.stringify(tokenRequestBody),
     });
 
+    // Log detailed information about the token request
+    const tokenResponseText = await tokenResponse.text();
+    console.log('Token response status:', tokenResponse.status);
+    console.log('Token response body:', tokenResponseText);
+
     if (!tokenResponse.ok) {
-      console.error('Failed to obtain access token');
+      console.error('Failed to obtain access token:', {
+        status: tokenResponse.status,
+        response: tokenResponseText
+      });
+      
       return new Response(
-        JSON.stringify({ error: 'Failed to obtain GoCardless access token' }),
+        JSON.stringify({ 
+          error: 'Failed to obtain GoCardless access token',
+          details: tokenResponseText
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const tokenData = await tokenResponse.json();
+    let tokenData;
+    try {
+      tokenData = JSON.parse(tokenResponseText);
+    } catch (parseError) {
+      console.error('Failed to parse token response:', parseError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid token response format',
+          details: tokenResponseText
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     const accessToken = tokenData.access;
+    if (!accessToken) {
+      console.error('No access token in response:', tokenData);
+      return new Response(
+        JSON.stringify({ 
+          error: 'No access token in response',
+          details: JSON.stringify(tokenData)
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Step 2: Get transactions for the specified account
+    console.log(`Fetching transactions for account ${accountId}`);
+    
     const transactionsResponse = await fetch(`${GOCARDLESS_API_URL}/accounts/${accountId}/transactions/`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -110,20 +149,49 @@ serve(async (req) => {
       },
     });
 
+    // Log detailed information about the transactions request
+    const transactionsResponseText = await transactionsResponse.text();
+    console.log('Transactions response status:', transactionsResponse.status);
+    console.log('Transactions response body preview:', 
+      transactionsResponseText.length > 200 ? 
+      transactionsResponseText.substring(0, 200) + '...' : 
+      transactionsResponseText);
+
     if (!transactionsResponse.ok) {
-      console.error('Failed to retrieve transactions');
+      console.error('Failed to retrieve transactions:', {
+        status: transactionsResponse.status,
+        response: transactionsResponseText
+      });
+      
       return new Response(
-        JSON.stringify({ error: 'Failed to retrieve transactions' }),
+        JSON.stringify({ 
+          error: 'Failed to retrieve transactions',
+          details: transactionsResponseText
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const transactionsData = await transactionsResponse.json();
+    let transactionsData;
+    try {
+      transactionsData = JSON.parse(transactionsResponseText);
+    } catch (parseError) {
+      console.error('Failed to parse transactions response:', parseError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid transactions response format',
+          details: transactionsResponseText.substring(0, 500)
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     // Filter and format transactions
     const formattedTransactions = [];
     const transactions = transactionsData.transactions?.booked || [];
     const pendingTransactions = transactionsData.transactions?.pending || [];
+    
+    console.log(`Processing ${transactions.length} booked transactions and ${pendingTransactions.length} pending transactions`);
     
     // Process booked transactions
     for (const transaction of transactions) {
@@ -170,6 +238,8 @@ serve(async (req) => {
     // Sort transactions by date (newest first)
     formattedTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+    console.log(`Returning ${formattedTransactions.length} formatted transactions`);
+    
     return new Response(
       JSON.stringify({ transactions: formattedTransactions }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

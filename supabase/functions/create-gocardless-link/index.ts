@@ -7,8 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// GoCardless Nordigen API URLs - they're using Nordigen for Open Banking
-const GOCARDLESS_API_URL = "https://ob.nordigen.com/api/v2";
+// Updated GoCardless API URL based on the error message
+const GOCARDLESS_API_URL = "https://bankaccountdata.gocardless.com/api/v2";
 
 serve(async (req) => {
   // Handle CORS preflight requests
