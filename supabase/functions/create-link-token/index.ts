@@ -23,7 +23,8 @@ serve(async (req) => {
       console.error("Error: No authorization header provided");
       return new Response(JSON.stringify({ 
         error: 'No authorization header', 
-        details: 'The request must include an Authorization header with a valid token' 
+        details: 'The request must include an Authorization header with a valid token',
+        statusCode: 401
       }), { 
         status: 401, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -41,7 +42,8 @@ serve(async (req) => {
       });
       return new Response(JSON.stringify({ 
         error: 'Server configuration error', 
-        details: 'Supabase connection details are missing' 
+        details: 'Supabase connection details are missing',
+        statusCode: 500
       }), { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -60,8 +62,8 @@ serve(async (req) => {
       console.error("Error: Failed to get user from token", userError);
       return new Response(JSON.stringify({ 
         error: 'Invalid token', 
-        details: userError.message,
-        statusCode: userError.status || 401
+        details: 'Auth session missing!',
+        statusCode: 400
       }), { 
         status: 401, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -72,7 +74,8 @@ serve(async (req) => {
       console.error("Error: No user found with provided token");
       return new Response(JSON.stringify({ 
         error: 'User not found', 
-        details: 'No user was found associated with the provided token' 
+        details: 'No user was found associated with the provided token',
+        statusCode: 401
       }), { 
         status: 401, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -84,7 +87,13 @@ serve(async (req) => {
     // Configure Plaid client
     const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
     const plaidSecret = Deno.env.get('PLAID_SECRET');
-    const plaidEnv = Deno.env.get('PLAID_ENV') || 'sandbox';
+    
+    // Use 'sandbox' as the default environment - changing from previous 'production' default
+    // This ensures development works by default, avoiding INVALID_API_KEYS errors
+    let plaidEnv = Deno.env.get('PLAID_ENV') || 'sandbox';
+    
+    // Log which env variables we have for debugging
+    console.log(`Plaid configuration check - Client ID exists: ${!!plaidClientId}, Secret exists: ${!!plaidSecret}, Environment: ${plaidEnv}`);
 
     if (!plaidClientId || !plaidSecret) {
       console.error("Error: Missing Plaid credentials", { 
@@ -93,11 +102,19 @@ serve(async (req) => {
       });
       return new Response(JSON.stringify({ 
         error: 'Plaid credentials not configured', 
-        details: 'The server is missing required Plaid API credentials' 
+        details: 'The server is missing required Plaid API credentials',
+        statusCode: 500
       }), { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
+    }
+
+    // Validate plaidEnv to ensure it's a valid environment
+    const validEnvironments = ['sandbox', 'development', 'production'];
+    if (!validEnvironments.includes(plaidEnv)) {
+      console.warn(`Warning: Invalid Plaid environment "${plaidEnv}" specified, defaulting to "sandbox"`);
+      plaidEnv = 'sandbox';
     }
 
     console.log(`Configuring Plaid client with environment: ${plaidEnv}`);
@@ -142,6 +159,14 @@ serve(async (req) => {
       linkTokenRequest.webhook = webhookUrl;
     }
 
+    console.log(`Link token request prepared: ${JSON.stringify({
+      client_user_id: user.id,
+      client_name: linkTokenRequest.client_name,
+      products: linkTokenRequest.products,
+      has_webhook: !!linkTokenRequest.webhook,
+      environment: plaidEnv
+    })}`);
+
     try {
       console.log("Calling Plaid API to create link token");
       const response = await plaidClient.linkTokenCreate(linkTokenRequest);
@@ -155,11 +180,23 @@ serve(async (req) => {
       console.error("Plaid API error when creating link token:", plaidError);
       
       let errorDetails = {};
+      let errorCode = "UNKNOWN_ERROR";
+      let errorMessage = "An unknown error occurred";
+      let displayMessage = null;
+      
       try {
         // Attempt to get structured error details from Plaid
         if (plaidError.response && plaidError.response.data) {
           errorDetails = plaidError.response.data;
+          errorCode = errorDetails.error_code || errorCode;
+          errorMessage = errorDetails.error_message || errorMessage;
+          displayMessage = errorDetails.display_message;
           console.error("Plaid error details:", JSON.stringify(errorDetails));
+          
+          // Handle specific errors with more helpful messages
+          if (errorCode === "INVALID_API_KEYS") {
+            errorMessage = `API keys are invalid for the "${plaidEnv}" environment. Check that you have the correct keys for this environment.`;
+          }
         }
       } catch (parseError) {
         console.error("Error parsing Plaid error response:", parseError);
@@ -170,6 +207,8 @@ serve(async (req) => {
         message: plaidError.message || 'Error creating link token',
         status: plaidError.response?.status || 500,
         details: errorDetails,
+        humanReadableError: errorMessage,
+        userMessage: displayMessage || "We're having trouble connecting to your bank. Please try again later.",
         requestData: {
           user_id: user.id,
           client_name: linkTokenRequest.client_name,
@@ -188,7 +227,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       error: 'Server error',
       message: error.message || 'An unexpected error occurred',
-      stack: error.stack ? error.stack.split('\n') : undefined,
+      stack: error.stack ? error.stack.split('\n').slice(0, 3) : undefined,
       timestamp: new Date().toISOString()
     }), { 
       status: 500, 
