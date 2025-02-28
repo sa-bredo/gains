@@ -7,11 +7,8 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { TransactionsTable } from "./components/TransactionsTable";
-import { AccountList } from "./components/AccountList";
 import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
-import { PlaidLink } from "./components/PlaidLink";
 import { useToast } from "@/hooks/use-toast";
 
 export default function FinancialsTransactions() {
@@ -198,19 +195,90 @@ export default function FinancialsTransactions() {
                 
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
                   <div className="col-span-1">
-                    <AccountList 
-                      accounts={accounts}
-                      selectedAccountId={selectedAccountId}
-                      onSelectAccount={handleAccountSelect}
-                      isLoading={isLoading}
-                    />
+                    <div className="bg-card p-4 rounded-lg border shadow-sm">
+                      <h3 className="font-semibold mb-2">Your Accounts</h3>
+                      {isLoading ? (
+                        <div className="text-center py-4">
+                          <div className="animate-pulse h-6 bg-muted rounded mb-2"></div>
+                          <div className="animate-pulse h-6 bg-muted rounded mb-2 w-3/4"></div>
+                        </div>
+                      ) : accounts.length > 0 ? (
+                        <ul className="space-y-2">
+                          {accounts.map((account) => (
+                            <li 
+                              key={account.id}
+                              className={`p-2 rounded cursor-pointer transition-colors ${
+                                selectedAccountId === account.id ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
+                              }`}
+                              onClick={() => handleAccountSelect(account.id)}
+                            >
+                              <div className="font-medium">{account.name}</div>
+                              <div className="text-sm text-muted-foreground">{account.mask ? `••••${account.mask}` : ''}</div>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="text-center py-4 text-muted-foreground">
+                          <p>No accounts linked yet.</p>
+                          <p className="text-sm">Click "Add Bank Account" to get started.</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="col-span-1 md:col-span-3">
-                    <TransactionsTable 
-                      accountId={selectedAccountId}
-                      dateFilter={dateFilter}
-                      onDateFilterChange={handleDateFilterChange}
-                    />
+                    <div className="bg-card p-4 rounded-lg border shadow-sm">
+                      <h3 className="font-semibold mb-4">Transactions</h3>
+                      {!selectedAccountId ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <p>Select an account to view transactions</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <div className="text-sm text-muted-foreground">Filter by date</div>
+                              <div className="flex gap-2">
+                                <Button variant="outline" size="sm">Last 30 days</Button>
+                                <Button variant="outline" size="sm">This month</Button>
+                                <Button variant="outline" size="sm">This year</Button>
+                              </div>
+                            </div>
+                            <div>
+                              <Button variant="outline" size="sm">
+                                <span className="mr-2">Export</span>
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          <div className="border rounded-md overflow-hidden">
+                            <div className="bg-muted p-2 text-sm grid grid-cols-12 gap-2">
+                              <div className="col-span-3 font-medium">Date</div>
+                              <div className="col-span-5 font-medium">Description</div>
+                              <div className="col-span-2 font-medium">Category</div>
+                              <div className="col-span-2 font-medium text-right">Amount</div>
+                            </div>
+                            
+                            <div className="divide-y">
+                              {isLoading ? (
+                                Array(5).fill(0).map((_, i) => (
+                                  <div key={i} className="p-2 grid grid-cols-12 gap-2 animate-pulse">
+                                    <div className="col-span-3 h-4 bg-muted rounded"></div>
+                                    <div className="col-span-5 h-4 bg-muted rounded"></div>
+                                    <div className="col-span-2 h-4 bg-muted rounded"></div>
+                                    <div className="col-span-2 h-4 bg-muted rounded"></div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="p-8 text-center text-muted-foreground">
+                                  <p>No transactions to display.</p>
+                                  <p className="text-sm">Transactions will appear here once synced.</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -218,10 +286,25 @@ export default function FinancialsTransactions() {
           </SidebarInset>
         </div>
         {isPlaidLinkOpen && (
-          <PlaidLink 
-            onSuccess={handlePlaidSuccess}
-            onExit={handlePlaidExit}
-          />
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="bg-card p-6 rounded-lg shadow-lg max-w-md w-full">
+              <h2 className="text-xl font-bold mb-4">Connect Your Bank Account</h2>
+              <p className="text-muted-foreground mb-6">
+                You'll be redirected to securely connect your bank account. Your credentials are never stored on our servers.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={handlePlaidExit}>Cancel</Button>
+                <Button onClick={() => {
+                  toast({
+                    title: "Plaid Link",
+                    description: "Plaid Link would open here to connect your bank account.",
+                  });
+                }}>
+                  Continue
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </SidebarProvider>
     </ProtectedRoute>

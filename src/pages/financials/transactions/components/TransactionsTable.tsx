@@ -1,220 +1,77 @@
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { 
-  ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
-  flexRender,
-  getCoreRowModel,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
-import { 
-  ArrowUpDown, 
-  Search,
-  Calendar,
-  X
-} from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
-type Transaction = {
+interface Transaction {
   id: string;
-  account_id: string;
-  transaction_id: string;
-  amount: number;
   date: string;
-  description: string;
-  merchant_name: string | null;
-  category: string | null;
+  name: string;
+  amount: number;
+  category?: string[];
   pending: boolean;
-  account: {
-    name: string;
-    institution_name: string;
-  };
-};
+}
 
-type TransactionsTableProps = {
+interface TransactionsTableProps {
   accountId: string | null;
   dateFilter: {
     startDate: Date | null;
     endDate: Date | null;
   };
   onDateFilterChange: (filter: { startDate: Date | null; endDate: Date | null }) => void;
-};
+}
 
-export function TransactionsTable({ accountId, dateFilter, onDateFilterChange }: TransactionsTableProps) {
+export function TransactionsTable({
+  accountId,
+  dateFilter,
+  onDateFilterChange,
+}: TransactionsTableProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'date', desc: true }]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = useState({});
-  const [totalTransactions, setTotalTransactions] = useState(0);
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  });
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-
-  const columns: ColumnDef<Transaction>[] = [
-    {
-      accessorKey: "date",
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Date
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      ),
-      cell: ({ row }) => {
-        const date = new Date(row.getValue("date"));
-        return <span>{format(date, "MMM d, yyyy")}</span>;
-      },
-    },
-    {
-      accessorKey: "description",
-      header: "Description",
-      cell: ({ row }) => {
-        const description = row.getValue("description") as string;
-        const pending = row.original.pending;
-        
-        return (
-          <div className="flex flex-col">
-            <span className="font-medium">{description}</span>
-            {pending && (
-              <Badge variant="outline" className="mt-1 max-w-fit bg-yellow-100 text-yellow-800">
-                Pending
-              </Badge>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "merchant_name",
-      header: "Merchant",
-      cell: ({ row }) => {
-        const merchant = row.getValue("merchant_name") as string | null;
-        return <span>{merchant || "-"}</span>;
-      },
-    },
-    {
-      accessorKey: "category",
-      header: "Category",
-      cell: ({ row }) => {
-        const category = row.getValue("category") as string | null;
-        return <span>{category || "-"}</span>;
-      },
-    },
-    {
-      accessorKey: "amount",
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="justify-end"
-        >
-          Amount
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      ),
-      cell: ({ row }) => {
-        const amount = parseFloat(row.getValue("amount"));
-        // Format the amount as a dollar amount
-        const formatted = new Intl.NumberFormat("en-US", {
-          style: "currency",
-          currency: "USD",
-        }).format(amount);
-
-        return (
-          <div className="text-right font-medium">
-            <span className={amount < 0 ? "text-green-600" : "text-red-600"}>
-              {formatted}
-            </span>
-          </div>
-        );
-      },
-    },
-  ];
 
   useEffect(() => {
     if (accountId) {
       fetchTransactions();
-    } else {
-      setTransactions([]);
-      setIsLoading(false);
     }
-  }, [accountId, dateFilter, pagination.pageIndex, pagination.pageSize]);
+  }, [accountId, dateFilter]);
 
   const fetchTransactions = async () => {
     try {
       setIsLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
+      
       if (!session) return;
 
-      const searchParams = new URLSearchParams();
-      
-      if (accountId) {
-        searchParams.append('accountId', accountId);
-      }
-      
-      if (dateFilter.startDate) {
-        searchParams.append('startDate', format(dateFilter.startDate, 'yyyy-MM-dd'));
-      }
-      
-      if (dateFilter.endDate) {
-        searchParams.append('endDate', format(dateFilter.endDate, 'yyyy-MM-dd'));
-      }
-      
-      searchParams.append('page', String(pagination.pageIndex + 1));
-      searchParams.append('pageSize', String(pagination.pageSize));
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-transactions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          accountId,
+          startDate: dateFilter.startDate ? format(dateFilter.startDate, 'yyyy-MM-dd') : undefined,
+          endDate: dateFilter.endDate ? format(dateFilter.endDate, 'yyyy-MM-dd') : undefined,
+        }),
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-transactions?${searchParams.toString()}`, 
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          }
-        }
-      );
-
-      const data = await response.json();
+      const { transactions, error } = await response.json();
       
-      if (data.error) {
-        console.error('Error fetching transactions:', data.error);
+      if (error) {
+        console.error('Error fetching transactions:', error);
         toast({
           title: "Error fetching transactions",
-          description: data.error,
+          description: error,
           variant: "destructive",
         });
       } else {
-        setTransactions(data.transactions || []);
-        setTotalTransactions(data.total || 0);
+        setTransactions(transactions || []);
       }
     } catch (error) {
       console.error('Error fetching transactions:', error);
@@ -228,200 +85,106 @@ export function TransactionsTable({ accountId, dateFilter, onDateFilterChange }:
     }
   };
 
-  const handleResetDateFilter = () => {
+  const setDateRangeFilter = (days: number) => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    
     onDateFilterChange({
-      startDate: null,
-      endDate: null,
+      startDate,
+      endDate,
     });
   };
 
-  const table = useReactTable({
-    data: transactions,
-    columns,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection,
-      pagination: {
-        pageIndex: pagination.pageIndex,
-        pageSize: pagination.pageSize,
-      },
-    },
-    pageCount: Math.ceil(totalTransactions / pagination.pageSize),
-    enableRowSelection: true,
-    onRowSelectionChange: setRowSelection,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    onPaginationChange: setPagination,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    manualPagination: true,
-  });
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <CardTitle>Transactions</CardTitle>
-          <div className="flex items-center gap-2">
-            <div className="relative w-full sm:w-auto">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search transactions..."
-                value={(table.getColumn("description")?.getFilterValue() as string) ?? ""}
-                onChange={(event) => table.getColumn("description")?.setFilterValue(event.target.value)}
-                className="w-full sm:w-[200px] pl-8"
-              />
-            </div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <Calendar className="h-4 w-4" />
-                  {dateFilter.startDate || dateFilter.endDate ? (
-                    <span>
-                      {dateFilter.startDate ? format(dateFilter.startDate, "MMM d, yyyy") : "Start"} 
-                      {" - "}
-                      {dateFilter.endDate ? format(dateFilter.endDate, "MMM d, yyyy") : "End"}
-                    </span>
-                  ) : (
-                    <span>Date range</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <div className="p-3 space-y-3">
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-medium">Start date</h4>
-                    <CalendarComponent
-                      mode="single"
-                      selected={dateFilter.startDate || undefined}
-                      onSelect={(date) => onDateFilterChange({
-                        ...dateFilter,
-                        startDate: date,
-                      })}
-                      disabled={(date) => dateFilter.endDate ? date > dateFilter.endDate : false}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-medium">End date</h4>
-                    <CalendarComponent
-                      mode="single"
-                      selected={dateFilter.endDate || undefined}
-                      onSelect={(date) => onDateFilterChange({
-                        ...dateFilter,
-                        endDate: date,
-                      })}
-                      disabled={(date) => dateFilter.startDate ? date < dateFilter.startDate : false}
-                    />
-                  </div>
-                  <div className="flex justify-end">
-                    <Button variant="ghost" size="sm" onClick={handleResetDateFilter}>
-                      <X className="h-4 w-4 mr-2" />
-                      Reset
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-lg">Transactions</CardTitle>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDateRangeFilter(7)}
+          >
+            7 days
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDateRangeFilter(30)}
+          >
+            30 days
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDateRangeFilter(90)}
+          >
+            90 days
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  ))}
-                </TableRow>
+        {!accountId ? (
+          <div className="py-8 text-center">
+            <p className="text-muted-foreground">Select an account to view transactions</p>
+          </div>
+        ) : isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : transactions.length > 0 ? (
+          <ScrollArea className="h-[500px]">
+            <div className="space-y-1">
+              <div className="grid grid-cols-12 gap-2 py-2 px-3 text-xs font-medium text-muted-foreground bg-muted/50 rounded-t-md">
+                <div className="col-span-2">Date</div>
+                <div className="col-span-6">Description</div>
+                <div className="col-span-2">Category</div>
+                <div className="col-span-2 text-right">Amount</div>
+              </div>
+              {transactions.map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="grid grid-cols-12 gap-2 py-3 px-3 border-b hover:bg-muted/10"
+                >
+                  <div className="col-span-2 text-sm">
+                    {format(new Date(transaction.date), 'MMM d, yyyy')}
+                  </div>
+                  <div className="col-span-6">
+                    <div className="font-medium">{transaction.name}</div>
+                    {transaction.pending && (
+                      <div className="text-xs text-muted-foreground">Pending</div>
+                    )}
+                  </div>
+                  <div className="col-span-2 text-sm text-muted-foreground">
+                    {transaction.category ? transaction.category[0] : "Other"}
+                  </div>
+                  <div className={`col-span-2 text-right font-medium ${transaction.amount < 0 ? 'text-red-500' : ''}`}>
+                    {formatCurrency(transaction.amount)}
+                  </div>
+                </div>
               ))}
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, index) => (
-                  <TableRow key={index}>
-                    {Array.from({ length: columns.length }).map((_, cellIndex) => (
-                      <TableCell key={cellIndex}>
-                        <Skeleton className="h-6 w-full" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() ? "selected" : undefined}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    {accountId ? "No transactions found." : "Select an account to view transactions."}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        <div className="flex items-center justify-between space-x-2 py-4">
-          <div className="text-sm text-muted-foreground">
-            Showing{" "}
-            <strong>
-              {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}-
-              {Math.min(
-                (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                totalTransactions
-              )}
-            </strong>{" "}
-            of <strong>{totalTransactions}</strong> transactions
+            </div>
+          </ScrollArea>
+        ) : (
+          <div className="py-8 text-center">
+            <p className="text-muted-foreground mb-2">No transactions found</p>
+            <p className="text-xs text-muted-foreground">
+              Try selecting a different date range or account
+            </p>
           </div>
-          <div className="space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
