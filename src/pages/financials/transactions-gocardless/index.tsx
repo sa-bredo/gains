@@ -52,24 +52,40 @@ export default function FinancialsTransactionsGoCardless() {
   };
 
   useEffect(() => {
-    // Check if we're returning from the GoCardless redirect
+    // Check for callback parameters from GoCardless
     const searchParams = new URLSearchParams(location.search);
     const status = searchParams.get('status');
+    const ref = searchParams.get('ref');
     
-    if (status === 'success') {
-      toast({
-        title: "Bank Connection Successful",
-        description: "Your bank has been successfully connected. Loading your accounts...",
-        variant: "default",
-      });
+    if (status) {
+      console.log(`GoCardless callback detected with status: ${status}`);
       
-      // Remove the query parameters from the URL
-      navigate('/financials/transactions-gocardless', { replace: true });
-      
-      // Refresh accounts after a short delay
-      setTimeout(() => {
-        fetchAccounts();
-      }, 1000);
+      if (status === 'success') {
+        toast({
+          title: "Bank Connection Successful",
+          description: "Your bank has been successfully connected. Loading your accounts...",
+          variant: "default",
+        });
+        
+        // Remove the query parameters from the URL
+        navigate('/financials/transactions-gocardless', { replace: true });
+        
+        // Refresh accounts after a short delay
+        setTimeout(() => {
+          fetchAccounts();
+        }, 1000);
+      } else if (status === 'error' || status === 'failure') {
+        const errorMessage = searchParams.get('error') || 'An error occurred during bank connection';
+        
+        toast({
+          title: "Bank Connection Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        
+        // Remove the query parameters from the URL
+        navigate('/financials/transactions-gocardless', { replace: true });
+      }
     }
   }, [location]);
 

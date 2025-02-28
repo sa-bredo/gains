@@ -7,11 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const GOCARDLESS_API_URL = "https://bankaccountdata.gocardless.com/api/v2";
-
 serve(async (req) => {
-  console.log("Request received to create-gocardless-link");
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -21,7 +17,7 @@ serve(async (req) => {
   }
 
   try {
-    // Get the authorization header
+    // Get the JWT from the request headers
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -42,51 +38,57 @@ serve(async (req) => {
     if (userError || !user) {
       console.error('User auth error:', userError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized', details: userError?.message }),
+        JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Authenticated user: ${user.id}`);
-
-    // Parse the request body
-    const requestBody = await req.json();
+    // Parse the request body to get the institution ID
+    const { bank_id, institution_id } = await req.json();
     
-    // Get both bank_id and institution_id from request
-    // bank_id is kept for backward compatibility
-    const bankId = requestBody.bank_id || '';
-    const institutionId = requestBody.institution_id || bankId; // Use bankId as fallback
+    // Use the provided institution ID or fall back to bank_id for backward compatibility
+    const selectedInstitutionId = institution_id || bank_id;
     
-    console.log(`Bank ID: ${bankId}, Institution ID: ${institutionId}`);
-    
-    if (!institutionId) {
+    if (!selectedInstitutionId) {
       return new Response(
-        JSON.stringify({ error: 'Missing institution_id in request' }),
+        JSON.stringify({ error: 'Missing institution_id in request body' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    console.log(`Creating GoCardless link for institution: ${selectedInstitutionId}, user: ${user.id}`);
 
-    // Get API credentials
+    // Get environment variables for the GoCardless client
     const clientId = Deno.env.get('GOCARDLESS_CLIENT_ID');
     const clientSecret = Deno.env.get('GOCARDLESS_CLIENT_SECRET');
     
     if (!clientId || !clientSecret) {
       return new Response(
-        JSON.stringify({ 
-          error: 'GoCardless API credentials not configured', 
-          details: 'Missing GOCARDLESS_CLIENT_ID or GOCARDLESS_CLIENT_SECRET environment variables' 
-        }),
+        JSON.stringify({ error: 'GoCardless credentials are not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get access token from GoCardless
-    console.log('Getting access token from GoCardless');
-    const tokenResponse = await fetch(`${GOCARDLESS_API_URL}/token/new/`, {
+    // Get the correct base URL for redirects
+    // First try PUBLIC_URL, then fall back to request origin
+    let baseUrl = Deno.env.get('PUBLIC_URL');
+    if (!baseUrl) {
+      const origin = req.headers.get('origin');
+      baseUrl = origin || 'http://localhost:3000'; // Final fallback
+    }
+    
+    console.log(`Using base URL for redirects: ${baseUrl}`);
+    
+    // Construct the full redirect URL
+    const redirectUrl = `${baseUrl}/financials/transactions-gocardless`;
+    
+    console.log(`Redirect URL: ${redirectUrl}`);
+
+    // Get an access token from GoCardless
+    const tokenResponse = await fetch('https://bankaccountdata.gocardless.com/api/v2/token/new/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
       },
       body: JSON.stringify({
         secret_id: clientId,
@@ -94,162 +96,155 @@ serve(async (req) => {
       }),
     });
 
-    // Get detailed token error if any
-    let tokenErrorDetails = null;
-    try {
-      const tokenErrorText = await tokenResponse.text();
-      console.log('Token response text:', tokenErrorText);
-      
-      if (tokenErrorText) {
-        try {
-          tokenErrorDetails = JSON.parse(tokenErrorText);
-        } catch (parseErr) {
-          tokenErrorDetails = { raw: tokenErrorText };
-        }
-      }
-    } catch (textErr) {
-      console.error('Failed to read token response text:', textErr);
-    }
-
     if (!tokenResponse.ok) {
-      console.error('Failed to get access token:', tokenResponse.status, tokenErrorDetails);
+      console.error('Failed to get GoCardless access token:', tokenResponse.status);
+      let errorText = '';
+      try {
+        errorText = await tokenResponse.text();
+      } catch (_) {
+        errorText = 'Unknown error';
+      }
+      
       return new Response(
         JSON.stringify({ 
           error: 'Failed to authenticate with GoCardless API', 
-          status: tokenResponse.status,
-          details: tokenErrorDetails
+          details: errorText 
         }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       );
     }
 
-    let tokenData;
-    try {
-      tokenData = tokenErrorDetails || await tokenResponse.json();
-    } catch (parseErr) {
-      console.error('Failed to parse token response JSON:', parseErr);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Invalid response from GoCardless token API', 
-          details: tokenErrorDetails || { parseError: String(parseErr) }
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
+    const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access;
-    
-    if (!accessToken) {
+
+    // Request institution details to verify its validity
+    const institutionResponse = await fetch(`https://bankaccountdata.gocardless.com/api/v2/institutions/${selectedInstitutionId}/`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!institutionResponse.ok) {
+      console.error('Failed to verify institution:', institutionResponse.status);
+      let errorText = '';
+      try {
+        errorText = await institutionResponse.text();
+      } catch (_) {
+        errorText = 'Unknown error';
+      }
+      
       return new Response(
         JSON.stringify({ 
-          error: 'No access token in response', 
-          details: tokenData
+          error: 'Failed to verify institution with GoCardless', 
+          details: errorText 
         }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       );
     }
 
-    console.log('Access token obtained successfully');
-
-    // Create a requisition (link) to the bank
-    const siteHost = Deno.env.get('PUBLIC_URL') || 'https://preview--studio-anatomy-wizard.lovable.app';
-    const redirectUrl = `${siteHost}/financials/transactions-gocardless?status=success`;
-    
-    console.log(`Creating requisition with redirect URL: ${redirectUrl}`);
-    console.log(`Using institution ID: ${institutionId}`);
-    
-    const requisitionBody = {
-      redirect: redirectUrl,
-      institution_id: institutionId,
-      reference: user.id,
-      user_language: "EN",
-    };
-    console.log('Requisition request body:', JSON.stringify(requisitionBody));
-
-    const requisitionResponse = await fetch(`${GOCARDLESS_API_URL}/requisitions/`, {
+    // Create a requisition
+    const requisitionResponse = await fetch('https://bankaccountdata.gocardless.com/api/v2/requisitions/', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify(requisitionBody),
+      body: JSON.stringify({
+        redirect: redirectUrl,
+        institution_id: selectedInstitutionId,
+        reference: user.id,
+        user_language: 'en',
+      }),
     });
 
-    // Get detailed requisition error if any
-    let requisitionErrorDetails = null;
-    let rawRequisitionResponse = '';
-    try {
-      rawRequisitionResponse = await requisitionResponse.text();
-      console.log('Requisition response text:', rawRequisitionResponse);
-      
-      if (rawRequisitionResponse) {
-        try {
-          requisitionErrorDetails = JSON.parse(rawRequisitionResponse);
-        } catch (parseErr) {
-          requisitionErrorDetails = { raw: rawRequisitionResponse };
-        }
-      }
-    } catch (textErr) {
-      console.error('Failed to read requisition response text:', textErr);
-    }
-
     if (!requisitionResponse.ok) {
-      console.error('Failed to create requisition:', requisitionResponse.status, requisitionErrorDetails);
+      console.error('Failed to create requisition:', requisitionResponse.status);
+      let errorText = '';
+      try {
+        errorText = await requisitionResponse.text();
+      } catch (_) {
+        errorText = 'Unknown error';
+      }
+      
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to create bank connection', 
-          status: requisitionResponse.status,
-          details: requisitionErrorDetails || { raw: rawRequisitionResponse }
+          error: 'Failed to create bank connection requisition', 
+          details: errorText 
         }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       );
     }
 
-    let requisitionData;
-    try {
-      requisitionData = requisitionErrorDetails || JSON.parse(rawRequisitionResponse);
-    } catch (parseErr) {
-      console.error('Failed to parse requisition response JSON:', parseErr);
+    const requisitionData = await requisitionResponse.json();
+    const requisitionId = requisitionData.id;
+    const linkUrl = requisitionData.link;
+
+    if (!linkUrl) {
       return new Response(
         JSON.stringify({ 
-          error: 'Invalid response from GoCardless requisition API', 
-          details: { raw: rawRequisitionResponse, parseError: String(parseErr) }
+          error: 'No link URL returned from GoCardless', 
+          details: requisitionData 
         }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       );
     }
 
-    if (!requisitionData.link) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'No link URL in GoCardless response', 
-          details: requisitionData
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    console.log(`Created GoCardless requisition: ${requisitionId} with link: ${linkUrl}`);
+
+    // Store the requisition in the database
+    const { error: insertError } = await supabase
+      .from('gocardless_requisitions')
+      .insert({
+        requisition_id: requisitionId,
+        institution_id: selectedInstitutionId,
+        user_id: user.id,
+        status: 'PENDING',
+      });
+
+    if (insertError) {
+      console.error('Error storing requisition:', insertError);
+      // We don't fail the request if the DB insert fails, just log it
+      // The user can still proceed with the bank connection
     }
 
-    console.log('Requisition created successfully', requisitionData);
-
-    // Return the link URL
     return new Response(
-      JSON.stringify({
-        redirect_url: requisitionData.link,
-        requisition_id: requisitionData.id,
+      JSON.stringify({ 
+        requisition_id: requisitionId,
+        redirect_url: linkUrl
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        status: 200, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Unexpected error:', error);
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'An unexpected error occurred',
-        stack: error.stack,
-        details: { message: String(error) }
+        error: 'Internal server error', 
+        details: error.message || String(error)
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   }
 });
