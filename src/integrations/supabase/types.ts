@@ -122,6 +122,93 @@ export type Database = {
         }
         Relationships: []
       }
+      gocardless_accounts: {
+        Row: {
+          account_id: string
+          balance: number | null
+          bban: string | null
+          bic: string | null
+          created_at: string | null
+          currency: string | null
+          iban: string | null
+          id: string
+          institution_id: string
+          institution_name: string | null
+          name: string | null
+          requisition_id: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          balance?: number | null
+          bban?: string | null
+          bic?: string | null
+          created_at?: string | null
+          currency?: string | null
+          iban?: string | null
+          id?: string
+          institution_id: string
+          institution_name?: string | null
+          name?: string | null
+          requisition_id: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          balance?: number | null
+          bban?: string | null
+          bic?: string | null
+          created_at?: string | null
+          currency?: string | null
+          iban?: string | null
+          id?: string
+          institution_id?: string
+          institution_name?: string | null
+          name?: string | null
+          requisition_id?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gocardless_requisitions: {
+        Row: {
+          created_at: string | null
+          id: string
+          institution_id: string
+          reference: string | null
+          requisition_id: string
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          institution_id: string
+          reference?: string | null
+          requisition_id: string
+          status: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          institution_id?: string
+          reference?: string | null
+          requisition_id?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       locations: {
         Row: {
           address: string | null
