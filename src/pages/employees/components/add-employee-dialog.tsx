@@ -29,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { EmployeeFormValues } from "..";
 
 // Define form schema with Zod
 const formSchema = z.object({
@@ -44,7 +45,7 @@ type FormValues = z.infer<typeof formSchema>;
 interface AddEmployeeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (values: FormValues) => Promise<boolean>;
+  onSubmit: (values: EmployeeFormValues) => Promise<boolean>;
 }
 
 export function AddEmployeeDialog({ 

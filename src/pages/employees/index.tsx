@@ -16,10 +16,18 @@ export interface Employee {
   first_name: string;
   last_name: string;
   email: string;
-  role: string;
+  role: "Admin" | "Manager" | "Front Of House";
   mobile_number: string | null;
   invited: boolean;
 }
+
+export type EmployeeFormValues = {
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: "Admin" | "Manager" | "Front Of House";
+  mobile_number?: string;
+};
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -89,11 +97,18 @@ export default function EmployeesPage() {
     }
   };
 
-  const handleAddEmployee = async (employee: Omit<Employee, 'id' | 'invited'>) => {
+  const handleAddEmployee = async (values: EmployeeFormValues) => {
     try {
       const { data, error } = await supabase
         .from("employees")
-        .insert([{ ...employee, invited: false }])
+        .insert([{ 
+          first_name: values.first_name,
+          last_name: values.last_name,
+          email: values.email,
+          role: values.role,
+          mobile_number: values.mobile_number || null,
+          invited: false 
+        }])
         .select();
 
       if (error) throw error;
