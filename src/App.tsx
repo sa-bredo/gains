@@ -15,6 +15,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Home from "./pages/Home";
 import FinancialsTransactions from "./pages/financials/transactions/index";
+import FinancialsTransactionsGoCardless from "./pages/financials/transactions-gocardless/index";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +68,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <FinancialsTransactions />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financials/transactions-gocardless"
+              element={
+                <ProtectedRoute>
+                  <FinancialsTransactionsGoCardless />
                 </ProtectedRoute>
               }
             />
