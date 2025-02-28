@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Updated GoCardless API URL based on the error message
+// Updated GoCardless API URL
 const GOCARDLESS_API_URL = "https://bankaccountdata.gocardless.com/api/v2";
 
 serve(async (req) => {
@@ -43,28 +43,38 @@ serve(async (req) => {
       );
     }
 
+    // Parse the request to get the selected bank ID
+    let bankId = null;
+    if (req.method === 'POST') {
+      try {
+        const requestData = await req.json();
+        bankId = requestData.bank_id;
+      } catch (parseError) {
+        console.error('Failed to parse request body:', parseError);
+      }
+    }
+
+    // Fallback to a default bank if none selected (should not happen with UI)
+    if (!bankId) {
+      return new Response(
+        JSON.stringify({ error: 'Bank ID is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Using bank ID:', bankId);
+
     // Get GoCardless credentials from environment variables
     const clientId = Deno.env.get('GOCARDLESS_CLIENT_ID');
     const clientSecret = Deno.env.get('GOCARDLESS_CLIENT_SECRET');
     
     if (!clientId || !clientSecret) {
-      console.error('Missing GoCardless credentials:', { 
-        hasClientId: !!clientId, 
-        hasClientSecret: !!clientSecret 
-      });
-      
+      console.error('Missing GoCardless credentials');
       return new Response(
-        JSON.stringify({ 
-          error: 'GoCardless credentials not configured',
-          details: 'Both client ID and client secret must be configured in Supabase secrets'
-        }),
+        JSON.stringify({ error: 'GoCardless credentials not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    console.log('Using GoCardless credentials - Client ID exists:', !!clientId, 'Secret exists:', !!clientSecret);
-    console.log('Client ID length:', clientId.length);
-    console.log('Client Secret prefix:', clientSecret.substring(0, 3) + '...');
 
     // Step 1: Get JWT access token from GoCardless using client credentials
     console.log('Obtaining access token from GoCardless...');
@@ -73,8 +83,6 @@ serve(async (req) => {
       secret_id: clientId,
       secret_key: clientSecret
     };
-    
-    console.log('Token request URL:', `${GOCARDLESS_API_URL}/token/new/`);
     
     const tokenResponse = await fetch(`${GOCARDLESS_API_URL}/token/new/`, {
       method: 'POST',
@@ -85,25 +93,20 @@ serve(async (req) => {
       body: JSON.stringify(tokenRequestBody),
     });
 
-    // Log the raw response for debugging
     const tokenResponseText = await tokenResponse.text();
     console.log('Token response status:', tokenResponse.status);
-    console.log('Token response headers:', Object.fromEntries(tokenResponse.headers));
-    console.log('Token response body:', tokenResponseText);
-
+    
     if (!tokenResponse.ok) {
       return new Response(
         JSON.stringify({ 
           error: 'Failed to obtain GoCardless access token',
           details: tokenResponseText,
-          status: tokenResponse.status,
-          statusText: tokenResponse.statusText
+          status: tokenResponse.status
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Parse the token data
     let tokenData;
     try {
       tokenData = JSON.parse(tokenResponseText);
@@ -131,15 +134,9 @@ serve(async (req) => {
       );
     }
 
-    console.log('Successfully obtained GoCardless access token');
-
-    // For demo purposes, we'll use Santander UK as our institution
-    // In a production app, you would let users choose their bank
-    const santanderBankId = "SANTANDER_RETAIL_GB"; // This is an example ID, use a real bank ID
-
     // Step 2: Create an End User Agreement (required for creating requisitions)
     console.log('Creating end user agreement...');
-    console.log('Using institution ID:', santanderBankId);
+    console.log('Using institution ID:', bankId);
     
     const agreementResponse = await fetch(`${GOCARDLESS_API_URL}/agreements/enduser/`, {
       method: 'POST',
@@ -149,7 +146,7 @@ serve(async (req) => {
         'Accept': 'application/json',
       },
       body: JSON.stringify({
-        institution_id: santanderBankId, // Adding the institution_id as required by API
+        institution_id: bankId,
         max_historical_days: 90,
         access_valid_for_days: 90,
         access_scope: ["balances", "details", "transactions"]
@@ -158,8 +155,7 @@ serve(async (req) => {
 
     const agreementResponseText = await agreementResponse.text();
     console.log('Agreement response status:', agreementResponse.status);
-    console.log('Agreement response body:', agreementResponseText);
-
+    
     if (!agreementResponse.ok) {
       return new Response(
         JSON.stringify({ 
@@ -193,7 +189,7 @@ serve(async (req) => {
     console.log('Creating new requisition with GoCardless...');
     console.log('Requisition details:', {
       redirect: redirectUrl,
-      institution_id: santanderBankId,
+      institution_id: bankId,
       reference: user.id.substring(0, 20),
       agreement: agreementData.id
     });
@@ -207,7 +203,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         redirect: redirectUrl,
-        institution_id: santanderBankId,
+        institution_id: bankId,
         reference: user.id.substring(0, 20), // Using the user's ID as a reference
         agreement: agreementData.id,
         user_language: 'EN', // Default to English
@@ -216,8 +212,7 @@ serve(async (req) => {
 
     const requisitionResponseText = await requisitionResponse.text();
     console.log('Requisition response status:', requisitionResponse.status);
-    console.log('Requisition response body:', requisitionResponseText);
-
+    
     if (!requisitionResponse.ok) {
       return new Response(
         JSON.stringify({ 
