@@ -107,7 +107,7 @@ const DialogDescription = React.forwardRef<
 ))
 DialogDescription.displayName = DialogPrimitive.Description.displayName
 
-// New component for error details with copy functionality
+// Component for error details with copy functionality
 interface DialogErrorDetailsProps extends React.HTMLAttributes<HTMLDivElement> {
   errorDetails: string;
 }

@@ -315,16 +315,3 @@ export function GoCardlessLink({ onSuccess, onExit, isOpen }: GoCardlessLinkProp
     </Dialog>
   );
 }
-
-// Let's add a simple component to display error details in a more formatted way
-interface DialogErrorDetailsProps {
-  errorDetails: string;
-}
-
-export function DialogErrorDetails({ errorDetails }: DialogErrorDetailsProps) {
-  return (
-    <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4 max-h-[300px] overflow-auto">
-      <pre className="whitespace-pre-wrap text-xs font-mono text-red-800">{errorDetails}</pre>
-    </div>
-  );
-}
