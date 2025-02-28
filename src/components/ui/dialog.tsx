@@ -1,6 +1,7 @@
+
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { X } from "lucide-react"
+import { Clipboard, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -106,6 +107,47 @@ const DialogDescription = React.forwardRef<
 ))
 DialogDescription.displayName = DialogPrimitive.Description.displayName
 
+// New component for error details with copy functionality
+interface DialogErrorDetailsProps extends React.HTMLAttributes<HTMLDivElement> {
+  errorDetails: string;
+}
+
+const DialogErrorDetails = ({ 
+  errorDetails, 
+  className,
+  ...props 
+}: DialogErrorDetailsProps) => {
+  const [copied, setCopied] = React.useState(false);
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(errorDetails).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className={cn("relative", className)} {...props}>
+      <pre className="bg-red-50 border border-red-200 rounded-md p-4 text-sm text-red-800 font-mono overflow-x-auto whitespace-pre-wrap">
+        {errorDetails}
+      </pre>
+      <button
+        onClick={copyToClipboard}
+        className="absolute top-2 right-2 p-1.5 rounded-md bg-white/90 border border-red-200 text-red-800 hover:bg-red-100 transition-colors"
+        aria-label="Copy to clipboard"
+      >
+        <Clipboard className="h-4 w-4" />
+        {copied && (
+          <span className="absolute -top-8 right-0 bg-black text-white text-xs px-2 py-1 rounded">
+            Copied!
+          </span>
+        )}
+      </button>
+    </div>
+  );
+};
+DialogErrorDetails.displayName = "DialogErrorDetails";
+
 export {
   Dialog,
   DialogPortal,
@@ -117,4 +159,5 @@ export {
   DialogFooter,
   DialogTitle,
   DialogDescription,
+  DialogErrorDetails,
 }

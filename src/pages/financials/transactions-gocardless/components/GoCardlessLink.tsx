@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogErrorDetails } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -175,10 +175,7 @@ export function GoCardlessLink({ onSuccess, onExit, isOpen }: GoCardlessLinkProp
           </DialogDescription>
         </DialogHeader>
         {errorDetails ? (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-2 mb-4 text-sm text-red-800 font-mono overflow-x-auto">
-            <p className="font-bold mb-1">Error Details:</p>
-            <pre className="whitespace-pre-wrap">{errorDetails}</pre>
-          </div>
+          <DialogErrorDetails errorDetails={errorDetails} />
         ) : redirectUrl ? (
           <div className="flex flex-col items-center justify-center py-4">
             <p className="mb-4 text-center">
