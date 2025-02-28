@@ -1,8 +1,7 @@
 
-import { useState } from "react";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 import {
   Dialog,
   DialogContent,
@@ -30,16 +29,20 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { EmployeeFormValues } from "..";
+import { useState } from "react";
 
 // Define form schema with Zod
 const formSchema = z.object({
-  first_name: z.string().min(2, "First name must be at least 2 characters"),
-  last_name: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  role: z.enum(["Front Of House", "Manager", "Admin"]),
+  first_name: z.string().min(2, { message: "First name is required" }),
+  last_name: z.string().min(2, { message: "Last name is required" }),
+  email: z.string().email({ message: "Invalid email address" }),
+  role: z.enum(["Admin", "Manager", "Front Of House"], {
+    required_error: "Please select a role",
+  }),
   mobile_number: z.string().optional(),
 });
 
+// Derive the type from the schema
 type FormValues = z.infer<typeof formSchema>;
 
 interface AddEmployeeDialogProps {
@@ -48,29 +51,36 @@ interface AddEmployeeDialogProps {
   onSubmit: (values: EmployeeFormValues) => Promise<boolean>;
 }
 
-export function AddEmployeeDialog({ 
-  open, 
-  onOpenChange, 
-  onSubmit 
+export function AddEmployeeDialog({
+  open,
+  onOpenChange,
+  onSubmit,
 }: AddEmployeeDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Initialize the form
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       first_name: "",
       last_name: "",
       email: "",
-      role: "Front Of House",
       mobile_number: "",
     },
   });
 
-  const handleFormSubmit = async (values: FormValues) => {
+  const handleSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      const success = await onSubmit(values);
+      // Convert values to EmployeeFormValues explicitly to ensure type compatibility
+      const employeeFormValues: EmployeeFormValues = {
+        first_name: values.first_name,
+        last_name: values.last_name,
+        email: values.email,
+        role: values.role,
+        mobile_number: values.mobile_number,
+      };
+      
+      const success = await onSubmit(employeeFormValues);
       if (success) {
         form.reset();
         onOpenChange(false);
@@ -84,41 +94,45 @@ export function AddEmployeeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Employee</DialogTitle>
+          <DialogTitle>Add Employee</DialogTitle>
           <DialogDescription>
-            Enter the details of the new employee. You can invite them later.
+            Add a new employee to your organization.
           </DialogDescription>
         </DialogHeader>
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="first_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="John" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="last_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Last Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Doe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-4 py-4"
+          >
+            <FormField
+              control={form.control}
+              name="first_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>First Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="last_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Last Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="email"
@@ -126,20 +140,25 @@ export function AddEmployeeDialog({
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="john.doe@example.com" {...field} />
+                    <Input
+                      type="email"
+                      placeholder="john.doe@example.com"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="role"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
+                  <Select
+                    onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
@@ -148,15 +167,18 @@ export function AddEmployeeDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Front Of House">Front Of House</SelectItem>
-                      <SelectItem value="Manager">Manager</SelectItem>
                       <SelectItem value="Admin">Admin</SelectItem>
+                      <SelectItem value="Manager">Manager</SelectItem>
+                      <SelectItem value="Front Of House">
+                        Front Of House
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="mobile_number"
@@ -164,30 +186,19 @@ export function AddEmployeeDialog({
                 <FormItem>
                   <FormLabel>Mobile Number (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="+1 (123) 456-7890" {...field} />
+                    <Input placeholder="+1 (555) 123-4567" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  "Add Employee"
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
+                Add Employee
               </Button>
             </DialogFooter>
           </form>
