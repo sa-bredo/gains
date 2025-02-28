@@ -14,7 +14,7 @@ import NotFound from "./pages/NotFound";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Home from "./pages/Home";
-import FinancialsTransactions from "./pages/financials/transactions";
+import FinancialsTransactions from "./pages/financials/transactions/index";
 
 const queryClient = new QueryClient();
 
