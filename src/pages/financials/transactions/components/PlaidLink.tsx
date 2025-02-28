@@ -149,6 +149,8 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
                   // Open the Plaid Link interface automatically
                   handler.open();
                 },
+                countryCodes: ['GB'], // Restrict to UK banks only
+                language: 'en', // Use English language
               });
             } else {
               console.error('Plaid not loaded');
@@ -198,11 +200,11 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
     <Dialog open={isOpen} onOpenChange={(open) => !open && onExit()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Connect Your Bank</DialogTitle>
+          <DialogTitle>Connect Your UK Bank</DialogTitle>
           <DialogDescription>
             {errorDetails ? 
               "Error connecting to your bank. Technical details below:" :
-              "Loading the secure connection to your bank. This may take a moment..."}
+              "Loading the secure connection to your UK bank. This may take a moment..."}
           </DialogDescription>
         </DialogHeader>
         {errorDetails ? (

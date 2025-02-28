@@ -1,237 +1,87 @@
 
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.26.0";
-import { Configuration, PlaidApi, PlaidEnvironments, LinkTokenCreateRequest, CountryCode, Products } from "npm:plaid@14.0.0";
+import { serve } from 'https://deno.land/std@0.131.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { Configuration, PlaidApi, PlaidEnvironments, CountryCode, Products } from 'https://esm.sh/plaid@12.5.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
+
+console.log('Create Link Token function starting')
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, {
+      headers: corsHeaders
+    })
   }
 
   try {
-    console.log("Starting create-link-token function");
-    
-    // Get the authorization header from the request
-    const authHeader = req.headers.get('Authorization');
+    // Get auth token from request
+    const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      console.error("Error: No authorization header provided");
-      return new Response(JSON.stringify({ 
-        error: 'No authorization header', 
-        details: 'The request must include an Authorization header with a valid token',
-        statusCode: 401
-      }), { 
-        status: 401, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
+      return new Response(JSON.stringify({ error: 'No authorization header' }), { 
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
     }
 
     // Create a Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-    
-    if (!supabaseUrl || !supabaseKey) {
-      console.error("Error: Missing Supabase environment variables", { 
-        hasUrl: !!supabaseUrl, 
-        hasKey: !!supabaseKey 
-      });
-      return new Response(JSON.stringify({ 
-        error: 'Server configuration error', 
-        details: 'Supabase connection details are missing',
-        statusCode: 500
-      }), { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
-    
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
 
-    // Get user from the auth header
-    const token = authHeader.replace('Bearer ', '');
-    console.log("Getting user from token");
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
-    if (userError) {
-      console.error("Error: Failed to get user from token", userError);
-      return new Response(JSON.stringify({ 
-        error: 'Invalid token', 
-        details: 'Auth session missing!',
-        statusCode: 400
-      }), { 
-        status: 401, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
-    
-    if (!user) {
-      console.error("Error: No user found with provided token");
-      return new Response(JSON.stringify({ 
-        error: 'User not found', 
-        details: 'No user was found associated with the provided token',
-        statusCode: 401
-      }), { 
-        status: 401, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
+    // Get user metadata
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+    if (userError || !user) {
+      console.error('Error getting user:', userError)
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
     }
 
-    console.log(`User authenticated: ${user.id}`);
+    console.log('Authenticated user:', user.id)
 
-    // Configure Plaid client
-    const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
-    const plaidSecret = Deno.env.get('PLAID_SECRET');
-    
-    // Use 'sandbox' as the default environment - changing from previous 'production' default
-    // This ensures development works by default, avoiding INVALID_API_KEYS errors
-    let plaidEnv = Deno.env.get('PLAID_ENV') || 'sandbox';
-    
-    // Log which env variables we have for debugging
-    console.log(`Plaid configuration check - Client ID exists: ${!!plaidClientId}, Secret exists: ${!!plaidSecret}, Environment: ${plaidEnv}`);
-
-    if (!plaidClientId || !plaidSecret) {
-      console.error("Error: Missing Plaid credentials", { 
-        hasClientId: !!plaidClientId, 
-        hasSecret: !!plaidSecret 
-      });
-      return new Response(JSON.stringify({ 
-        error: 'Plaid credentials not configured', 
-        details: 'The server is missing required Plaid API credentials',
-        statusCode: 500
-      }), { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
-
-    // Validate plaidEnv to ensure it's a valid environment
-    const validEnvironments = ['sandbox', 'development', 'production'];
-    if (!validEnvironments.includes(plaidEnv)) {
-      console.warn(`Warning: Invalid Plaid environment "${plaidEnv}" specified, defaulting to "sandbox"`);
-      plaidEnv = 'sandbox';
-    }
-
-    console.log(`Configuring Plaid client with environment: ${plaidEnv}`);
-    
-    const configuration = new Configuration({
-      basePath: PlaidEnvironments[plaidEnv],
+    // Initialize Plaid client
+    const plaidConfig = new Configuration({
+      basePath: PlaidEnvironments[Deno.env.get('PLAID_ENV') || 'sandbox'],
       baseOptions: {
         headers: {
-          'PLAID-CLIENT-ID': plaidClientId,
-          'PLAID-SECRET': plaidSecret,
+          'PLAID-CLIENT-ID': Deno.env.get('PLAID_CLIENT_ID'),
+          'PLAID-SECRET': Deno.env.get('PLAID_SECRET'),
         },
       },
-    });
+    })
+    const plaidClient = new PlaidApi(plaidConfig)
 
-    const plaidClient = new PlaidApi(configuration);
-
-    // Create a link token
-    console.log("Preparing link token request for Plaid");
-    
-    const publicUrl = Deno.env.get('PUBLIC_URL');
-    let webhookUrl = '';
-    
-    if (publicUrl) {
-      webhookUrl = `${publicUrl}/functions/plaid-webhook`;
-      console.log(`Setting webhook URL to: ${webhookUrl}`);
-    } else {
-      console.warn("Warning: PUBLIC_URL not set, webhook will not be configured");
-    }
-    
-    const linkTokenRequest: LinkTokenCreateRequest = {
+    // Set up the link token request
+    const createTokenResponse = await plaidClient.linkTokenCreate({
       user: {
         client_user_id: user.id,
       },
-      client_name: 'BankSync',
+      client_name: 'Financial App',
       products: ['transactions'] as Products[],
-      country_codes: ['US'] as CountryCode[],
+      country_codes: ['GB'] as CountryCode[], // Only UK banks
       language: 'en',
-    };
-    
-    // Only add webhook if we have a public URL
-    if (webhookUrl) {
-      linkTokenRequest.webhook = webhookUrl;
-    }
+      webhook: `${Deno.env.get('PUBLIC_URL') || ''}/functions/v1/plaid-webhook`,
+    })
 
-    console.log(`Link token request prepared: ${JSON.stringify({
-      client_user_id: user.id,
-      client_name: linkTokenRequest.client_name,
-      products: linkTokenRequest.products,
-      has_webhook: !!linkTokenRequest.webhook,
-      environment: plaidEnv
-    })}`);
+    console.log('Link token created successfully')
 
-    try {
-      console.log("Calling Plaid API to create link token");
-      const response = await plaidClient.linkTokenCreate(linkTokenRequest);
-      console.log('Link token created successfully');
-      
-      return new Response(JSON.stringify(response.data), { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    } catch (plaidError) {
-      // Extract detailed error information from Plaid
-      console.error("Plaid API error when creating link token:", plaidError);
-      
-      let errorDetails = {};
-      let errorCode = "UNKNOWN_ERROR";
-      let errorMessage = "An unknown error occurred";
-      let displayMessage = null;
-      
-      try {
-        // Attempt to get structured error details from Plaid
-        if (plaidError.response && plaidError.response.data) {
-          errorDetails = plaidError.response.data;
-          errorCode = errorDetails.error_code || errorCode;
-          errorMessage = errorDetails.error_message || errorMessage;
-          displayMessage = errorDetails.display_message;
-          console.error("Plaid error details:", JSON.stringify(errorDetails));
-          
-          // Handle specific errors with more helpful messages
-          if (errorCode === "INVALID_API_KEYS") {
-            errorMessage = `API keys are invalid for the "${plaidEnv}" environment. Check that you have the correct keys for this environment.`;
-          }
-        }
-      } catch (parseError) {
-        console.error("Error parsing Plaid error response:", parseError);
-      }
-      
-      return new Response(JSON.stringify({ 
-        error: 'Plaid API error', 
-        message: plaidError.message || 'Error creating link token',
-        status: plaidError.response?.status || 500,
-        details: errorDetails,
-        humanReadableError: errorMessage,
-        userMessage: displayMessage || "We're having trouble connecting to your bank. Please try again later.",
-        requestData: {
-          user_id: user.id,
-          client_name: linkTokenRequest.client_name,
-          products: linkTokenRequest.products,
-          environment: plaidEnv,
-          has_webhook: !!linkTokenRequest.webhook
-        }
-      }), { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
+    // Return the link token to the client
+    return new Response(JSON.stringify({ link_token: createTokenResponse.data.link_token }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   } catch (error) {
-    console.error('Unhandled error in create-link-token function:', error);
-    
-    return new Response(JSON.stringify({ 
-      error: 'Server error',
-      message: error.message || 'An unexpected error occurred',
-      stack: error.stack ? error.stack.split('\n').slice(0, 3) : undefined,
-      timestamp: new Date().toISOString()
-    }), { 
-      status: 500, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-    });
+    console.error('Error creating link token:', error)
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
-});
+})
