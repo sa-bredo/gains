@@ -23,7 +23,6 @@ import {
   Activity,
   Briefcase,
   Compass,
-  BanknoteIcon,
 } from "lucide-react";
 
 export function AppSidebar() {
@@ -67,17 +66,6 @@ export function AppSidebar() {
                 <Link to="/financials/transactions">
                   <CreditCard className="h-4 w-4" />
                   <span>Transactions</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={pathname === "/financials/transactions-tink"}
-              >
-                <Link to="/financials/transactions-tink">
-                  <BanknoteIcon className="h-4 w-4" />
-                  <span>Transactions via Tink</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

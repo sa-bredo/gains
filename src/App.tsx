@@ -11,7 +11,6 @@ import Explore from "@/pages/Explore";
 import Login from "@/pages/Login";
 import TableExample from "@/pages/TableExample";
 import FinancialsTransactions from "@/pages/financials/transactions";
-import FinancialsTransactionsTink from "@/pages/financials/transactions-tink";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 export default function App() {
@@ -30,7 +29,6 @@ export default function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/home" element={<Home />} />
                 <Route path="/financials/transactions" element={<FinancialsTransactions />} />
-                <Route path="/financials/transactions-tink" element={<FinancialsTransactionsTink />} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
