@@ -234,10 +234,6 @@ export default function FinancialsTransactions() {
   const handleAddBankAccount = () => {
     setIsPlaidLinkOpen(true);
   };
-  
-  const handleDateFilterChange = (filter) => {
-    setDateFilter(filter);
-  };
 
   const handlePlaidSuccess = async (publicToken, metadata) => {
     try {

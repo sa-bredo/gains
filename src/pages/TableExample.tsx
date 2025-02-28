@@ -1,36 +1,66 @@
 
-import React from "react";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
+import { motion } from "framer-motion";
 import { columns } from "./table-example/components/columns";
 import { DataTable } from "./table-example/components/data-table";
-import { tasks } from "./table-example/data/data";
+import { tasks } from "./table-example/components/data"; // Changed import path
+import { tasks as mockTasks } from "./table-example/data/data";
 
 export default function TableExample() {
+  const fadeIn = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { duration: 0.4 }
+    }
+  };
+
+  const slideUp = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.5 }
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <SidebarInset className="bg-background">
-          <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4">
+          <motion.header 
+            initial="hidden"
+            animate="visible"
+            variants={fadeIn}
+            className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out"
+          >
             <div className="flex items-center gap-2">
               <SidebarTrigger className="mr-2" />
               <Separator orientation="vertical" className="h-4" />
               <span className="font-medium">Task Management</span>
             </div>
-          </header>
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
+          </motion.header>
+          
+          <motion.div 
+            className="p-6"
+            initial="hidden"
+            animate="visible"
+            variants={slideUp}
+          >
+            <div className="flex flex-col gap-4">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
+                <h2 className="text-2xl font-bold tracking-tight">Welcome back!</h2>
                 <p className="text-muted-foreground">
-                  Manage all of your tasks and prioritize your work.
+                  Here&apos;s a list of your tasks for this month!
                 </p>
               </div>
+              <Separator />
+              <DataTable data={mockTasks} columns={columns} />
             </div>
-            <DataTable columns={columns} data={tasks} />
-          </div>
+          </motion.div>
         </SidebarInset>
       </div>
     </SidebarProvider>
