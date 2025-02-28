@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -99,6 +100,17 @@ const navMain = [
       {
         title: "Assigned",
         url: "/table-example?filter=assigned",
+      },
+    ],
+  },
+  {
+    title: "Financials",
+    url: "/financials",
+    icon: DollarSign,
+    items: [
+      {
+        title: "Transactions",
+        url: "/financials/transactions",
       },
     ],
   },
