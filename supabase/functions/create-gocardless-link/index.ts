@@ -162,7 +162,6 @@ serve(async (req) => {
       redirect: redirectUrl,
       institution_id: institutionId,
       reference: user.id,
-      agreement: "premium",
       user_language: "EN",
     };
     console.log('Requisition request body:', JSON.stringify(requisitionBody));
