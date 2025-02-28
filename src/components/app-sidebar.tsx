@@ -115,11 +115,7 @@ const navMain = [
       {
         title: "Transactions",
         url: "/financials/transactions",
-      },
-      {
-        title: "Transactions via GoCardless",
-        url: "/financials/transactions-gocardless",
-      },
+      }
     ],
   },
   {

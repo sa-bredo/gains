@@ -8,9 +8,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { PlaidLink } from "./components/PlaidLink";
+import { GoCardlessLink } from "./components/GoCardlessLink";
+import { useLocation, useNavigate } from "react-router-dom";
 import { 
   Select, 
   SelectContent, 
@@ -19,15 +20,18 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 
-export default function FinancialsTransactions() {
+export default function Transactions() {
   const { isAuthenticated } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [accounts, setAccounts] = useState([]);
-  const [isPlaidLinkOpen, setIsPlaidLinkOpen] = useState(false);
+  const [isGoCardlessLinkOpen, setIsGoCardlessLinkOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [dateFilter, setDateFilter] = useState("last30days");
   const [apiError, setApiError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const { toast } = useToast();
 
   const fadeIn = {
@@ -48,6 +52,44 @@ export default function FinancialsTransactions() {
   };
 
   useEffect(() => {
+    // Check for callback parameters from GoCardless
+    const searchParams = new URLSearchParams(location.search);
+    const status = searchParams.get('status');
+    const ref = searchParams.get('ref');
+    
+    if (status) {
+      console.log(`GoCardless callback detected with status: ${status}`);
+      
+      if (status === 'success') {
+        toast({
+          title: "Bank Connection Successful",
+          description: "Your bank has been successfully connected. Loading your accounts...",
+          variant: "default",
+        });
+        
+        // Remove the query parameters from the URL
+        navigate('/financials/transactions', { replace: true });
+        
+        // Refresh accounts after a short delay
+        setTimeout(() => {
+          fetchAccounts();
+        }, 1000);
+      } else if (status === 'error' || status === 'failure') {
+        const errorMessage = searchParams.get('error') || 'An error occurred during bank connection';
+        
+        toast({
+          title: "Bank Connection Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        
+        // Remove the query parameters from the URL
+        navigate('/financials/transactions', { replace: true });
+      }
+    }
+  }, [location]);
+
+  useEffect(() => {
     if (isAuthenticated) {
       fetchAccounts();
     }
@@ -62,12 +104,13 @@ export default function FinancialsTransactions() {
   const fetchAccounts = async () => {
     try {
       setIsLoading(true);
+      setRefreshing(true);
       setApiError(null);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
       // Use a hardcoded full URL
-      const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/get-accounts";
+      const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/get-gocardless-accounts";
       console.log('Fetching accounts from hardcoded URL:', apiUrl);
 
       // API call to get accounts
@@ -127,6 +170,7 @@ export default function FinancialsTransactions() {
       });
     } finally {
       setIsLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -161,7 +205,7 @@ export default function FinancialsTransactions() {
       const startDateStr = startDate.toISOString().split('T')[0];
 
       // Use a hardcoded full URL
-      const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/get-transactions";
+      const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/get-gocardless-transactions";
       console.log('Fetching transactions from hardcoded URL:', apiUrl);
       console.log('Request payload:', { accountId, startDate: startDateStr, endDate });
 
@@ -231,118 +275,55 @@ export default function FinancialsTransactions() {
     setSelectedAccountId(accountId);
   };
 
-  const handleAddBankAccount = () => {
-    setIsPlaidLinkOpen(true);
-  };
-
-  // Add the missing handleDateFilterChange function
   const handleDateFilterChange = (filter) => {
     setDateFilter(filter);
   };
 
-  const handlePlaidSuccess = async (publicToken, metadata) => {
-    try {
-      setIsLoading(true);
-      setApiError(null);
-      console.log('Plaid success, exchanging public token...', publicToken, metadata);
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      // Use a hardcoded full URL
-      const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/exchange-public-token";
-      console.log('Exchanging public token at hardcoded URL:', apiUrl);
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ publicToken, metadata }),
-      });
-
-      let responseText;
-      try {
-        responseText = await response.text();
-        console.log('Raw API response:', responseText);
-      } catch (textError) {
-        console.error('Failed to get response text:', textError);
-        responseText = 'Failed to get response text';
-      }
-
-      if (!response.ok) {
-        console.error('API response error:', response.status, responseText);
-        setApiError(`Token Exchange API Error (${response.status}): ${responseText}`);
-        
-        // Try to parse the error response
-        try {
-          const errorData = JSON.parse(responseText);
-          console.error('Parsed error data:', errorData);
-          
-          toast({
-            title: "Error linking account",
-            description: errorData.message || errorData.error || "Could not link your account. Please try again.",
-            variant: "destructive",
-          });
-        } catch (jsonError) {
-          toast({
-            title: "Error linking account",
-            description: `API error (${response.status}): ${responseText.substring(0, 100)}...`,
-            variant: "destructive",
-          });
-        }
-        throw new Error(`API error (${response.status}): ${responseText}`);
-      }
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse JSON response:', parseError, 'Raw:', responseText);
-        setApiError(`Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}, Raw: ${responseText}`);
-        throw new Error('Invalid response from server. Please try again.');
-      }
-      
-      if (data.error) {
-        console.error('Error linking account:', data.error);
-        setApiError(`API returned error: ${data.error}`);
-        toast({
-          title: "Error linking account",
-          description: data.message || data.error,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Account linked successfully",
-          description: `${data.account.name} is now connected.`,
-          variant: "success",
-        });
-        await fetchAccounts();
-      }
-    } catch (error) {
-      console.error('Error linking account:', error);
-      setApiError(`Account linking error: ${error instanceof Error ? error.message : String(error)}`);
-      toast({
-        title: "Error",
-        description: "Failed to link account. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsPlaidLinkOpen(false);
-      setIsLoading(false);
-    }
+  const handleAddBankAccount = () => {
+    setIsGoCardlessLinkOpen(true);
   };
 
-  const handlePlaidExit = () => {
-    setIsPlaidLinkOpen(false);
+  const handleRefreshAccounts = () => {
+    fetchAccounts();
+  };
+
+  const handleGoCardlessSuccess = async (redirectUrl, metadata) => {
+    // Open the redirectUrl in a new window/tab
+    window.open(redirectUrl, '_blank');
+    
+    toast({
+      title: "Bank connection initiated",
+      description: "Please complete the connection process in the new window.",
+      variant: "default",
+    });
+
+    // Close the dialog
+    setIsGoCardlessLinkOpen(false);
+    
+    // We could poll for account status or let the user manually refresh
+    setTimeout(() => {
+      toast({
+        title: "Refresh accounts",
+        description: "After completing the bank connection, click refresh to see your accounts.",
+        variant: "default",
+        action: (
+          <Button onClick={fetchAccounts} variant="outline" size="sm">
+            Refresh
+          </Button>
+        ),
+      });
+    }, 5000);
+  };
+
+  const handleGoCardlessExit = () => {
+    setIsGoCardlessLinkOpen(false);
   };
 
   // Format currency
   const formatCurrency = (amount) => {
-    const formatter = new Intl.NumberFormat('en-US', {
+    const formatter = new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'GBP',
     });
     return formatter.format(amount);
   };
@@ -350,9 +331,9 @@ export default function FinancialsTransactions() {
   // Format date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
+    return new Intl.DateTimeFormat('en-GB', {
       day: 'numeric',
+      month: 'short',
       year: 'numeric'
     }).format(date);
   };
@@ -392,13 +373,24 @@ export default function FinancialsTransactions() {
                     <div>
                       <h2 className="text-2xl font-bold tracking-tight">Bank Account Transactions</h2>
                       <p className="text-muted-foreground">
-                        View and manage all your financial transactions in one place.
+                        View and manage your financial transactions using open banking.
                       </p>
                     </div>
-                    <Button onClick={handleAddBankAccount} className="h-9">
-                      <PlusIcon className="mr-2 h-4 w-4" />
-                      Add Bank Account
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handleRefreshAccounts} 
+                        variant="outline" 
+                        className="h-9"
+                        disabled={refreshing}
+                      >
+                        <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                        Refresh
+                      </Button>
+                      <Button onClick={handleAddBankAccount} className="h-9">
+                        <PlusIcon className="mr-2 h-4 w-4" />
+                        Connect Bank Account
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 
@@ -544,10 +536,10 @@ export default function FinancialsTransactions() {
             </motion.div>
           </SidebarInset>
         </div>
-        <PlaidLink 
-          isOpen={isPlaidLinkOpen}
-          onSuccess={handlePlaidSuccess}
-          onExit={handlePlaidExit}
+        <GoCardlessLink 
+          isOpen={isGoCardlessLinkOpen}
+          onSuccess={handleGoCardlessSuccess}
+          onExit={handleGoCardlessExit}
         />
       </SidebarProvider>
     </ProtectedRoute>
