@@ -64,9 +64,6 @@ serve(async (req) => {
 
     const plaidClient = new PlaidApi(configuration);
 
-    // Get request data
-    const requestData = await req.json();
-    
     // Create a link token
     const linkTokenRequest: LinkTokenCreateRequest = {
       user: {
