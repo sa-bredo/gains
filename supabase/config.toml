@@ -14,29 +14,29 @@ enabled = true
 port = 54323
 api_url = "http://localhost"
 
-[[fetch_config]]
-path = "functions/create-link-token/index.ts"
+[functions.create-link-token]
+verify_jwt = true
 
-[[fetch_config]]
-path = "functions/exchange-public-token/index.ts"
+[functions.exchange-public-token]
+verify_jwt = true
 
-[[fetch_config]]
-path = "functions/get-accounts/index.ts"
+[functions.get-accounts]
+verify_jwt = true
 
-[[fetch_config]]
-path = "functions/get-transactions/index.ts"
+[functions.get-transactions]
+verify_jwt = true
 
-[[fetch_config]]
-path = "functions/create-gocardless-link/index.ts"
+[functions.create-gocardless-link]
+verify_jwt = true
 
-[[fetch_config]]
-path = "functions/get-gocardless-accounts/index.ts"
+[functions.get-gocardless-accounts]
+verify_jwt = true
 
-[[fetch_config]]
-path = "functions/get-gocardless-transactions/index.ts"
+[functions.get-gocardless-transactions]
+verify_jwt = true
 
-[[fetch_config]]
-path = "functions/plaid-webhook/index.ts" 
+[functions.plaid-webhook]
+verify_jwt = false
 
-[[fetch_config]]
-path = "functions/get-gocardless-banks/index.ts"
+[functions.get-gocardless-banks]
+verify_jwt = true
