@@ -63,6 +63,8 @@ serve(async (req) => {
     }
 
     console.log('Using GoCardless credentials - Client ID exists:', !!clientId, 'Secret exists:', !!clientSecret);
+    console.log('Client ID length:', clientId.length);
+    console.log('Client Secret prefix:', clientSecret.substring(0, 3) + '...');
 
     // Step 1: Get JWT access token from GoCardless using client credentials
     console.log('Obtaining access token from GoCardless...');
@@ -71,6 +73,8 @@ serve(async (req) => {
       secret_id: clientId,
       secret_key: clientSecret
     };
+    
+    console.log('Token request URL:', `${GOCARDLESS_API_URL}/token/new/`);
     
     const tokenResponse = await fetch(`${GOCARDLESS_API_URL}/token/new/`, {
       method: 'POST',
@@ -84,25 +88,45 @@ serve(async (req) => {
     // Log the raw response for debugging
     const tokenResponseText = await tokenResponse.text();
     console.log('Token response status:', tokenResponse.status);
-    console.log('Token response:', tokenResponseText);
+    console.log('Token response headers:', Object.fromEntries(tokenResponse.headers));
+    console.log('Token response body:', tokenResponseText);
 
     if (!tokenResponse.ok) {
       return new Response(
         JSON.stringify({ 
           error: 'Failed to obtain GoCardless access token',
-          details: tokenResponseText
+          details: tokenResponseText,
+          status: tokenResponse.status,
+          statusText: tokenResponse.statusText
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const tokenData = JSON.parse(tokenResponseText);
+    // Parse the token data
+    let tokenData;
+    try {
+      tokenData = JSON.parse(tokenResponseText);
+    } catch (parseError) {
+      console.error('Failed to parse token response:', parseError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid token response format',
+          details: tokenResponseText
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     const accessToken = tokenData.access;
     
     if (!accessToken) {
       console.error('No access token returned from GoCardless');
       return new Response(
-        JSON.stringify({ error: 'No access token returned from GoCardless' }),
+        JSON.stringify({ 
+          error: 'No access token returned from GoCardless', 
+          details: JSON.stringify(tokenData)
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -110,6 +134,7 @@ serve(async (req) => {
     console.log('Successfully obtained GoCardless access token');
 
     // Step 2: Create an End User Agreement (required for creating requisitions)
+    console.log('Creating end user agreement...');
     const agreementResponse = await fetch(`${GOCARDLESS_API_URL}/agreements/enduser/`, {
       method: 'POST',
       headers: {
@@ -126,19 +151,32 @@ serve(async (req) => {
 
     const agreementResponseText = await agreementResponse.text();
     console.log('Agreement response status:', agreementResponse.status);
-    console.log('Agreement response:', agreementResponseText);
+    console.log('Agreement response body:', agreementResponseText);
 
     if (!agreementResponse.ok) {
       return new Response(
         JSON.stringify({ 
           error: 'Failed to create GoCardless end user agreement',
-          details: agreementResponseText
+          details: agreementResponseText,
+          status: agreementResponse.status
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const agreementData = JSON.parse(agreementResponseText);
+    let agreementData;
+    try {
+      agreementData = JSON.parse(agreementResponseText);
+    } catch (parseError) {
+      console.error('Failed to parse agreement response:', parseError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid agreement response format',
+          details: agreementResponseText
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     // Step 3: Create a requisition that links the user to their bank
     // The redirect URL is where the user will be sent after connecting their bank
@@ -150,6 +188,13 @@ serve(async (req) => {
     const santanderUkId = "SANTANDER_BANK_PL";
     
     console.log('Creating new requisition with GoCardless...');
+    console.log('Requisition details:', {
+      redirect: redirectUrl,
+      institution_id: santanderUkId,
+      reference: user.id.substring(0, 20),
+      agreement: agreementData.id
+    });
+    
     const requisitionResponse = await fetch(`${GOCARDLESS_API_URL}/requisitions/`, {
       method: 'POST',
       headers: {
@@ -168,20 +213,35 @@ serve(async (req) => {
 
     const requisitionResponseText = await requisitionResponse.text();
     console.log('Requisition response status:', requisitionResponse.status);
-    console.log('Requisition response:', requisitionResponseText);
+    console.log('Requisition response body:', requisitionResponseText);
 
     if (!requisitionResponse.ok) {
       return new Response(
         JSON.stringify({ 
           error: 'Failed to create GoCardless requisition',
-          details: requisitionResponseText
+          details: requisitionResponseText,
+          status: requisitionResponse.status
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const requisitionData = JSON.parse(requisitionResponseText);
+    let requisitionData;
+    try {
+      requisitionData = JSON.parse(requisitionResponseText);
+    } catch (parseError) {
+      console.error('Failed to parse requisition response:', parseError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid requisition response format',
+          details: requisitionResponseText
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     console.log('Requisition created successfully:', requisitionData.id);
+    console.log('Link URL:', requisitionData.link);
 
     // Return the link URL to the client
     return new Response(
