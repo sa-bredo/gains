@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Copy } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -55,47 +54,8 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
           return;
         }
 
-        console.log('User is authenticated, proceeding with demo connection');
+        console.log('User is authenticated, proceeding with Plaid connection');
         
-        // For demo purposes without actually connecting to Plaid
-        toast({
-          title: "Demo Mode",
-          description: "In a real app, this would connect to Plaid. For demo, we'll simulate a successful connection.",
-        });
-        
-        // Simulate a successful connection after a short delay
-        setTimeout(() => {
-          const mockPublicToken = "public-sandbox-" + Math.random().toString(36).substring(2, 15);
-          const mockMetadata = {
-            institution: {
-              name: "Demo Bank",
-              institution_id: "ins_123456",
-            },
-            account: {
-              id: "acc_" + Math.random().toString(36).substring(2, 10),
-              name: "Demo Checking Account",
-              mask: "1234",
-              type: "depository",
-              subtype: "checking",
-            },
-            accounts: [
-              {
-                id: "acc_" + Math.random().toString(36).substring(2, 10),
-                name: "Demo Checking",
-                mask: "1234",
-                type: "depository",
-                subtype: "checking",
-              }
-            ]
-          };
-          
-          console.log('Simulating onSuccess with token:', mockPublicToken);
-          onSuccess(mockPublicToken, mockMetadata);
-          setIsLoading(false);
-        }, 2000);
-
-        // Uncomment this section to use the real Plaid Link in production
-        /*
         // Get the session explicitly for the API call
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
@@ -173,7 +133,6 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
         };
         
         document.head.appendChild(script);
-        */
       } catch (error) {
         console.error('Error initializing Plaid Link:', error);
         const errorMessage = error instanceof Error ? error.message : "Failed to initialize Plaid Link. Please try again.";
@@ -198,7 +157,6 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
 
   if (!isOpen) return null;
 
-  // The actual Plaid interface would be loaded via script, for demo we just display a modal
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onExit()}>
       <DialogContent>
