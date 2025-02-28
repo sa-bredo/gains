@@ -56,7 +56,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           employee_id?: string | null
-          expires_at: string
+          expires_at?: string
           id?: string
           token: string
         }
@@ -455,10 +455,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_invite_token: {
+        Args: {
+          employee_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      employee_role: "Front Of House" | "Manager" | "Admin"
     }
     CompositeTypes: {
       [_ in never]: never
