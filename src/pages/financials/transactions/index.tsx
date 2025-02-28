@@ -235,6 +235,11 @@ export default function FinancialsTransactions() {
     setIsPlaidLinkOpen(true);
   };
 
+  // Add the missing handleDateFilterChange function
+  const handleDateFilterChange = (filter) => {
+    setDateFilter(filter);
+  };
+
   const handlePlaidSuccess = async (publicToken, metadata) => {
     try {
       setIsLoading(true);
