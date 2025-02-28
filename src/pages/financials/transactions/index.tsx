@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { PlaidLink } from "./components/PlaidLink";
 
 export default function FinancialsTransactions() {
   const { isAuthenticated } = useAuth();
@@ -52,6 +53,42 @@ export default function FinancialsTransactions() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
+      // Simulate fetching accounts for now
+      // In a real application, you would call your Edge Function
+      console.log('Simulating fetchAccounts...');
+      
+      // Simulate API response
+      setTimeout(() => {
+        // Demo data for UI testing
+        const demoAccounts = [
+          {
+            id: '1',
+            name: 'Demo Checking',
+            mask: '1234',
+            type: 'depository',
+            subtype: 'checking',
+            institution_name: 'Demo Bank',
+            status: 'connected'
+          },
+          {
+            id: '2',
+            name: 'Demo Savings',
+            mask: '5678',
+            type: 'depository',
+            subtype: 'savings',
+            institution_name: 'Demo Bank',
+            status: 'connected'
+          }
+        ];
+        
+        setAccounts(demoAccounts);
+        if (demoAccounts.length > 0 && !selectedAccountId) {
+          setSelectedAccountId(demoAccounts[0].id);
+        }
+        setIsLoading(false);
+      }, 1000);
+
+      /* Uncomment this to use the real Edge Function
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-accounts`, {
         method: 'GET',
         headers: {
@@ -74,6 +111,7 @@ export default function FinancialsTransactions() {
           setSelectedAccountId(accounts[0].id);
         }
       }
+      */
     } catch (error) {
       console.error('Error fetching accounts:', error);
       toast({
@@ -97,6 +135,34 @@ export default function FinancialsTransactions() {
   const handlePlaidSuccess = async (publicToken, metadata) => {
     try {
       setIsLoading(true);
+      console.log('Plaid success, exchanging public token...', metadata);
+      
+      // Demo mode - simulate API call
+      toast({
+        title: "Demo Mode",
+        description: "In a real app, this would connect to your bank. For demo, we'll simulate a successful connection.",
+      });
+      
+      // Simulate a successful connection
+      setTimeout(() => {
+        const newAccount = {
+          id: 'new_' + Math.random().toString(36).substring(2, 10),
+          name: metadata.account?.name || 'New Bank Account',
+          mask: metadata.account?.mask || '9999',
+          institution_name: metadata.institution?.name || 'New Bank',
+          status: 'connected'
+        };
+        
+        setAccounts(prev => [...prev, newAccount]);
+        toast({
+          title: "Account connected!",
+          description: `${newAccount.name} is now linked to your profile.`
+        });
+        setIsLoading(false);
+        setIsPlaidLinkOpen(false);
+      }, 1500);
+
+      /* Uncomment this to use the real Edge Function
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
@@ -125,6 +191,7 @@ export default function FinancialsTransactions() {
         });
         await fetchAccounts();
       }
+      */
     } catch (error) {
       console.error('Error linking account:', error);
       toast({
@@ -285,27 +352,11 @@ export default function FinancialsTransactions() {
             </motion.div>
           </SidebarInset>
         </div>
-        {isPlaidLinkOpen && (
-          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-            <div className="bg-card p-6 rounded-lg shadow-lg max-w-md w-full">
-              <h2 className="text-xl font-bold mb-4">Connect Your Bank Account</h2>
-              <p className="text-muted-foreground mb-6">
-                You'll be redirected to securely connect your bank account. Your credentials are never stored on our servers.
-              </p>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={handlePlaidExit}>Cancel</Button>
-                <Button onClick={() => {
-                  toast({
-                    title: "Plaid Link",
-                    description: "Plaid Link would open here to connect your bank account.",
-                  });
-                }}>
-                  Continue
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+        <PlaidLink 
+          isOpen={isPlaidLinkOpen}
+          onSuccess={handlePlaidSuccess}
+          onExit={handlePlaidExit}
+        />
       </SidebarProvider>
     </ProtectedRoute>
   );
