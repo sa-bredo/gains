@@ -143,6 +143,8 @@ export function GoCardlessLink({ onSuccess, onExit, isOpen }: GoCardlessLinkProp
         });
         setIsLoading(false);
         onExit();
+      } finally {
+        setIsLoading(false);
       }
     };
 

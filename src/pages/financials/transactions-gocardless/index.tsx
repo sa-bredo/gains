@@ -8,9 +8,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { GoCardlessLink } from "./components/GoCardlessLink";
+import { useLocation, useNavigate } from "react-router-dom";
 import { 
   Select, 
   SelectContent, 
@@ -21,6 +22,8 @@ import {
 
 export default function FinancialsTransactionsGoCardless() {
   const { isAuthenticated } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [accounts, setAccounts] = useState([]);
   const [isGoCardlessLinkOpen, setIsGoCardlessLinkOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,6 +31,7 @@ export default function FinancialsTransactionsGoCardless() {
   const [transactions, setTransactions] = useState([]);
   const [dateFilter, setDateFilter] = useState("last30days");
   const [apiError, setApiError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const { toast } = useToast();
 
   const fadeIn = {
@@ -48,6 +52,28 @@ export default function FinancialsTransactionsGoCardless() {
   };
 
   useEffect(() => {
+    // Check if we're returning from the GoCardless redirect
+    const searchParams = new URLSearchParams(location.search);
+    const status = searchParams.get('status');
+    
+    if (status === 'success') {
+      toast({
+        title: "Bank Connection Successful",
+        description: "Your bank has been successfully connected. Loading your accounts...",
+        variant: "default",
+      });
+      
+      // Remove the query parameters from the URL
+      navigate('/financials/transactions-gocardless', { replace: true });
+      
+      // Refresh accounts after a short delay
+      setTimeout(() => {
+        fetchAccounts();
+      }, 1000);
+    }
+  }, [location]);
+
+  useEffect(() => {
     if (isAuthenticated) {
       fetchAccounts();
     }
@@ -62,6 +88,7 @@ export default function FinancialsTransactionsGoCardless() {
   const fetchAccounts = async () => {
     try {
       setIsLoading(true);
+      setRefreshing(true);
       setApiError(null);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -127,6 +154,7 @@ export default function FinancialsTransactionsGoCardless() {
       });
     } finally {
       setIsLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -239,6 +267,10 @@ export default function FinancialsTransactionsGoCardless() {
     setIsGoCardlessLinkOpen(true);
   };
 
+  const handleRefreshAccounts = () => {
+    fetchAccounts();
+  };
+
   const handleGoCardlessSuccess = async (redirectUrl, metadata) => {
     // Open the redirectUrl in a new window/tab
     window.open(redirectUrl, '_blank');
@@ -273,9 +305,9 @@ export default function FinancialsTransactionsGoCardless() {
 
   // Format currency
   const formatCurrency = (amount) => {
-    const formatter = new Intl.NumberFormat('en-US', {
+    const formatter = new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'GBP',
     });
     return formatter.format(amount);
   };
@@ -283,9 +315,9 @@ export default function FinancialsTransactionsGoCardless() {
   // Format date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
+    return new Intl.DateTimeFormat('en-GB', {
       day: 'numeric',
+      month: 'short',
       year: 'numeric'
     }).format(date);
   };
@@ -328,10 +360,21 @@ export default function FinancialsTransactionsGoCardless() {
                         View and manage your financial transactions using GoCardless open banking.
                       </p>
                     </div>
-                    <Button onClick={handleAddBankAccount} className="h-9">
-                      <PlusIcon className="mr-2 h-4 w-4" />
-                      Connect Bank Account
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handleRefreshAccounts} 
+                        variant="outline" 
+                        className="h-9"
+                        disabled={refreshing}
+                      >
+                        <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                        Refresh
+                      </Button>
+                      <Button onClick={handleAddBankAccount} className="h-9">
+                        <PlusIcon className="mr-2 h-4 w-4" />
+                        Connect Bank Account
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 
