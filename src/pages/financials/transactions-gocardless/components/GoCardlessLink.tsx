@@ -105,16 +105,21 @@ export function GoCardlessLink({ onSuccess, onExit, isOpen }: GoCardlessLinkProp
       console.log('Requesting GoCardless link from:', apiUrl);
       
       try {
+        // Format the request payload with both parameters
+        const requestPayload = {
+          bank_id: bankId,          // Keep for backward compatibility
+          institution_id: bankId     // This is the parameter used by GoCardless
+        };
+        
+        console.log('Sending request payload:', JSON.stringify(requestPayload));
+        
         const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${session.access_token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ 
-            bank_id: bankId,
-            institution_id: bankId // Passing the bank ID as institution_id
-          })
+          body: JSON.stringify(requestPayload)
         });
 
         // Get detailed error information
