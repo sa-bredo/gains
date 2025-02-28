@@ -1,10 +1,11 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PlaidLinkProps {
   onSuccess: (publicToken: string, metadata: any) => void;
@@ -14,6 +15,8 @@ interface PlaidLinkProps {
 
 export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -21,9 +24,11 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
     let script: HTMLScriptElement;
     const initPlaidLink = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          console.error('No session found');
+        setIsLoading(true);
+        
+        // Use the isAuthenticated state from AuthContext instead of checking session
+        if (!isAuthenticated) {
+          console.error('No authentication detected');
           const errorMessage = "Please log in to connect your bank account.";
           toast({
             variant: "destructive",
@@ -45,8 +50,33 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
           return;
         }
 
+        // Get the session explicitly for the API call
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          console.error('Session not found despite authentication');
+          const errorMessage = "Session error. Please try logging out and back in.";
+          toast({
+            variant: "destructive",
+            title: "Session Error",
+            description: (
+              <div className="flex items-center justify-between w-full">
+                <span>{errorMessage}</span>
+                <Copy 
+                  className="h-4 w-4 cursor-pointer ml-2 text-muted-foreground hover:text-foreground" 
+                  onClick={() => {
+                    navigator.clipboard.writeText("Session Error: " + errorMessage);
+                    toast({ title: "Copied to clipboard" });
+                  }}
+                />
+              </div>
+            ),
+          });
+          onExit();
+          return;
+        }
+
+        console.log('User is authenticated, fetching link token...');
         // Get a link token from our backend
-        console.log('Fetching link token...');
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-link-token`, {
           method: 'GET',
           headers: {
@@ -117,6 +147,7 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
           
           console.log('Simulating onSuccess with token:', mockPublicToken);
           onSuccess(mockPublicToken, mockMetadata);
+          setIsLoading(false);
         }, 2000);
 
         // Uncomment this section to use the real Plaid Link in production
@@ -133,9 +164,11 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
               onSuccess: (public_token: string, metadata: any) => {
                 console.log('Plaid Link success', metadata);
                 onSuccess(public_token, metadata);
+                setIsLoading(false);
               },
               onExit: (err: any, metadata: any) => {
                 console.log('Plaid Link exited', err, metadata);
+                setIsLoading(false);
                 onExit();
               },
               onLoad: () => {
@@ -162,6 +195,7 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
                 </div>
               ),
             });
+            setIsLoading(false);
             onExit();
           }
         };
@@ -187,6 +221,7 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
             </div>
           ),
         });
+        setIsLoading(false);
         onExit();
       }
     };
@@ -198,7 +233,7 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
         document.head.removeChild(script);
       }
     };
-  }, [isOpen]);
+  }, [isOpen, isAuthenticated]);
 
   if (!isOpen) return null;
 
@@ -216,7 +251,7 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
         <div className="flex justify-end">
-          <Button variant="outline" onClick={onExit}>Cancel</Button>
+          <Button variant="outline" onClick={onExit} disabled={isLoading}>Cancel</Button>
         </div>
       </DialogContent>
     </Dialog>
