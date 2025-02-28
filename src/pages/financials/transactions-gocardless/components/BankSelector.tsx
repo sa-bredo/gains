@@ -36,101 +36,135 @@ export function BankSelector({ onBankSelect, selectedBank }: BankSelectorProps) 
           throw new Error("No active session found");
         }
 
-        // Use the hardcoded URL to the edge function
-        const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/get-gocardless-banks?country=gb";
-        
-        console.log('Fetching banks from:', apiUrl);
-        
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
+        // Mock data - using this as a fallback until the edge function is deployed
+        const mockBanks = [
+          { 
+            id: "SANTANDER_RETAIL_GB", 
+            name: "Santander UK", 
+            logo: "https://cdn.nordigen.com/ais/SANTANDER_RETAIL_GB.png",
+            countries: ["GB"],
+            bic: "ABBYGB2LXXX"
+          },
+          { 
+            id: "HSBC_RETAIL_GB", 
+            name: "HSBC UK", 
+            logo: "https://cdn.nordigen.com/ais/HSBC_RETAIL_GB.png",
+            countries: ["GB"],
+            bic: "HBUKGB4BXXX"
+          },
+          { 
+            id: "LLOYDS_RETAIL_GB", 
+            name: "Lloyds Bank", 
+            logo: "https://cdn.nordigen.com/ais/LLOYDS_RETAIL_GB.png",
+            countries: ["GB"],
+            bic: "LOYDGB21XXX"
+          },
+          { 
+            id: "BARCLAYS_RETAIL_GB", 
+            name: "Barclays", 
+            logo: "https://cdn.nordigen.com/ais/BARCLAYS_RETAIL_GB.png",
+            countries: ["GB"],
+            bic: "BARCGB22XXX"
+          },
+          { 
+            id: "NATWEST_RETAIL_GB", 
+            name: "NatWest", 
+            logo: "https://cdn.nordigen.com/ais/NATWEST_RETAIL_GB.png",
+            countries: ["GB"],
+            bic: "NWBKGB2LXXX"
           }
-        });
-
-        // Get response text for better error reporting
-        let responseText;
-        try {
-          responseText = await response.text();
-          console.log('Raw banks API response:', responseText);
-        } catch (textError) {
-          console.error('Failed to get response text:', textError);
-          throw new Error(`Failed to get response text: ${textError instanceof Error ? textError.message : String(textError)}`);
-        }
-
-        if (!response.ok) {
-          console.error('Error fetching banks:', response.status, responseText);
-          setError(`API Error (${response.status}): ${responseText}`);
-          throw new Error(`Failed to fetch banks: ${response.status} - ${responseText}`);
-        }
-
-        // Parse the response
-        let data;
-        try {
-          data = JSON.parse(responseText);
-        } catch (parseError) {
-          console.error('Failed to parse banks response:', parseError);
-          setError(`Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}, Raw: ${responseText}`);
-          throw new Error('Invalid response from server. Please try again.');
-        }
-
-        console.log('Banks data:', data);
+        ];
         
-        // If API returned an error, handle it
-        if (data.error) {
-          console.error('API returned error:', data.error);
-          setError(`API returned error: ${data.error}`);
-          throw new Error(`API error: ${data.error}`);
-        }
-        
-        // Use mock data if no banks returned or for development
-        if (!data.banks || data.banks.length === 0) {
-          console.log('No banks returned, using mock data');
-          const mockBanks = [
-            { 
-              id: "SANTANDER_RETAIL_GB", 
-              name: "Santander UK", 
-              logo: "https://cdn.nordigen.com/ais/SANTANDER_RETAIL_GB.png",
-              countries: ["GB"],
-              bic: "ABBYGB2LXXX"
-            },
-            { 
-              id: "HSBC_RETAIL_GB", 
-              name: "HSBC UK", 
-              logo: "https://cdn.nordigen.com/ais/HSBC_RETAIL_GB.png",
-              countries: ["GB"],
-              bic: "HBUKGB4BXXX"
-            },
-            { 
-              id: "LLOYDS_RETAIL_GB", 
-              name: "Lloyds Bank", 
-              logo: "https://cdn.nordigen.com/ais/LLOYDS_RETAIL_GB.png",
-              countries: ["GB"],
-              bic: "LOYDGB21XXX"
-            },
-            { 
-              id: "BARCLAYS_RETAIL_GB", 
-              name: "Barclays", 
-              logo: "https://cdn.nordigen.com/ais/BARCLAYS_RETAIL_GB.png",
-              countries: ["GB"],
-              bic: "BARCGB22XXX"
-            },
-            { 
-              id: "NATWEST_RETAIL_GB", 
-              name: "NatWest", 
-              logo: "https://cdn.nordigen.com/ais/NATWEST_RETAIL_GB.png",
-              countries: ["GB"],
-              bic: "NWBKGB2LXXX"
+        // Try fetching from the edge function
+        try {
+          // Use the hardcoded URL to the edge function
+          const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/get-gocardless-banks?country=gb";
+          
+          console.log('Attempting to fetch banks from:', apiUrl);
+          
+          const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json'
             }
-          ];
-          setBanks(mockBanks);
-        } else {
-          setBanks(data.banks || []);
+          });
+
+          // Get response text for better error reporting
+          let responseText;
+          try {
+            responseText = await response.text();
+            console.log('Raw banks API response:', responseText);
+            
+            // Parse the response if successful
+            if (response.ok) {
+              const data = JSON.parse(responseText);
+              if (data.banks && data.banks.length > 0) {
+                console.log('Successfully fetched banks from edge function');
+                setBanks(data.banks);
+                setIsLoading(false);
+                return;
+              }
+            } else {
+              console.warn('Edge function returned non-OK status:', response.status);
+              // Continue to use mock data
+            }
+          } catch (textError) {
+            console.error('Failed to get or parse response text:', textError);
+            // Continue to use mock data
+          }
+        } catch (fetchError) {
+          console.warn('Edge function request failed, using mock data:', fetchError);
+          // Continue to use mock data
         }
+        
+        // If we reach here, use mock data
+        console.log('Using mock bank data');
+        setBanks(mockBanks);
+        
       } catch (err) {
         console.error('Failed to fetch banks:', err);
         setError(err instanceof Error ? err.message : String(err));
+        
+        // Fallback to mock data even on error
+        const mockBanks = [
+          { 
+            id: "SANTANDER_RETAIL_GB", 
+            name: "Santander UK", 
+            logo: "https://cdn.nordigen.com/ais/SANTANDER_RETAIL_GB.png",
+            countries: ["GB"],
+            bic: "ABBYGB2LXXX"
+          },
+          { 
+            id: "HSBC_RETAIL_GB", 
+            name: "HSBC UK", 
+            logo: "https://cdn.nordigen.com/ais/HSBC_RETAIL_GB.png",
+            countries: ["GB"],
+            bic: "HBUKGB4BXXX"
+          },
+          { 
+            id: "LLOYDS_RETAIL_GB", 
+            name: "Lloyds Bank", 
+            logo: "https://cdn.nordigen.com/ais/LLOYDS_RETAIL_GB.png",
+            countries: ["GB"],
+            bic: "LOYDGB21XXX"
+          },
+          { 
+            id: "BARCLAYS_RETAIL_GB", 
+            name: "Barclays", 
+            logo: "https://cdn.nordigen.com/ais/BARCLAYS_RETAIL_GB.png",
+            countries: ["GB"],
+            bic: "BARCGB22XXX"
+          },
+          { 
+            id: "NATWEST_RETAIL_GB", 
+            name: "NatWest", 
+            logo: "https://cdn.nordigen.com/ais/NATWEST_RETAIL_GB.png",
+            countries: ["GB"],
+            bic: "NWBKGB2LXXX"
+          }
+        ];
+        setBanks(mockBanks);
       } finally {
         setIsLoading(false);
       }
