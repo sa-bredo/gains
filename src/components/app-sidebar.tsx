@@ -2,7 +2,14 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Sidebar, SidebarSection, SidebarItem } from "@/components/ui/sidebar";
+import {
+  Sidebar,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarGroup,
+  SidebarGroupLabel
+} from "@/components/ui/sidebar";
 
 import {
   LayoutDashboard,
@@ -25,132 +32,152 @@ export function AppSidebar() {
 
   return (
     <Sidebar aria-label="Application sidebar">
-      <SidebarSection>
-        <SidebarItem
-          as={Link}
-          to="/"
-          active={pathname === "/"}
-          icon={<LayoutDashboard className="h-4 w-4" />}
-        >
-          Dashboard
-        </SidebarItem>
-        <SidebarItem
-          as={Link}
-          to="/explore"
-          active={pathname === "/explore"}
-          icon={<Compass className="h-4 w-4" />}
-        >
-          Explore
-        </SidebarItem>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            as={Link}
+            to="/"
+            isActive={pathname === "/"}
+            icon={<LayoutDashboard className="h-4 w-4" />}
+          >
+            Dashboard
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            as={Link}
+            to="/explore"
+            isActive={pathname === "/explore"}
+            icon={<Compass className="h-4 w-4" />}
+          >
+            Explore
+          </SidebarMenuButton>
+        </SidebarMenuItem>
         
-        <SidebarSection
-          title="Financials"
-          showDivider
-          collapsible
-          defaultOpen={pathname.includes('/financials')}
-        >
-          <SidebarItem
-            as={Link}
-            to="/financials/transactions"
-            active={pathname === "/financials/transactions"}
-            icon={<CreditCard className="h-4 w-4" />}
-          >
-            Transactions
-          </SidebarItem>
-          <SidebarItem
-            as={Link}
-            to="/financials/transactions-tink"
-            active={pathname === "/financials/transactions-tink"}
-            icon={<BanknoteIcon className="h-4 w-4" />}
-          >
-            Transactions via Tink
-          </SidebarItem>
-        </SidebarSection>
+        <SidebarGroup>
+          <SidebarGroupLabel>Financials</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                as={Link}
+                to="/financials/transactions"
+                isActive={pathname === "/financials/transactions"}
+                icon={<CreditCard className="h-4 w-4" />}
+              >
+                Transactions
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                as={Link}
+                to="/financials/transactions-tink"
+                isActive={pathname === "/financials/transactions-tink"}
+                icon={<BanknoteIcon className="h-4 w-4" />}
+              >
+                Transactions via Tink
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
         
-        <SidebarSection
-          title="Schedule"
-          showDivider
-          collapsible
-          defaultOpen={pathname.includes('/schedule')}
-        >
-          <SidebarItem
-            as={Link}
-            to="/schedule/calendar"
-            active={pathname === "/schedule/calendar"}
-            icon={<Calendar className="h-4 w-4" />}
-          >
-            Calendar
-          </SidebarItem>
-          <SidebarItem
-            as={Link}
-            to="/schedule/timesheets"
-            active={pathname === "/schedule/timesheets"}
-            icon={<Clock className="h-4 w-4" />}
-          >
-            Timesheets
-          </SidebarItem>
-        </SidebarSection>
+        <SidebarGroup>
+          <SidebarGroupLabel>Schedule</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                as={Link}
+                to="/schedule/calendar"
+                isActive={pathname === "/schedule/calendar"}
+                icon={<Calendar className="h-4 w-4" />}
+              >
+                Calendar
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                as={Link}
+                to="/schedule/timesheets"
+                isActive={pathname === "/schedule/timesheets"}
+                icon={<Clock className="h-4 w-4" />}
+              >
+                Timesheets
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
 
-        <SidebarSection
-          title="Company"
-          showDivider
-          collapsible
-          defaultOpen={pathname.includes('/company')}
-        >
-          <SidebarItem
-            as={Link}
-            to="/company/employees"
-            active={pathname === "/company/employees"}
-            icon={<Users className="h-4 w-4" />}
-          >
-            Employees
-          </SidebarItem>
-          <SidebarItem
-            as={Link}
-            to="/company/locations"
-            active={pathname === "/company/locations"}
-            icon={<Building2 className="h-4 w-4" />}
-          >
-            Locations
-          </SidebarItem>
-          <SidebarItem
-            as={Link}
-            to="/company/documents"
-            active={pathname === "/company/documents"}
-            icon={<FileText className="h-4 w-4" />}
-          >
-            Documents
-          </SidebarItem>
-        </SidebarSection>
+        <SidebarGroup>
+          <SidebarGroupLabel>Company</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                as={Link}
+                to="/company/employees"
+                isActive={pathname === "/company/employees"}
+                icon={<Users className="h-4 w-4" />}
+              >
+                Employees
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                as={Link}
+                to="/company/locations"
+                isActive={pathname === "/company/locations"}
+                icon={<Building2 className="h-4 w-4" />}
+              >
+                Locations
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                as={Link}
+                to="/company/documents"
+                isActive={pathname === "/company/documents"}
+                icon={<FileText className="h-4 w-4" />}
+              >
+                Documents
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
 
-        <SidebarItem
-          as={Link}
-          to="/reports"
-          active={pathname === "/reports"}
-          icon={<Activity className="h-4 w-4" />}
-        >
-          Reports
-        </SidebarItem>
-        <SidebarItem
-          as={Link}
-          to="/table-example"
-          active={pathname === "/table-example"}
-          icon={<Briefcase className="h-4 w-4" />}
-        >
-          Table Example
-        </SidebarItem>
-      </SidebarSection>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            as={Link}
+            to="/reports"
+            isActive={pathname === "/reports"}
+            icon={<Activity className="h-4 w-4" />}
+          >
+            Reports
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            as={Link}
+            to="/table-example"
+            isActive={pathname === "/table-example"}
+            icon={<Briefcase className="h-4 w-4" />}
+          >
+            Table Example
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
 
-      <SidebarSection position="bottom">
-        <SidebarItem
-          as={Link}
-          to="/settings"
-          active={pathname === "/settings"}
-          icon={<Settings className="h-4 w-4" />}
-        >
-          Settings
-        </SidebarItem>
-      </SidebarSection>
+      <SidebarGroup position="bottom">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              as={Link}
+              to="/settings"
+              isActive={pathname === "/settings"}
+              icon={<Settings className="h-4 w-4" />}
+            >
+              Settings
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarGroup>
     </Sidebar>
   );
 }
