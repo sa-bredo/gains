@@ -21,3 +21,12 @@ verify_jwt = false
 
 [functions.webhook-logs]
 verify_jwt = false
+
+[functions.create-gocardless-link]
+verify_jwt = false
+
+[functions.get-gocardless-accounts]
+verify_jwt = false
+
+[functions.get-gocardless-transactions]
+verify_jwt = false

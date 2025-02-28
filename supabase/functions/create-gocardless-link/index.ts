@@ -40,23 +40,31 @@ serve(async (req) => {
       );
     }
 
-    // For this example, we're creating a mock redirect URL
-    // In a real implementation, you would use the GoCardless API to create a requisition
-    const goCardlessApiKey = Deno.env.get('GOCARDLESS_API_KEY');
+    // Get GoCardless credentials from environment variables
+    const goCardlessClientId = Deno.env.get('GOCARDLESS_CLIENT_ID');
+    const goCardlessClientSecret = Deno.env.get('GOCARDLESS_CLIENT_SECRET');
     
-    if (!goCardlessApiKey) {
+    if (!goCardlessClientId || !goCardlessClientSecret) {
+      console.error('Missing GoCardless credentials:', { 
+        hasClientId: !!goCardlessClientId, 
+        hasClientSecret: !!goCardlessClientSecret 
+      });
+      
       return new Response(
-        JSON.stringify({ error: 'GoCardless API key not configured' }),
+        JSON.stringify({ 
+          error: 'GoCardless credentials not configured',
+          details: 'Both client ID and client secret must be configured in Supabase secrets'
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // In a real implementation, you would call the GoCardless API here
-    // This is just a mock response to demonstrate the flow
+    // For now, we're returning a mock redirect URL to demonstrate the flow
     const mockRedirectUrl = "https://gocardless.com/auth/example-institution";
     const requisitionId = `gc_${Math.random().toString(36).substring(2, 10)}`;
 
-    console.log(`Creating mock GoCardless link for user ${user.id}`);
+    console.log(`Creating mock GoCardless link for user ${user.id} using Client ID: ${goCardlessClientId.substring(0, 5)}...`);
     
     return new Response(
       JSON.stringify({
