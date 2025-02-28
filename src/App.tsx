@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Home from "./pages/Home";
+import FinancialsTransactions from "./pages/financials/transactions";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,14 @@ const App = () => (
               }
             />
             <Route path="/about" element={<About />} />
+            <Route
+              path="/financials/transactions"
+              element={
+                <ProtectedRoute>
+                  <FinancialsTransactions />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
