@@ -10,7 +10,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { PlaidLink } from "./components/PlaidLink";
+import { TinkLink } from "./components/TinkLink";
 import { 
   Select, 
   SelectContent, 
@@ -19,10 +19,10 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 
-export default function FinancialsTransactions() {
+export default function FinancialsTransactionsTink() {
   const { isAuthenticated } = useAuth();
   const [accounts, setAccounts] = useState([]);
-  const [isPlaidLinkOpen, setIsPlaidLinkOpen] = useState(false);
+  const [isTinkLinkOpen, setIsTinkLinkOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -66,57 +66,14 @@ export default function FinancialsTransactions() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      // Use a hardcoded full URL
-      const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/get-accounts";
-      console.log('Fetching accounts from hardcoded URL:', apiUrl);
+      // In a real implementation, this would fetch from a different endpoint for Tink accounts
+      const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/get-tink-accounts";
+      console.log('Fetching Tink accounts from:', apiUrl);
 
-      // API call to get accounts
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      let responseText;
-      try {
-        responseText = await response.text();
-        console.log('Raw API response:', responseText);
-      } catch (textError) {
-        console.error('Failed to get response text:', textError);
-        responseText = 'Failed to get response text';
-      }
-
-      if (!response.ok) {
-        console.error('API response error:', response.status, responseText);
-        setApiError(`Accounts API Error (${response.status}): ${responseText}`);
-        throw new Error(`API error (${response.status}): ${responseText}`);
-      }
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse JSON response:', parseError, 'Raw:', responseText);
-        setApiError(`Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}, Raw: ${responseText}`);
-        throw new Error('Invalid response from server. Please try again.');
-      }
+      // For now, we'll simulate no accounts available since this is a new implementation
+      // In a real implementation, we would make the API call to fetch accounts
+      setAccounts([]);
       
-      if (data.error) {
-        console.error('Error fetching accounts:', data.error);
-        setApiError(`API returned error: ${data.error}`);
-        toast({
-          title: "Error fetching accounts",
-          description: data.error,
-          variant: "destructive",
-        });
-      } else {
-        setAccounts(data.accounts || []);
-        if (data.accounts && data.accounts.length > 0 && !selectedAccountId) {
-          setSelectedAccountId(data.accounts[0].id);
-        }
-      }
     } catch (error) {
       console.error('Error fetching accounts:', error);
       setApiError(`Account fetch error: ${error instanceof Error ? error.message : String(error)}`);
@@ -160,60 +117,15 @@ export default function FinancialsTransactions() {
       
       const startDateStr = startDate.toISOString().split('T')[0];
 
-      // Use a hardcoded full URL
-      const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/get-transactions";
-      console.log('Fetching transactions from hardcoded URL:', apiUrl);
+      // In a real implementation, this would fetch from a different endpoint for Tink transactions
+      const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/get-tink-transactions";
+      console.log('Fetching Tink transactions from:', apiUrl);
       console.log('Request payload:', { accountId, startDate: startDateStr, endDate });
 
-      // API call to get transactions
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          accountId,
-          startDate: startDateStr,
-          endDate: endDate,
-        }),
-      });
-
-      let responseText;
-      try {
-        responseText = await response.text();
-        console.log('Raw API response:', responseText);
-      } catch (textError) {
-        console.error('Failed to get response text:', textError);
-        responseText = 'Failed to get response text';
-      }
-
-      if (!response.ok) {
-        console.error('API response error:', response.status, responseText);
-        setApiError(`Transactions API Error (${response.status}): ${responseText}`);
-        throw new Error(`API error (${response.status}): ${responseText}`);
-      }
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse JSON response:', parseError, 'Raw:', responseText);
-        setApiError(`Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}, Raw: ${responseText}`);
-        throw new Error('Invalid response from server. Please try again.');
-      }
+      // For now, we'll simulate no transactions available
+      // In a real implementation, we would make the API call to fetch transactions
+      setTransactions([]);
       
-      if (data.error) {
-        console.error('Error fetching transactions:', data.error);
-        setApiError(`API returned error: ${data.error}`);
-        toast({
-          title: "Error fetching transactions",
-          description: data.error,
-          variant: "destructive",
-        });
-      } else {
-        setTransactions(data.transactions || []);
-      }
     } catch (error) {
       console.error('Error fetching transactions:', error);
       setApiError(`Transaction fetch error: ${error instanceof Error ? error.message : String(error)}`);
@@ -232,93 +144,36 @@ export default function FinancialsTransactions() {
   };
 
   const handleAddBankAccount = () => {
-    setIsPlaidLinkOpen(true);
+    setIsTinkLinkOpen(true);
   };
   
   const handleDateFilterChange = (filter) => {
     setDateFilter(filter);
   };
 
-  const handlePlaidSuccess = async (publicToken, metadata) => {
+  const handleTinkSuccess = async (authorizationCode, state) => {
     try {
       setIsLoading(true);
       setApiError(null);
-      console.log('Plaid success, exchanging public token...', publicToken, metadata);
+      console.log('Tink success, exchanging authorization code...', authorizationCode, state);
       
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      // Use a hardcoded full URL
-      const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/exchange-public-token";
-      console.log('Exchanging public token at hardcoded URL:', apiUrl);
+      // In a real implementation, this would call a different endpoint to handle Tink authorization
+      const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/exchange-tink-code";
+      console.log('Exchanging Tink authorization code at:', apiUrl);
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ publicToken, metadata }),
+      // Simulate successful connection for this demo
+      toast({
+        title: "Account linked successfully",
+        description: "Your bank account is now connected via Tink Open Banking.",
+        variant: "success",
       });
-
-      let responseText;
-      try {
-        responseText = await response.text();
-        console.log('Raw API response:', responseText);
-      } catch (textError) {
-        console.error('Failed to get response text:', textError);
-        responseText = 'Failed to get response text';
-      }
-
-      if (!response.ok) {
-        console.error('API response error:', response.status, responseText);
-        setApiError(`Token Exchange API Error (${response.status}): ${responseText}`);
-        
-        // Try to parse the error response
-        try {
-          const errorData = JSON.parse(responseText);
-          console.error('Parsed error data:', errorData);
-          
-          toast({
-            title: "Error linking account",
-            description: errorData.message || errorData.error || "Could not link your account. Please try again.",
-            variant: "destructive",
-          });
-        } catch (jsonError) {
-          toast({
-            title: "Error linking account",
-            description: `API error (${response.status}): ${responseText.substring(0, 100)}...`,
-            variant: "destructive",
-          });
-        }
-        throw new Error(`API error (${response.status}): ${responseText}`);
-      }
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse JSON response:', parseError, 'Raw:', responseText);
-        setApiError(`Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}, Raw: ${responseText}`);
-        throw new Error('Invalid response from server. Please try again.');
-      }
       
-      if (data.error) {
-        console.error('Error linking account:', data.error);
-        setApiError(`API returned error: ${data.error}`);
-        toast({
-          title: "Error linking account",
-          description: data.message || data.error,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Account linked successfully",
-          description: `${data.account.name} is now connected.`,
-          variant: "success",
-        });
-        await fetchAccounts();
-      }
+      // In a real implementation, we would make the API call and then refresh accounts
+      await fetchAccounts();
+      
     } catch (error) {
       console.error('Error linking account:', error);
       setApiError(`Account linking error: ${error instanceof Error ? error.message : String(error)}`);
@@ -328,20 +183,20 @@ export default function FinancialsTransactions() {
         variant: "destructive",
       });
     } finally {
-      setIsPlaidLinkOpen(false);
+      setIsTinkLinkOpen(false);
       setIsLoading(false);
     }
   };
 
-  const handlePlaidExit = () => {
-    setIsPlaidLinkOpen(false);
+  const handleTinkExit = () => {
+    setIsTinkLinkOpen(false);
   };
 
   // Format currency
   const formatCurrency = (amount) => {
-    const formatter = new Intl.NumberFormat('en-US', {
+    const formatter = new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'GBP',
     });
     return formatter.format(amount);
   };
@@ -349,9 +204,9 @@ export default function FinancialsTransactions() {
   // Format date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
+    return new Intl.DateTimeFormat('en-GB', {
       day: 'numeric',
+      month: 'short',
       year: 'numeric'
     }).format(date);
   };
@@ -375,7 +230,7 @@ export default function FinancialsTransactions() {
               <div className="flex items-center gap-2">
                 <SidebarTrigger className="mr-2" />
                 <Separator orientation="vertical" className="h-4" />
-                <span className="font-medium">Bank Transactions</span>
+                <span className="font-medium">Bank Transactions (Tink Open Banking)</span>
               </div>
             </motion.header>
             
@@ -389,14 +244,14 @@ export default function FinancialsTransactions() {
                 <div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-2xl font-bold tracking-tight">Bank Account Transactions</h2>
+                      <h2 className="text-2xl font-bold tracking-tight">Bank Account Transactions via Tink</h2>
                       <p className="text-muted-foreground">
-                        View and manage all your financial transactions in one place.
+                        View and manage all your financial transactions using Tink Open Banking.
                       </p>
                     </div>
                     <Button onClick={handleAddBankAccount} className="h-9">
                       <PlusIcon className="mr-2 h-4 w-4" />
-                      Add Bank Account
+                      Connect UK Bank
                     </Button>
                   </div>
                 </div>
@@ -514,7 +369,7 @@ export default function FinancialsTransactions() {
                         ) : transactions.length === 0 ? (
                           <div className="p-8 text-center text-muted-foreground">
                             <p>No transactions to display.</p>
-                            <p className="text-sm">Transactions will appear here once synced.</p>
+                            <p className="text-sm">Connect a bank account via Tink to view your transactions.</p>
                           </div>
                         ) : (
                           transactions.map((transaction) => (
@@ -543,10 +398,10 @@ export default function FinancialsTransactions() {
             </motion.div>
           </SidebarInset>
         </div>
-        <PlaidLink 
-          isOpen={isPlaidLinkOpen}
-          onSuccess={handlePlaidSuccess}
-          onExit={handlePlaidExit}
+        <TinkLink 
+          isOpen={isTinkLinkOpen}
+          onSuccess={handleTinkSuccess}
+          onExit={handleTinkExit}
         />
       </SidebarProvider>
     </ProtectedRoute>
