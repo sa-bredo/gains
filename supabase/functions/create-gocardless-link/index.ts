@@ -133,8 +133,14 @@ serve(async (req) => {
 
     console.log('Successfully obtained GoCardless access token');
 
+    // For demo purposes, we'll use Santander UK as our institution
+    // In a production app, you would let users choose their bank
+    const santanderBankId = "SANTANDER_RETAIL_GB"; // This is an example ID, use a real bank ID
+
     // Step 2: Create an End User Agreement (required for creating requisitions)
     console.log('Creating end user agreement...');
+    console.log('Using institution ID:', santanderBankId);
+    
     const agreementResponse = await fetch(`${GOCARDLESS_API_URL}/agreements/enduser/`, {
       method: 'POST',
       headers: {
@@ -143,6 +149,7 @@ serve(async (req) => {
         'Accept': 'application/json',
       },
       body: JSON.stringify({
+        institution_id: santanderBankId, // Adding the institution_id as required by API
         max_historical_days: 90,
         access_valid_for_days: 90,
         access_scope: ["balances", "details", "transactions"]
@@ -183,14 +190,10 @@ serve(async (req) => {
     const appUrl = Deno.env.get('PUBLIC_URL') || 'http://localhost:5173';
     const redirectUrl = `${appUrl}/financials/transactions-gocardless?status=success`;
     
-    // For demo purposes, we'll use Santander UK as our institution
-    // In a production app, you would let users choose their bank
-    const santanderUkId = "SANTANDER_BANK_PL";
-    
     console.log('Creating new requisition with GoCardless...');
     console.log('Requisition details:', {
       redirect: redirectUrl,
-      institution_id: santanderUkId,
+      institution_id: santanderBankId,
       reference: user.id.substring(0, 20),
       agreement: agreementData.id
     });
@@ -204,7 +207,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         redirect: redirectUrl,
-        institution_id: santanderUkId,
+        institution_id: santanderBankId,
         reference: user.id.substring(0, 20), // Using the user's ID as a reference
         agreement: agreementData.id,
         user_language: 'EN', // Default to English
