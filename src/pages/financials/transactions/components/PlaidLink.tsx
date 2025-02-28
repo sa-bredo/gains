@@ -136,7 +136,7 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
               const handler = (window as any).Plaid.create({
                 token: linkToken,
                 onSuccess: (public_token: string, metadata: any) => {
-                  console.log('Plaid Link success', metadata);
+                  console.log('Plaid Link success', public_token, metadata);
                   onSuccess(public_token, metadata);
                   setIsLoading(false);
                 },

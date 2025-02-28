@@ -239,7 +239,7 @@ export default function FinancialsTransactions() {
     try {
       setIsLoading(true);
       setApiError(null);
-      console.log('Plaid success, exchanging public token...', metadata);
+      console.log('Plaid success, exchanging public token...', publicToken, metadata);
       
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -269,6 +269,24 @@ export default function FinancialsTransactions() {
       if (!response.ok) {
         console.error('API response error:', response.status, responseText);
         setApiError(`Token Exchange API Error (${response.status}): ${responseText}`);
+        
+        // Try to parse the error response
+        try {
+          const errorData = JSON.parse(responseText);
+          console.error('Parsed error data:', errorData);
+          
+          toast({
+            title: "Error linking account",
+            description: errorData.message || errorData.error || "Could not link your account. Please try again.",
+            variant: "destructive",
+          });
+        } catch (jsonError) {
+          toast({
+            title: "Error linking account",
+            description: `API error (${response.status}): ${responseText.substring(0, 100)}...`,
+            variant: "destructive",
+          });
+        }
         throw new Error(`API error (${response.status}): ${responseText}`);
       }
 
@@ -286,13 +304,14 @@ export default function FinancialsTransactions() {
         setApiError(`API returned error: ${data.error}`);
         toast({
           title: "Error linking account",
-          description: data.error,
+          description: data.message || data.error,
           variant: "destructive",
         });
       } else {
         toast({
           title: "Account linked successfully",
           description: `${data.account.name} is now connected.`,
+          variant: "success",
         });
         await fetchAccounts();
       }
@@ -312,10 +331,6 @@ export default function FinancialsTransactions() {
 
   const handlePlaidExit = () => {
     setIsPlaidLinkOpen(false);
-  };
-
-  const handleDateFilterChange = (filter) => {
-    setDateFilter(filter);
   };
 
   // Format currency
