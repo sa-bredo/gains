@@ -35,22 +35,24 @@ export function AppSidebar() {
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton
-            as={Link}
-            to="/"
+            asChild
             isActive={pathname === "/"}
-            icon={<LayoutDashboard className="h-4 w-4" />}
           >
-            Dashboard
+            <Link to="/">
+              <LayoutDashboard className="h-4 w-4" />
+              <span>Dashboard</span>
+            </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
         <SidebarMenuItem>
           <SidebarMenuButton
-            as={Link}
-            to="/explore"
+            asChild
             isActive={pathname === "/explore"}
-            icon={<Compass className="h-4 w-4" />}
           >
-            Explore
+            <Link to="/explore">
+              <Compass className="h-4 w-4" />
+              <span>Explore</span>
+            </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
         
@@ -59,22 +61,24 @@ export function AppSidebar() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                as={Link}
-                to="/financials/transactions"
+                asChild
                 isActive={pathname === "/financials/transactions"}
-                icon={<CreditCard className="h-4 w-4" />}
               >
-                Transactions
+                <Link to="/financials/transactions">
+                  <CreditCard className="h-4 w-4" />
+                  <span>Transactions</span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
-                as={Link}
-                to="/financials/transactions-tink"
+                asChild
                 isActive={pathname === "/financials/transactions-tink"}
-                icon={<BanknoteIcon className="h-4 w-4" />}
               >
-                Transactions via Tink
+                <Link to="/financials/transactions-tink">
+                  <BanknoteIcon className="h-4 w-4" />
+                  <span>Transactions via Tink</span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -85,22 +89,24 @@ export function AppSidebar() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                as={Link}
-                to="/schedule/calendar"
+                asChild
                 isActive={pathname === "/schedule/calendar"}
-                icon={<Calendar className="h-4 w-4" />}
               >
-                Calendar
+                <Link to="/schedule/calendar">
+                  <Calendar className="h-4 w-4" />
+                  <span>Calendar</span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
-                as={Link}
-                to="/schedule/timesheets"
+                asChild
                 isActive={pathname === "/schedule/timesheets"}
-                icon={<Clock className="h-4 w-4" />}
               >
-                Timesheets
+                <Link to="/schedule/timesheets">
+                  <Clock className="h-4 w-4" />
+                  <span>Timesheets</span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -111,32 +117,35 @@ export function AppSidebar() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                as={Link}
-                to="/company/employees"
+                asChild
                 isActive={pathname === "/company/employees"}
-                icon={<Users className="h-4 w-4" />}
               >
-                Employees
+                <Link to="/company/employees">
+                  <Users className="h-4 w-4" />
+                  <span>Employees</span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
-                as={Link}
-                to="/company/locations"
+                asChild
                 isActive={pathname === "/company/locations"}
-                icon={<Building2 className="h-4 w-4" />}
               >
-                Locations
+                <Link to="/company/locations">
+                  <Building2 className="h-4 w-4" />
+                  <span>Locations</span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
-                as={Link}
-                to="/company/documents"
+                asChild
                 isActive={pathname === "/company/documents"}
-                icon={<FileText className="h-4 w-4" />}
               >
-                Documents
+                <Link to="/company/documents">
+                  <FileText className="h-4 w-4" />
+                  <span>Documents</span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -144,36 +153,39 @@ export function AppSidebar() {
 
         <SidebarMenuItem>
           <SidebarMenuButton
-            as={Link}
-            to="/reports"
+            asChild
             isActive={pathname === "/reports"}
-            icon={<Activity className="h-4 w-4" />}
           >
-            Reports
+            <Link to="/reports">
+              <Activity className="h-4 w-4" />
+              <span>Reports</span>
+            </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
         <SidebarMenuItem>
           <SidebarMenuButton
-            as={Link}
-            to="/table-example"
+            asChild
             isActive={pathname === "/table-example"}
-            icon={<Briefcase className="h-4 w-4" />}
           >
-            Table Example
+            <Link to="/table-example">
+              <Briefcase className="h-4 w-4" />
+              <span>Table Example</span>
+            </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
 
-      <SidebarGroup position="bottom">
+      <SidebarGroup>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              as={Link}
-              to="/settings"
+              asChild
               isActive={pathname === "/settings"}
-              icon={<Settings className="h-4 w-4" />}
             >
-              Settings
+              <Link to="/settings">
+                <Settings className="h-4 w-4" />
+                <span>Settings</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
