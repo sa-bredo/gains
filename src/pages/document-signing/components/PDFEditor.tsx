@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
@@ -68,47 +69,64 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         console.log("PDF rendered, creating canvas");
         
         try {
+          // Create canvas element if it doesn't exist
           let canvasElement = document.getElementById("fabric-canvas") as HTMLCanvasElement;
           if (!canvasElement) {
             console.log("Creating new canvas element");
             canvasElement = document.createElement("canvas");
             canvasElement.id = "fabric-canvas";
             if (canvasContainerRef.current) {
+              canvasContainerRef.current.innerHTML = ''; // Clear previous canvas
               canvasContainerRef.current.appendChild(canvasElement);
             }
           }
           
           canvasElementRef.current = canvasElement;
           
+          // Get dimensions and position
           const pdfRect = pdfElement.getBoundingClientRect();
           const containerRect = pdfContainerRef.current.getBoundingClientRect();
           
           console.log("PDF dimensions:", pdfRect.width, pdfRect.height);
           
+          // Reset canvas
           if (canvasRef.current) {
             canvasRef.current.dispose();
           }
           
           console.log("Creating new fabric canvas");
+          
+          // Create new canvas with proper dimensions
           const canvas = new fabric.Canvas(canvasElement.id, {
             width: pdfRect.width,
             height: pdfRect.height,
             backgroundColor: "rgba(0,0,0,0.01)",
             selection: true,
             preserveObjectStacking: true,
+            interactive: true,
+            isDrawingMode: false,
           });
           
           console.log("Canvas created successfully", canvas);
           
+          // Position canvas properly
           canvasElement.style.position = "absolute";
           canvasElement.style.top = `${pdfRect.top - containerRect.top}px`;
           canvasElement.style.left = `${pdfRect.left - containerRect.left}px`;
           canvasElement.style.pointerEvents = "auto";
+          canvasElement.style.zIndex = "10"; // Ensure canvas is above PDF
+          
+          // Make sure canvas container allows interactions
+          if (canvasContainerRef.current) {
+            canvasContainerRef.current.style.pointerEvents = "auto";
+            canvasContainerRef.current.style.zIndex = "10";
+          }
           
           canvasRef.current = canvas;
           setCanvasInitialized(true);
           setIsCanvasSetup(true);
           
+          // Add event listeners for tracking changes
           canvas.on("object:added", (e) => {
             if (!e.target) return;
             
@@ -158,10 +176,8 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
             }
           });
           
-          // Fix pointer events for canvas container
-          if (canvasContainerRef.current) {
-            canvasContainerRef.current.style.pointerEvents = "auto";
-          }
+          // Make canvas and objects interactive
+          canvas.selection = true;
           
           renderFieldsForCurrentPage();
           
@@ -197,6 +213,7 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         canvasElement.style.position = "absolute";
         canvasElement.style.top = `${pdfRect.top - containerRect.top}px`;
         canvasElement.style.left = `${pdfRect.left - containerRect.left}px`;
+        canvasElement.style.zIndex = "10";
       }
       
       canvasRef.current.renderAll();
@@ -211,12 +228,15 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
   const renderFieldsForCurrentPage = () => {
     if (!canvasRef.current) return;
     
+    // Clear all objects
     canvasRef.current.clear();
     
+    // Filter fields for current page
     const fieldsForCurrentPage = fields.filter(field => field.page === currentPage);
     
     console.log(`Rendering ${fieldsForCurrentPage.length} fields for page ${currentPage}`);
     
+    // Render each field
     fieldsForCurrentPage.forEach(field => {
       let obj;
       
@@ -232,7 +252,7 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
           rx: 5,
           ry: 5,
           data: { type: "signature", id: field.id, loaded: true },
-          selectable: currentTool === "select",
+          selectable: true,
           hasControls: true,
           hasBorders: true,
           lockMovementX: false,
@@ -265,7 +285,7 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
           rx: 5,
           ry: 5,
           data: { type: "text", id: field.id, loaded: true },
-          selectable: currentTool === "select",
+          selectable: true,
           hasControls: true,
           hasBorders: true,
           lockMovementX: false,
@@ -317,6 +337,8 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         selectable: true,
         hasControls: true,
         hasBorders: true,
+        lockMovementX: false,
+        lockMovementY: false,
         cornerColor: "#2563eb",
         cornerSize: 8,
         transparentCorners: false,
@@ -367,6 +389,8 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         selectable: true,
         hasControls: true,
         hasBorders: true,
+        lockMovementX: false,
+        lockMovementY: false,
         cornerColor: "#16a34a",
         cornerSize: 8,
         transparentCorners: false,
@@ -433,6 +457,8 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
           obj.selectable = true;
           obj.hasControls = true;
           obj.hasBorders = true;
+          obj.lockMovementX = false;
+          obj.lockMovementY = false;
         }
       });
       toast.info("Selection mode active - drag fields to position them");
@@ -510,7 +536,11 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
             <div 
               ref={canvasContainerRef} 
               className="absolute top-0 left-0 w-full h-full"
-              style={{ pointerEvents: "auto" }}
+              style={{ 
+                pointerEvents: "auto",
+                zIndex: 10,
+                touchAction: "none" 
+              }}
             >
               {/* Canvas will be inserted here */}
             </div>
