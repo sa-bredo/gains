@@ -2,13 +2,27 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, UserPlus } from 'lucide-react';
+import { Pencil, Trash2, UserPlus, MoreHorizontal } from 'lucide-react';
 import { TeamMember, formatDate } from '../types';
 import { Separator } from '@/components/ui/separator';
 import { TeamMemberAvatar } from './TeamMemberAvatar';
 import { EditTeamMemberDialog } from './EditTeamMemberDialog';
 import { DeleteTeamMemberDialog } from './DeleteTeamMemberDialog';
 import { TerminateEmployeeDialog } from './TerminateEmployeeDialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface TeamMembersListProps {
   teamMembers: TeamMember[];
@@ -125,20 +139,40 @@ export const TeamMembersList = ({
 
               <div className="flex items-center justify-end gap-2">
                 {!member.isTerminated && (
-                  <>
-                    <Button variant="outline" size="sm" onClick={() => handleTerminate(member)}>
-                      Terminate
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(member)}>
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                  </>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEdit(member)}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleTerminate(member)}>
+                        Terminate
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleDelete(member)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
-                <Button variant="destructive" size="sm" onClick={() => handleDelete(member)}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
+                {member.isTerminated && (
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    onClick={() => handleDelete(member)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                )}
               </div>
             </div>
           </div>
