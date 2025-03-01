@@ -32,12 +32,13 @@ export const TeamMemberAvatar: React.FC<TeamMemberAvatarProps> = ({
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   
   // Use the name directly if provided, otherwise construct from firstName & lastName
   const displayName = name || (firstName && lastName ? `${firstName} ${lastName}` : '');
   
   // Use src directly if provided, otherwise use avatarUrl
-  const avatarSrc = src || avatarUrl;
+  const avatarSrc = previewUrl || src || avatarUrl;
   
   const getSize = () => {
     switch (size) {
@@ -55,6 +56,18 @@ export const TeamMemberAvatar: React.FC<TeamMemberAvatarProps> = ({
       .map(part => part.charAt(0))
       .join('')
       .toUpperCase();
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    // Create a preview URL for the selected image
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreviewUrl(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,8 +108,11 @@ export const TeamMemberAvatar: React.FC<TeamMemberAvatarProps> = ({
         onAvatarUpdate(avatarUrl);
       }
       
-      toast.success('Avatar uploaded successfully');
+      // Reset the preview URL and close the dialog
+      setPreviewUrl(null);
       setDialogOpen(false);
+      
+      toast.success('Avatar uploaded successfully');
       
     } catch (error) {
       console.error('Error uploading avatar:', error);
@@ -118,6 +134,7 @@ export const TeamMemberAvatar: React.FC<TeamMemberAvatarProps> = ({
           <button 
             className="absolute bottom-0 right-0 bg-primary text-white rounded-full p-1 shadow-sm"
             onClick={() => setDialogOpen(true)}
+            type="button"
           >
             <Upload className="h-3 w-3" />
           </button>
@@ -133,7 +150,7 @@ export const TeamMemberAvatar: React.FC<TeamMemberAvatarProps> = ({
             
             <div className="flex flex-col items-center justify-center py-6">
               <Avatar className="h-24 w-24 mb-4">
-                <AvatarImage src={avatarSrc || undefined} alt={displayName} />
+                <AvatarImage src={previewUrl || avatarSrc || undefined} alt={displayName} />
                 <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
               </Avatar>
               
@@ -146,10 +163,17 @@ export const TeamMemberAvatar: React.FC<TeamMemberAvatarProps> = ({
                   type="file" 
                   accept="image/*" 
                   className="hidden" 
-                  onChange={handleFileUpload}
+                  onChange={(e) => {
+                    handleFileSelect(e);
+                    handleFileUpload(e);
+                  }}
                   disabled={uploading}
                 />
               </label>
+              
+              {uploading && (
+                <p className="text-sm text-muted-foreground mt-2">Uploading...</p>
+              )}
             </div>
             
             <DialogFooter>
