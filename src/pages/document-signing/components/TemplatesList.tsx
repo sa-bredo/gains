@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -13,7 +12,7 @@ import { FileText, Send, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DocumentTemplate } from '../types';
+import { DocumentTemplate, DbDocumentTemplate } from '../types';
 
 interface Template {
   id: string;
@@ -43,12 +42,12 @@ const TemplatesList = ({ onSendTemplate }: TemplatesListProps) => {
       
       if (error) throw error;
       
-      const formattedTemplates = data.map((template: DocumentTemplate) => ({
+      const formattedTemplates = data.map((template: DbDocumentTemplate) => ({
         id: template.id,
         name: template.name,
         description: template.description,
         created_at: new Date(template.created_at).toLocaleDateString(),
-        fields_count: template.fields ? template.fields.length : 0
+        fields_count: Array.isArray(template.fields) ? template.fields.length : 0
       }));
       
       setTemplates(formattedTemplates);
@@ -140,7 +139,7 @@ const TemplatesList = ({ onSendTemplate }: TemplatesListProps) => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleSendClick(template.id)}
+                    onClick={() => onSendTemplate(template.id)}
                     className="flex items-center gap-1"
                   >
                     <Send className="h-4 w-4" />

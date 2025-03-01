@@ -1,28 +1,26 @@
+
 import React, { useState } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, FileText, Edit3, Save } from 'lucide-react';
+import { Building2, Pencil, FileUp, Save } from 'lucide-react';
 import UploadPDF from './UploadPDF';
 import PDFEditor, { Field } from './PDFEditor';
-import PDFViewer from './PDFViewer';
-import { toast } from "sonner";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 const STEPS = [
-  { id: "upload", icon: Upload, label: "Upload PDF" },
-  { id: "edit", icon: Edit3, label: "Add Fields" },
+  { id: "upload", icon: FileUp, label: "Upload PDF" },
+  { id: "edit", icon: Pencil, label: "Add Fields" },
   { id: "save", icon: Save, label: "Save Template" }
 ];
 
 const DocumentSigningWorkflow = () => {
-  const [step, setStep] = useState<string>("upload");
+  const [step, setStep] = useState("upload");
   const [file, setFile] = useState<File | null>(null);
   const [fields, setFields] = useState<Field[]>([]);
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [templateName, setTemplateName] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -30,166 +28,190 @@ const DocumentSigningWorkflow = () => {
   const handleFileUpload = (uploadedFile: File) => {
     setFile(uploadedFile);
     setStep("edit");
-    toast.success("File uploaded. Now add signature and text fields.");
-  };
-
-  const handleAddFields = (newFields: Field[]) => {
-    setFields(newFields);
-    setStep("save");
-    toast.success("Fields added. Now save your template.");
   };
   
-  const handleSaveTemplateClick = () => {
-    setShowSaveDialog(true);
+  const handleAddField = (field: Field) => {
+    setFields([...fields, field]);
   };
-
+  
+  const handleUpdateField = (updatedField: Field) => {
+    setFields(fields.map(field => field.id === updatedField.id ? updatedField : field));
+  };
+  
+  const handleDeleteField = (fieldId: string) => {
+    setFields(fields.filter(field => field.id !== fieldId));
+  };
+  
   const handleSaveTemplate = async () => {
-    if (!templateName.trim()) {
-      toast.error("Please enter a template name");
+    if (!file || !templateName) {
+      toast.error("Please provide a template name");
       return;
     }
-
+    
     setIsSaving(true);
-
+    
     try {
+      // Convert file to base64
       const reader = new FileReader();
+      reader.readAsDataURL(file);
       reader.onload = async () => {
-        try {
-          const base64File = reader.result?.toString().split(',')[1];
-          
-          const { data, error } = await supabase
-            .from('document_templates')
-            .insert([
-              { 
-                name: templateName,
-                description: templateDescription || null,
-                pdf_data: base64File,
-                fields: fields,
-              }
-            ])
-            .select();
-          
-          if (error) throw error;
-          
-          toast.success("Template saved successfully!");
-          setShowSaveDialog(false);
-          
-          setTimeout(() => {
-            setFile(null);
-            setFields([]);
-            setStep("upload");
-            setTemplateName("");
-            setTemplateDescription("");
-          }, 1000);
-        } catch (err) {
-          console.error("Error saving template:", err);
-          toast.error("Failed to save template");
-        } finally {
-          setIsSaving(false);
-        }
+        const base64String = reader.result as string;
+        const pdfData = base64String.split(',')[1]; // Remove the data:application/pdf;base64, part
+        
+        const { error } = await supabase
+          .from('document_templates')
+          .insert({
+            name: templateName,
+            description: templateDescription || null,
+            pdf_data: pdfData,
+            fields: fields
+          });
+        
+        if (error) throw error;
+        
+        toast.success("Template saved successfully!");
+        
+        // Reset form
+        setTemplateName("");
+        setTemplateDescription("");
+        setFields([]);
+        setFile(null);
+        setStep("upload");
       };
-      
-      if (file) {
-        reader.readAsDataURL(file);
-      }
     } catch (err) {
-      console.error("Error in file reading:", err);
-      toast.error("Failed to process file");
+      console.error("Error saving template:", err);
+      toast.error("Failed to save template");
+    } finally {
       setIsSaving(false);
     }
   };
-
+  
+  const renderUploadStep = () => (
+    <Card>
+      <CardContent className="pt-6">
+        <UploadPDF onFileUpload={handleFileUpload} />
+      </CardContent>
+    </Card>
+  );
+  
+  const renderEditStep = () => (
+    <Card>
+      <CardContent className="pt-6">
+        {file && (
+          <PDFEditor 
+            file={file}
+            fields={fields}
+            onAddField={handleAddField}
+            onUpdateField={handleUpdateField}
+            onDeleteField={handleDeleteField}
+          />
+        )}
+      </CardContent>
+    </Card>
+  );
+  
+  const renderSaveStep = () => (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-medium mb-1">Template Details</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Provide a name and description for your document template.
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="grid gap-2">
+              <label htmlFor="template-name" className="text-sm font-medium">
+                Template Name <span className="text-destructive">*</span>
+              </label>
+              <Input
+                id="template-name"
+                placeholder="e.g., Employee Contract"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <label htmlFor="template-description" className="text-sm font-medium">
+                Description
+              </label>
+              <Textarea
+                id="template-description"
+                placeholder="Optional description for this template"
+                value={templateDescription}
+                onChange={(e) => setTemplateDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          
+          <div className="flex items-start gap-4 mt-8">
+            <div className="bg-muted/20 p-4 rounded-lg flex-1">
+              <h4 className="font-medium mb-2">Template Summary</h4>
+              <div className="text-sm space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">File name:</span>
+                  <span className="font-medium">{file?.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Fields added:</span>
+                  <span className="font-medium">{fields.length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <Button 
+            className="w-full mt-6" 
+            onClick={handleSaveTemplate}
+            disabled={isSaving || !templateName || !file}
+          >
+            {isSaving ? "Saving..." : "Save Template"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+  
   return (
     <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold mb-2">Document Template Creator</h2>
+        <p className="text-muted-foreground">
+          Create reusable document templates for your organization.
+        </p>
+      </div>
+      
       <Tabs value={step} onValueChange={setStep} className="w-full">
         <TabsList className="grid grid-cols-3 mb-8">
           {STEPS.map((s) => (
             <TabsTrigger 
               key={s.id} 
               value={s.id}
+              disabled={s.id === "edit" && !file || s.id === "save" && !file}
               className="flex flex-col items-center gap-2 py-4"
-              disabled={!file && s.id !== "upload"}
             >
               <s.icon className="h-5 w-5" />
               <span>{s.label}</span>
             </TabsTrigger>
           ))}
         </TabsList>
-
+        
         <TabsContent value="upload" className="mt-6">
-          <Card>
-            <CardContent className="pt-6">
-              <UploadPDF onFileUploaded={handleFileUpload} />
-            </CardContent>
-          </Card>
+          {renderUploadStep()}
         </TabsContent>
-
+        
         <TabsContent value="edit" className="mt-6">
-          <Card>
-            <CardContent className="pt-6">
-              {file && (
-                <PDFEditor 
-                  file={file} 
-                  onFieldsAdded={handleAddFields}
-                />
-              )}
-            </CardContent>
-          </Card>
+          {renderEditStep()}
         </TabsContent>
-
+        
         <TabsContent value="save" className="mt-6">
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-xl font-semibold mb-4">Save Document Template</h3>
-              <p className="text-muted-foreground mb-6">
-                Save your document as a template for future use.
-              </p>
-              <div className="border rounded-lg p-4 bg-background mb-6">
-                {file && <PDFViewer file={file} />}
-              </div>
-              <div className="flex justify-end">
-                <Button onClick={handleSaveTemplateClick}>
-                  Save as Template
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {renderSaveStep()}
         </TabsContent>
       </Tabs>
-
-      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Save Document Template</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="template-name">Template Name</Label>
-              <Input 
-                id="template-name" 
-                placeholder="e.g., Front of House Contract" 
-                value={templateName}
-                onChange={(e) => setTemplateName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="template-description">Description (Optional)</Label>
-              <Input 
-                id="template-description" 
-                placeholder="Brief description of this template" 
-                value={templateDescription}
-                onChange={(e) => setTemplateDescription(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>Cancel</Button>
-            <Button onClick={handleSaveTemplate} disabled={isSaving}>
-              {isSaving ? "Saving..." : "Save Template"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

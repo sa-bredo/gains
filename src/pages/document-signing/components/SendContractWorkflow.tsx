@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Employee } from '../hooks/useEmployees';
-import { DocumentTemplate, DocumentInstance } from '../types';
+import { DocumentTemplate, DocumentInstance, DbDocumentTemplate, DbDocumentInstance } from '../types';
 
 const STEPS = [
   { id: "assign", icon: Users, label: "Assign People" },
@@ -52,7 +52,12 @@ const SendContractWorkflow = ({ templateId, onBack }: SendContractWorkflowProps)
         
         if (error) throw error;
         
-        const templateData = data as DocumentTemplate;
+        const dbTemplate = data as DbDocumentTemplate;
+        const templateData: DocumentTemplate = {
+          ...dbTemplate,
+          fields: Array.isArray(dbTemplate.fields) ? dbTemplate.fields as unknown as Field[] : []
+        };
+        
         setTemplate(templateData);
         setFields(templateData.fields || []);
         
@@ -79,23 +84,30 @@ const SendContractWorkflow = ({ templateId, onBack }: SendContractWorkflowProps)
   }, [templateId]);
   
   const handleAssignmentComplete = async (assignedFields: Field[]) => {
+    if (!template) return;
+    
     try {
       const { data, error } = await supabase
         .from('document_instances')
         .insert([
           {
             template_id: templateId,
-            name: template?.name || "Untitled Document",
+            name: template.name || "Untitled Document",
             status: 'draft',
-            fields: assignedFields,
+            fields: assignedFields
           }
         ])
         .select();
       
       if (error) throw error;
       
-      const instanceData = data[0] as DocumentInstance;
-      setDocumentInstance(instanceData);
+      const instanceData = data[0] as DbDocumentInstance;
+      const documentData: DocumentInstance = {
+        ...instanceData,
+        fields: Array.isArray(instanceData.fields) ? instanceData.fields as unknown as Field[] : []
+      };
+      
+      setDocumentInstance(documentData);
       
       const statuses: SigningStatus[] = [];
       
