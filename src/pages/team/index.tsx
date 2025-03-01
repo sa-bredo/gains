@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -25,6 +25,7 @@ export default function TeamPage() {
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Calculate the current date for determining terminated employees
   const currentDate = new Date().toISOString().split('T')[0];
@@ -53,35 +54,67 @@ export default function TeamPage() {
     });
   }, [processedTeamMembers, searchQuery, selectedRoles]);
 
+  // Safe refetch with state management
+  const safeRefetch = useCallback(async () => {
+    try {
+      setIsUpdating(true);
+      await refetchTeamMembers();
+    } finally {
+      setTimeout(() => {
+        setIsUpdating(false);
+      }, 1000); // Ensure UI has time to update
+    }
+  }, [refetchTeamMembers]);
+
   // Handle update with proper typing and error handling
   const handleUpdateMember = async (id: string, data: Partial<TeamMember>) => {
     try {
+      setIsUpdating(true);
       console.log("Updating team member:", id, data);
       await updateTeamMember(id, data);
       await refetchTeamMembers(); // Await the refetch to ensure UI is updated
     } catch (error) {
       console.error('Error updating team member:', error);
+    } finally {
+      setTimeout(() => {
+        setIsUpdating(false);
+      }, 1000);
     }
   };
 
   // Handle delete with proper typing and error handling
   const handleDeleteMember = async (id: string) => {
     try {
+      setIsUpdating(true);
       await deleteTeamMember(id);
       await refetchTeamMembers(); // Await the refetch
     } catch (error) {
       console.error('Error deleting team member:', error);
+    } finally {
+      setTimeout(() => {
+        setIsUpdating(false);
+      }, 1000);
     }
   };
 
   // Handle terminate with proper typing and error handling
   const handleTerminateMember = async (id: string, endDate: string) => {
     try {
+      setIsUpdating(true);
       await terminateTeamMember(id, endDate);
       await refetchTeamMembers(); // Await the refetch
     } catch (error) {
       console.error('Error terminating team member:', error);
+    } finally {
+      setTimeout(() => {
+        setIsUpdating(false);
+      }, 1000);
     }
+  };
+
+  const handleAddMemberSuccess = async () => {
+    await safeRefetch();
+    setAddDialogOpen(false);
   };
 
   return (
@@ -102,6 +135,7 @@ export default function TeamPage() {
               <Button 
                 onClick={() => setAddDialogOpen(true)} 
                 className="flex items-center gap-2"
+                disabled={isUpdating}
               >
                 <PlusIcon className="h-4 w-4" />
                 Add Team Member
@@ -123,18 +157,18 @@ export default function TeamPage() {
 
             <TeamMembersList 
               teamMembers={filteredTeamMembers} 
-              isLoading={isLoading} 
+              isLoading={isLoading || isUpdating} 
               onUpdate={handleUpdateMember}
               onDelete={handleDeleteMember}
               onTerminate={handleTerminateMember}
-              refetchTeamMembers={refetchTeamMembers}
+              refetchTeamMembers={safeRefetch}
             />
 
             <AddTeamMemberDialog 
               open={addDialogOpen} 
               onOpenChange={setAddDialogOpen} 
               onAdd={addTeamMember}
-              onSuccess={refetchTeamMembers}
+              onSuccess={handleAddMemberSuccess}
             />
           </div>
         </SidebarInset>

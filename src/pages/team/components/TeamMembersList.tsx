@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -61,6 +61,31 @@ export function TeamMembersList({
   const [terminateDialogOpen, setTerminateDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const clearProcessingTimeout = () => {
+    if (processingTimeoutRef.current) {
+      clearTimeout(processingTimeoutRef.current);
+      processingTimeoutRef.current = null;
+    }
+  };
+
+  const startProcessing = () => {
+    clearProcessingTimeout();
+    setIsProcessing(true);
+  };
+
+  const stopProcessing = (delay = 800) => {
+    clearProcessingTimeout();
+    processingTimeoutRef.current = setTimeout(() => {
+      setIsProcessing(false);
+    }, delay);
+  };
+
+  // Clean up timeout on unmount
+  React.useEffect(() => {
+    return () => clearProcessingTimeout();
+  }, []);
 
   const handleEditMember = (member: TeamMember) => {
     if (isProcessing) return;
@@ -88,41 +113,39 @@ export function TeamMembersList({
   };
 
   const handleRefetchWithDebounce = async () => {
-    setIsProcessing(true);
+    startProcessing();
     try {
       await refetchTeamMembers();
     } finally {
-      setTimeout(() => {
-        setIsProcessing(false);
-      }, 500); // Increase the delay to 500ms to ensure UI has time to update
+      stopProcessing();
     }
   };
 
   // Handle dialog closures
   const handleEditDialogOpenChange = (open: boolean) => {
-    if (!isProcessing) {
-      setEditDialogOpen(open);
-      if (!open) {
-        setTimeout(() => setSelectedMember(null), 300);
-      }
+    if (isProcessing && open) return;
+    
+    setEditDialogOpen(open);
+    if (!open) {
+      setTimeout(() => setSelectedMember(null), 500);
     }
   };
 
   const handleDeleteDialogOpenChange = (open: boolean) => {
-    if (!isProcessing) {
-      setDeleteDialogOpen(open);
-      if (!open) {
-        setTimeout(() => setSelectedMember(null), 300);
-      }
+    if (isProcessing && open) return;
+    
+    setDeleteDialogOpen(open);
+    if (!open) {
+      setTimeout(() => setSelectedMember(null), 500);
     }
   };
 
   const handleTerminateDialogOpenChange = (open: boolean) => {
-    if (!isProcessing) {
-      setTerminateDialogOpen(open);
-      if (!open) {
-        setTimeout(() => setSelectedMember(null), 300);
-      }
+    if (isProcessing && open) return;
+    
+    setTerminateDialogOpen(open);
+    if (!open) {
+      setTimeout(() => setSelectedMember(null), 500);
     }
   };
 

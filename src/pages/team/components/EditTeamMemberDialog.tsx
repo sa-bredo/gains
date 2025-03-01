@@ -53,6 +53,12 @@ export function EditTeamMemberDialog({
   onSuccess 
 }: EditTeamMemberDialogProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(open);
+  
+  // Sync internal state with external open prop
+  React.useEffect(() => {
+    setInternalOpen(open);
+  }, [open]);
   
   // Create the form with proper default values
   const form = useForm<z.infer<typeof formSchema>>({
@@ -109,28 +115,39 @@ export function EditTeamMemberDialog({
       // Call onSuccess callback after the update is done
       onSuccess();
       
-      // Close dialog after everything is complete
-      onOpenChange(false);
+      // First update internal state
+      setInternalOpen(false);
+      
+      // Then notify parent about the change after a small delay
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 300);
+      
     } catch (error) {
       console.error('Error updating team member:', error);
     } finally {
-      // Add a slight delay before resetting the submitting state
-      // to avoid UI flicker and ensure state propagation completes
+      // Delay resetting the submit state to ensure the dialog has time to close
       setTimeout(() => {
         setIsSubmitting(false);
-      }, 100);
+      }, 500);
     }
   };
 
-  // This only closes the dialog if we're not currently submitting
+  // This handles the close button click and ESC key
   const handleCloseDialog = () => {
-    if (!isSubmitting) {
+    if (isSubmitting) return;
+    
+    // Update internal state first
+    setInternalOpen(false);
+    
+    // Then notify parent
+    setTimeout(() => {
       onOpenChange(false);
-    }
+    }, 100);
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleCloseDialog}>
+    <Dialog open={internalOpen} onOpenChange={handleCloseDialog}>
       <DialogContent className="sm:max-w-[485px]">
         <DialogHeader>
           <DialogTitle>Edit Team Member</DialogTitle>
