@@ -1,24 +1,8 @@
 
 import React from 'react';
-import { X, PlusCircle, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from '@/components/ui/command';
+import { X } from 'lucide-react';
 import { ROLE_OPTIONS } from '../types';
 
 interface TeamMembersFilterProps {
@@ -28,131 +12,67 @@ interface TeamMembersFilterProps {
   setSelectedRoles: (roles: string[]) => void;
 }
 
+// Function to format role for display
+const formatRole = (role: string): string => {
+  // Handle specific role formats
+  if (role === 'front_of_house') return 'Front Of House';
+  if (role === 'admin') return 'Admin';
+  if (role === 'manager') return 'Manager';
+  if (role === 'founder') return 'Founder';
+  if (role === 'instructor') return 'Instructor';
+  
+  // Generic formatting for other roles
+  return role
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 export function TeamMembersFilter({
   searchQuery,
   setSearchQuery,
   selectedRoles,
   setSelectedRoles,
 }: TeamMembersFilterProps) {
-  const handleRoleSelect = (value: string) => {
-    const updatedRoles = selectedRoles.includes(value)
-      ? selectedRoles.filter((role) => role !== value)
-      : [...selectedRoles, value];
-    setSelectedRoles(updatedRoles);
+  const toggleRole = (role: string) => {
+    setSelectedRoles(
+      selectedRoles.includes(role)
+        ? selectedRoles.filter((r) => r !== role)
+        : [...selectedRoles, role]
+    );
   };
-
-  const handleResetFilters = () => {
-    setSearchQuery('');
-    setSelectedRoles([]);
-  };
-
-  const isFiltered = searchQuery || selectedRoles.length > 0;
 
   return (
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex flex-1 items-center space-x-2">
-        <Input
-          placeholder="Search by name or email..."
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          className="h-8 w-[150px] lg:w-[250px]"
-        />
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 border-dashed">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Role
-              {selectedRoles.length > 0 && (
-                <>
-                  <Separator orientation="vertical" className="mx-2 h-4" />
-                  <Badge
-                    variant="secondary"
-                    className="rounded-sm px-1 font-normal lg:hidden"
-                  >
-                    {selectedRoles.length}
-                  </Badge>
-                  <div className="hidden space-x-1 lg:flex">
-                    {selectedRoles.length > 2 ? (
-                      <Badge
-                        variant="secondary"
-                        className="rounded-sm px-1 font-normal"
-                      >
-                        {selectedRoles.length} selected
-                      </Badge>
-                    ) : (
-                      ROLE_OPTIONS
-                        .filter((option) => selectedRoles.includes(option.value))
-                        .map((option) => (
-                          <Badge
-                            variant="secondary"
-                            key={option.value}
-                            className="rounded-sm px-1 font-normal"
-                          >
-                            {option.label}
-                          </Badge>
-                        ))
-                    )}
-                  </div>
-                </>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[200px] p-0" align="start">
-            <Command>
-              <CommandInput placeholder="Search role..." />
-              <CommandList>
-                <CommandEmpty>No results found.</CommandEmpty>
-                <CommandGroup>
-                  {ROLE_OPTIONS.map((option) => {
-                    const isSelected = selectedRoles.includes(option.value);
-                    return (
-                      <CommandItem
-                        key={option.value}
-                        onSelect={() => handleRoleSelect(option.value)}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <div
-                          className={`flex h-4 w-4 items-center justify-center rounded-sm border border-primary ${
-                            isSelected
-                              ? 'bg-primary text-primary-foreground'
-                              : 'opacity-50 [&_svg]:invisible'
-                          }`}
-                        >
-                          <Check className="h-4 w-4" />
-                        </div>
-                        <span>{option.label}</span>
-                      </CommandItem>
-                    );
-                  })}
-                </CommandGroup>
-                {selectedRoles.length > 0 && (
-                  <>
-                    <CommandSeparator />
-                    <CommandGroup>
-                      <CommandItem
-                        onSelect={() => setSelectedRoles([])}
-                        className="justify-center text-center cursor-pointer"
-                      >
-                        Clear filters
-                      </CommandItem>
-                    </CommandGroup>
-                  </>
-                )}
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-        {isFiltered && (
-          <Button
-            variant="ghost"
-            onClick={handleResetFilters}
-            className="h-8 px-2 lg:px-3"
+    <div className="space-y-4 mb-6">
+      <Input
+        placeholder="Search by name or email..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="max-w-md"
+      />
+      
+      <div className="flex flex-wrap gap-2">
+        {ROLE_OPTIONS.map((role) => (
+          <Badge
+            key={role.value}
+            variant={selectedRoles.includes(role.value) ? "default" : "outline"}
+            className="cursor-pointer hover:bg-secondary/80 transition-colors"
+            onClick={() => toggleRole(role.value)}
           >
-            Reset
-            <X className="ml-2 h-4 w-4" />
-          </Button>
-        )}
+            {formatRole(role.value)}
+          </Badge>
+        ))}
       </div>
+      
+      {selectedRoles.length > 0 && (
+        <Badge
+          variant="secondary"
+          className="cursor-pointer"
+          onClick={() => setSelectedRoles([])}
+        >
+          Clear filters <X className="ml-1 h-3 w-3" />
+        </Badge>
+      )}
     </div>
   );
 }

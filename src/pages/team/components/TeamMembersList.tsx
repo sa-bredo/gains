@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,6 +33,19 @@ interface TeamMembersListProps {
   onTerminate: (id: string, endDate: string) => Promise<void>;
   refetchTeamMembers: () => void;
 }
+
+const formatRole = (role: string): string => {
+  if (role === 'front_of_house') return 'Front Of House';
+  if (role === 'admin') return 'Admin';
+  if (role === 'manager') return 'Manager';
+  if (role === 'founder') return 'Founder';
+  if (role === 'instructor') return 'Instructor';
+  
+  return role
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
 
 export function TeamMembersList({
   teamMembers,
@@ -131,7 +143,7 @@ export function TeamMembersList({
                     <CardTitle className="text-base">
                       {member.first_name} {member.last_name}
                     </CardTitle>
-                    <CardDescription>{member.role}</CardDescription>
+                    <CardDescription>{formatRole(member.role)}</CardDescription>
                   </div>
                 </div>
                 <DropdownMenu>
