@@ -1,0 +1,128 @@
+
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { TeamMember, TeamMemberFormValues } from '../types';
+import { useToast } from '@/hooks/use-toast';
+
+export function useTeamMembers() {
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const { toast } = useToast();
+
+  async function fetchTeamMembers() {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .order('last_name', { ascending: true });
+      
+      if (error) throw new Error(error.message);
+      
+      setTeamMembers(data || []);
+    } catch (err) {
+      console.error('Error fetching team members:', err);
+      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function addTeamMember(newMember: TeamMemberFormValues) {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .insert([newMember])
+        .select()
+        .single();
+      
+      if (error) throw new Error(error.message);
+      
+      toast({
+        title: "Team member added",
+        description: `${newMember.first_name} ${newMember.last_name} has been added to the team.`,
+      });
+      
+      return data;
+    } catch (err) {
+      console.error('Error adding team member:', err);
+      toast({
+        variant: "destructive",
+        title: "Failed to add team member",
+        description: err instanceof Error ? err.message : "Unknown error occurred",
+      });
+      throw err;
+    }
+  }
+
+  async function updateTeamMember(id: string, updates: Partial<TeamMemberFormValues>) {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw new Error(error.message);
+      
+      toast({
+        title: "Team member updated",
+        description: "The team member has been updated successfully.",
+      });
+      
+      return data;
+    } catch (err) {
+      console.error('Error updating team member:', err);
+      toast({
+        variant: "destructive",
+        title: "Failed to update team member",
+        description: err instanceof Error ? err.message : "Unknown error occurred",
+      });
+      throw err;
+    }
+  }
+
+  async function deleteTeamMember(id: string) {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw new Error(error.message);
+      
+      toast({
+        title: "Team member removed",
+        description: "The team member has been removed from the team.",
+      });
+      
+      return true;
+    } catch (err) {
+      console.error('Error deleting team member:', err);
+      toast({
+        variant: "destructive",
+        title: "Failed to remove team member",
+        description: err instanceof Error ? err.message : "Unknown error occurred",
+      });
+      throw err;
+    }
+  }
+
+  useEffect(() => {
+    fetchTeamMembers();
+  }, []);
+
+  return {
+    teamMembers,
+    isLoading,
+    error,
+    refetchTeamMembers: fetchTeamMembers,
+    addTeamMember,
+    updateTeamMember,
+    deleteTeamMember
+  };
+}
