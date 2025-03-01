@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload, FileText, Edit3, Users, PenTool, Save } from 'lucide-react';
 import UploadPDF from './UploadPDF';
-import PDFEditor from './PDFEditor';
+import PDFEditor, { Field } from './PDFEditor';
 import PDFViewer from './PDFViewer';
+import AssignFieldsForm from './AssignFieldsForm';
 import { toast } from "sonner";
 
 const STEPS = [
@@ -20,7 +21,7 @@ const STEPS = [
 const DocumentSigningWorkflow = () => {
   const [step, setStep] = useState<string>("upload");
   const [file, setFile] = useState<File | null>(null);
-  const [fields, setFields] = useState<Array<any>>([]);
+  const [fields, setFields] = useState<Field[]>([]);
   
   const handleFileUpload = (uploadedFile: File) => {
     setFile(uploadedFile);
@@ -29,10 +30,16 @@ const DocumentSigningWorkflow = () => {
     toast.success("File uploaded. Now add signature and text fields.");
   };
 
-  const handleAddFields = (newFields: Array<any>) => {
-    setFields([...fields, ...newFields]);
+  const handleAddFields = (newFields: Field[]) => {
+    setFields(newFields);
     setStep("assign");
     toast.success("Fields added. Now assign people to the fields.");
+  };
+  
+  const handleAssignPeople = (assignedFields: Field[]) => {
+    setFields(assignedFields);
+    setStep("sign");
+    toast.success("Fields assigned. Now complete the signing process.");
   };
 
   const handleCompleteWorkflow = () => {
@@ -86,38 +93,10 @@ const DocumentSigningWorkflow = () => {
         <TabsContent value="assign" className="mt-6">
           <Card>
             <CardContent className="pt-6">
-              <h3 className="text-xl font-semibold mb-4">Assign People to Fields</h3>
-              <p className="text-muted-foreground mb-6">
-                Select which team members need to fill in each field.
-              </p>
-              <div className="border rounded-lg p-4 mb-6">
-                <h4 className="font-medium mb-3">Document Fields ({fields.length})</h4>
-                <ul className="space-y-3">
-                  {fields.map((field, index) => (
-                    <li key={field.id} className="flex items-center justify-between border-b pb-3">
-                      <div className="flex items-center gap-2">
-                        {field.type === "signature" ? (
-                          <PenTool className="h-4 w-4 text-blue-500" />
-                        ) : (
-                          <FileText className="h-4 w-4 text-green-500" />
-                        )}
-                        <span>{field.type === "signature" ? "Signature" : "Text"} Field {index + 1}</span>
-                      </div>
-                      <select 
-                        className="border rounded px-2 py-1 text-sm"
-                        defaultValue=""
-                        onChange={() => toast.success(`Assigned field ${index + 1}`)}
-                      >
-                        <option value="" disabled>Select assignee</option>
-                        <option value="user1">John Smith</option>
-                        <option value="user2">Jane Doe</option>
-                        <option value="user3">David Johnson</option>
-                      </select>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <Button onClick={() => setStep("sign")}>Continue to Signing</Button>
+              <AssignFieldsForm 
+                fields={fields}
+                onAssignmentComplete={handleAssignPeople}
+              />
             </CardContent>
           </Card>
         </TabsContent>

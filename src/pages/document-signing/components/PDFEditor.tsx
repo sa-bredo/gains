@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
@@ -12,7 +11,7 @@ interface PDFEditorProps {
   onFieldsAdded: (fields: any[]) => void;
 }
 
-interface Field {
+export interface Field {
   id: string;
   type: "signature" | "text";
   x: number;
@@ -54,19 +53,15 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
     }
   }, []);
   
-  // Update transformer when selection changes
   useEffect(() => {
     if (selectedId && transformerRef.current) {
-      // Find the selected node by id
       const selectedNode = stageRef.current?.findOne(`#${selectedId}`);
       
       if (selectedNode) {
-        // Attach transformer to the selected node
         transformerRef.current.nodes([selectedNode]);
         transformerRef.current.getLayer().batchDraw();
       }
     } else if (transformerRef.current) {
-      // Clear selection
       transformerRef.current.nodes([]);
       transformerRef.current.getLayer().batchDraw();
     }
@@ -108,7 +103,6 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
     setFields(prev => prev.filter(field => field.id !== fieldId));
     toast.success("Field removed");
     
-    // Clear selection if the deleted field was selected
     if (selectedId === fieldId) {
       setSelectedId(null);
     }
@@ -136,10 +130,8 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
       return;
     }
     
-    // Map Konva coordinates to the actual field positions
     const updatedFields = fields.map(field => ({
       ...field,
-      // If additional transformations are needed, apply them here
     }));
     
     onFieldsAdded(updatedFields);
@@ -166,7 +158,6 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
     );
   };
   
-  // This content will be rendered on top of the PDF
   const renderKonvaFields = () => {
     return fields
       .filter(field => field.page === currentPage)
@@ -182,7 +173,6 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
           onClick={() => handleSelectShape(field.id)}
           onTap={() => handleSelectShape(field.id)}
           onDragEnd={(e) => {
-            // Update field position after drag
             setFields(prev =>
               prev.map(f =>
                 f.id === field.id
@@ -192,14 +182,10 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
             );
           }}
           onTransformEnd={(e) => {
-            // Get the node
             const node = e.target;
-            
-            // Get new transform values
             const scaleX = node.scaleX();
             const scaleY = node.scaleY();
             
-            // Reset scale to 1 and adjust width/height
             node.scaleX(1);
             node.scaleY(1);
             
@@ -230,7 +216,6 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
             fill="#6b7280"
             fontSize={14}
           />
-          {/* Label */}
           <Text
             y={-20}
             text={field.type === "signature" ? "Signature" : "Text Field"}
@@ -300,7 +285,6 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
                   <Transformer
                     ref={transformerRef}
                     boundBoxFunc={(oldBox, newBox) => {
-                      // Limit minimum size
                       if (newBox.width < 50 || newBox.height < 30) {
                         return oldBox;
                       }
