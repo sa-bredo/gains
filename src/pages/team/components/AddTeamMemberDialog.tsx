@@ -65,7 +65,18 @@ export function AddTeamMemberDialog({
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsSubmitting(true);
-      await onAdd(values);
+      // Ensure all required fields are provided in the correct type
+      const memberData: TeamMemberFormValues = {
+        first_name: values.first_name,
+        last_name: values.last_name,
+        email: values.email,
+        role: values.role,
+        mobile_number: values.mobile_number,
+        address: values.address,
+        hourly_rate: values.hourly_rate,
+      };
+      
+      await onAdd(memberData);
       form.reset();
       onOpenChange(false);
       onSuccess();
