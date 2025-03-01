@@ -8,11 +8,30 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
+    // Get content-type
+    const contentType = req.headers.get('content-type') || '';
+    
+    // Ensure proper content-type with boundary
+    if (!contentType.includes('multipart/form-data') || !contentType.includes('boundary=')) {
+      console.error('Invalid content type', contentType);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid content type', 
+          details: 'Content-Type must be multipart/form-data with a boundary' 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 400 
+        }
+      )
+    }
+
     const formData = await req.formData()
     const file = formData.get('avatar')
     const employeeId = formData.get('employeeId')
@@ -77,6 +96,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   } catch (error) {
+    console.error('Error in upload-avatar function:', error);
     return new Response(
       JSON.stringify({ error: 'An unexpected error occurred', details: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }

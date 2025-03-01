@@ -54,20 +54,30 @@ export function AvatarUploadDialog({
     try {
       setIsUploading(true);
 
-      // Create form data
-      const formData = new FormData();
-      formData.append('avatar', selectedFile);
-      formData.append('employeeId', teamMember.id);
-
-      // Upload avatar using Supabase Edge Function
-      const { data, error } = await supabase.functions.invoke('upload-avatar', {
-        body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-
-      if (error) throw error;
+      // Upload directly to Supabase Storage
+      const fileName = `${teamMember.id}_${Date.now()}.${selectedFile.name.split('.').pop()}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, selectedFile, {
+          cacheControl: '3600',
+          upsert: true
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+      
+      // Update the team member record with the avatar URL
+      const { error: updateError } = await supabase
+        .from('employees')
+        .update({ avatar_url: publicUrl })
+        .eq('id', teamMember.id);
+      
+      if (updateError) throw updateError;
       
       toast({
         title: "Avatar uploaded",
