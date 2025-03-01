@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -116,6 +115,7 @@ const DocumentSigningWorkflow = () => {
     <Card>
       <CardContent className="pt-6">
         <div className="space-y-4">
+          {/* Template details section */}
           <div>
             <h3 className="text-lg font-medium mb-1">Template Details</h3>
             <p className="text-sm text-muted-foreground mb-4">
@@ -123,6 +123,7 @@ const DocumentSigningWorkflow = () => {
             </p>
           </div>
           
+          {/* Template name and description inputs */}
           <div className="space-y-4">
             <div className="grid gap-2">
               <label htmlFor="template-name" className="text-sm font-medium">
@@ -150,6 +151,7 @@ const DocumentSigningWorkflow = () => {
             </div>
           </div>
           
+          {/* Template summary section */}
           <div className="flex items-start gap-4 mt-8">
             <div className="bg-muted/20 p-4 rounded-lg flex-1">
               <h4 className="font-medium mb-2">Template Summary</h4>
@@ -165,6 +167,18 @@ const DocumentSigningWorkflow = () => {
               </div>
             </div>
           </div>
+          
+          {/* Add PDF preview in save step */}
+          {file && (
+            <div className="border rounded-lg overflow-hidden bg-white mt-4">
+              <div className="p-4">
+                <h4 className="font-medium mb-2">Document Preview</h4>
+                <div className="border rounded p-2 bg-white" style={{ maxHeight: "300px", overflow: "auto" }}>
+                  <PDFViewer file={file} />
+                </div>
+              </div>
+            </div>
+          )}
           
           <Button 
             className="w-full mt-6" 

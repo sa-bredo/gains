@@ -354,7 +354,7 @@ const PDFEditor = ({ file, initialFields, onFieldsAdded, onUpdateField, onDelete
       
       <div className="flex justify-end">
         <Button onClick={handleContinue}>
-          Continue to Assign People
+          Continue to Save Template
         </Button>
       </div>
     </div>
