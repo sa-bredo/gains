@@ -1,15 +1,13 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, UserPlus } from 'lucide-react';
-import { TeamMember } from '../types';
+import { TeamMember, formatDate } from '../types';
 import { Separator } from '@/components/ui/separator';
-import TeamMemberAvatar from './TeamMemberAvatar';
-import EditTeamMemberDialog from './EditTeamMemberDialog';
-import DeleteTeamMemberDialog from './DeleteTeamMemberDialog';
-import TerminateEmployeeDialog from './TerminateEmployeeDialog';
-import { formatDate } from '@/lib/utils';
+import { TeamMemberAvatar } from './TeamMemberAvatar';
+import { EditTeamMemberDialog } from './EditTeamMemberDialog';
+import { DeleteTeamMemberDialog } from './DeleteTeamMemberDialog';
+import { TerminateEmployeeDialog } from './TerminateEmployeeDialog';
 
 interface TeamMembersListProps {
   teamMembers: TeamMember[];

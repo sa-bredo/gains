@@ -64,7 +64,6 @@ export function AddTeamMemberDialog({
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsSubmitting(true);
-      console.log("Submitting form values:", values);
       
       // Ensure all required fields are provided in the correct type
       const memberData: TeamMemberFormValues = {
@@ -72,10 +71,11 @@ export function AddTeamMemberDialog({
         last_name: values.last_name,
         email: values.email,
         role: values.role,
-        mobile_number: values.mobile_number || undefined,
-        address: values.address || undefined,
-        date_of_birth: values.date_of_birth || undefined,
-        hourly_rate: values.hourly_rate || undefined,
+        mobile_number: values.mobile_number,
+        address: values.address,
+        date_of_birth: values.date_of_birth,
+        hourly_rate: values.hourly_rate,
+        start_job_date: new Date().toISOString().split('T')[0], // Set to current date
       };
       
       await onAdd(memberData);

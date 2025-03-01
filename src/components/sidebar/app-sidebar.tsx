@@ -17,10 +17,19 @@ import { useSidebar } from "./sidebar-hook";
 import { UserProfileMenu } from "./user-profile";
 import { MainNavigation } from "./main-navigation";
 import { DiscoverSection } from "./discover-section";
-import { navMain, user } from "./navigation-data";
+import { navMain } from "./navigation-data";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { isMobile } = useSidebar();
+  const { user } = useAuth();
+  
+  // Fallback user for development
+  const defaultUser = {
+    name: "John Doe",
+    email: "john@example.com",
+    avatar: null
+  };
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -41,7 +50,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <DiscoverSection />
       </SidebarContent>
       <SidebarFooter>
-        <UserProfileMenu user={user} isMobile={isMobile} />
+        <UserProfileMenu user={user || defaultUser} isMobile={isMobile} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

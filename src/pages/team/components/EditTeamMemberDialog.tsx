@@ -64,7 +64,7 @@ export function EditTeamMemberDialog({
       mobile_number: teamMember.mobile_number || '',
       address: teamMember.address || '',
       date_of_birth: teamMember.date_of_birth || '',
-      hourly_rate: teamMember.hourly_rate,
+      hourly_rate: teamMember.hourly_rate || undefined,
     },
   });
 
@@ -78,7 +78,7 @@ export function EditTeamMemberDialog({
       mobile_number: teamMember.mobile_number || '',
       address: teamMember.address || '',
       date_of_birth: teamMember.date_of_birth || '',
-      hourly_rate: teamMember.hourly_rate,
+      hourly_rate: teamMember.hourly_rate || undefined,
     });
   }, [teamMember, form]);
 

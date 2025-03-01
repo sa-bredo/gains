@@ -8,6 +8,7 @@ import { PlusIcon } from 'lucide-react';
 import { TeamMembersList } from './components/TeamMembersList';
 import { AddTeamMemberDialog } from './components/AddTeamMemberDialog';
 import { useTeamMembers } from './hooks/useTeamMembers';
+import { TeamMember } from './types';
 
 export default function TeamPage() {
   const { 
@@ -30,6 +31,19 @@ export default function TeamPage() {
     ...member,
     isTerminated: member.end_job_date && member.end_job_date <= currentDate
   }));
+
+  // Create wrapped handlers that return void instead of the actual return values
+  const handleUpdateMember = async (id: string, data: Partial<TeamMember>): Promise<void> => {
+    await updateTeamMember(id, data);
+  };
+
+  const handleDeleteMember = async (id: string): Promise<void> => {
+    await deleteTeamMember(id);
+  };
+
+  const handleTerminateMember = async (id: string, endDate: string): Promise<void> => {
+    await terminateTeamMember(id, endDate);
+  };
 
   return (
     <SidebarProvider>
@@ -64,9 +78,9 @@ export default function TeamPage() {
             <TeamMembersList 
               teamMembers={processedTeamMembers} 
               isLoading={isLoading} 
-              onUpdate={updateTeamMember}
-              onDelete={deleteTeamMember}
-              onTerminate={terminateTeamMember}
+              onUpdate={handleUpdateMember}
+              onDelete={handleDeleteMember}
+              onTerminate={handleTerminateMember}
               refetchTeamMembers={refetchTeamMembers}
             />
 

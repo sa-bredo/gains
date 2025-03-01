@@ -3,34 +3,38 @@ import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface TeamMemberAvatarProps {
-  firstName: string;
-  lastName: string;
-  avatarUrl?: string;
-  size?: 'sm' | 'md' | 'lg';
+  src: string | null | undefined;
+  name: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-export function TeamMemberAvatar({ 
-  firstName, 
-  lastName, 
-  avatarUrl,
+export const TeamMemberAvatar: React.FC<TeamMemberAvatarProps> = ({ 
+  src, 
+  name,
   size = 'md'
-}: TeamMemberAvatarProps) {
-  const getInitials = () => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`;
+}) => {
+  const getSize = () => {
+    switch (size) {
+      case 'sm': return 'h-8 w-8';
+      case 'md': return 'h-10 w-10';
+      case 'lg': return 'h-16 w-16';
+      case 'xl': return 'h-24 w-24';
+      default: return 'h-10 w-10';
+    }
   };
-
-  const sizeClass = {
-    sm: 'h-8 w-8 text-xs',
-    md: 'h-10 w-10 text-sm',
-    lg: 'h-16 w-16 text-xl'
+  
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part.charAt(0))
+      .join('')
+      .toUpperCase();
   };
 
   return (
-    <Avatar className={sizeClass[size]}>
-      {avatarUrl && <AvatarImage src={avatarUrl} alt={`${firstName} ${lastName}`} />}
-      <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-        {getInitials()}
-      </AvatarFallback>
+    <Avatar className={getSize()}>
+      <AvatarImage src={src || undefined} alt={name} />
+      <AvatarFallback>{getInitials(name)}</AvatarFallback>
     </Avatar>
   );
-}
+};
