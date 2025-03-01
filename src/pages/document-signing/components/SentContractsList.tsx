@@ -5,10 +5,12 @@ import { convertDbInstanceToInstance, DocumentInstance } from '../types';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatDistanceToNow } from 'date-fns';
-import { Eye, FileText } from 'lucide-react';
+import { Eye, FileText, Download, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import ViewContract from './ViewContract';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const StatusBadge = ({ status }: { status: string }) => {
   const getStatusConfig = (status: string) => {
@@ -38,6 +40,7 @@ const SentContractsList = () => {
   const [sentContracts, setSentContracts] = useState<DocumentInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
+  const [showDetailsSheet, setShowDetailsSheet] = useState(false);
 
   const fetchSentContracts = async () => {
     setLoading(true);

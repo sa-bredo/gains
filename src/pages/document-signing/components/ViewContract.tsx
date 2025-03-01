@@ -4,9 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { convertDbInstanceToInstance, DocumentInstance } from '../types';
 import PDFViewer from './PDFViewer';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Download, Share2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ViewContractProps {
   contractId: string;
@@ -42,6 +43,7 @@ const ViewContract = ({ contractId, onBack }: ViewContractProps) => {
   const [loading, setLoading] = useState(true);
   const [pdfData, setPdfData] = useState<string | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [activeTab, setActiveTab] = useState('document');
 
   useEffect(() => {
     const fetchContract = async () => {
@@ -86,6 +88,20 @@ const ViewContract = ({ contractId, onBack }: ViewContractProps) => {
     fetchContract();
   }, [contractId]);
 
+  const handleDownload = () => {
+    if (pdfFile) {
+      const url = URL.createObjectURL(pdfFile);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${contract?.name || 'document'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('PDF downloaded successfully');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -126,12 +142,34 @@ const ViewContract = ({ contractId, onBack }: ViewContractProps) => {
             </span>
           </div>
         </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleDownload}>
+            <Download className="mr-2 h-4 w-4" />
+            Download
+          </Button>
+        </div>
       </div>
 
-      <div className="border rounded-lg p-6 bg-background">
-        <h3 className="text-lg font-medium mb-4">Document Preview</h3>
-        <PDFViewer file={pdfFile} />
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="document">Document</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
+        </TabsList>
+        <TabsContent value="document" className="border rounded-lg p-6 bg-background">
+          <PDFViewer file={pdfFile} />
+        </TabsContent>
+        <TabsContent value="history" className="border rounded-lg p-6 bg-background">
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Document History</h3>
+            <p className="text-sm text-muted-foreground">
+              {contract.status === 'sent' ? 'Document has been sent for signing.' : 
+               contract.status === 'signing' ? 'Document is currently in the signing process.' :
+               contract.status === 'completed' ? 'Document has been completed and signed by all parties.' :
+               'Document status: ' + contract.status}
+            </p>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
