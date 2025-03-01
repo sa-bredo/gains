@@ -31,12 +31,13 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
   const [currentTool, setCurrentTool] = useState<"select" | "signature" | "text">("select");
   const [canvasInitialized, setCanvasInitialized] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isCanvasSetup, setIsCanvasSetup] = useState(false);
   
   // Initialize canvas and position it over the PDF
   useEffect(() => {
-    if (!canvasContainerRef.current || !pdfContainerRef.current || canvasInitialized) return;
+    if (!canvasContainerRef.current || !pdfContainerRef.current) return;
     
-    console.log("Initializing canvas...");
+    console.log("Attempting to initialize canvas...");
     
     // Wait for PDF to be rendered before initializing the canvas
     const checkPdfRendered = setInterval(() => {
@@ -45,22 +46,35 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         clearInterval(checkPdfRendered);
         console.log("PDF rendered, creating canvas");
         
-        const pdfRect = pdfElement.getBoundingClientRect();
-        const containerRect = pdfContainerRef.current.getBoundingClientRect();
-        
-        // Initialize fabric canvas with PDF dimensions
-        const canvasElement = document.getElementById("fabric-canvas");
-        if (!canvasElement) {
-          console.error("Canvas element not found");
-          return;
-        }
-        
         try {
-          const canvas = new fabric.Canvas("fabric-canvas", {
+          // Create canvas element programmatically if it doesn't exist
+          let canvasElement = document.getElementById("fabric-canvas") as HTMLCanvasElement;
+          if (!canvasElement) {
+            console.log("Creating new canvas element");
+            canvasElement = document.createElement("canvas");
+            canvasElement.id = "fabric-canvas";
+            canvasContainerRef.current.appendChild(canvasElement);
+          }
+          
+          const pdfRect = pdfElement.getBoundingClientRect();
+          const containerRect = pdfContainerRef.current.getBoundingClientRect();
+          
+          console.log("PDF dimensions:", pdfRect.width, pdfRect.height);
+          
+          // Clean up any previous canvas instance
+          if (canvasRef.current) {
+            console.log("Disposing previous canvas");
+            canvasRef.current.dispose();
+          }
+          
+          // Initialize new fabric canvas
+          console.log("Creating new fabric canvas");
+          const canvas = new fabric.Canvas(canvasElement.id, {
             width: pdfRect.width,
             height: pdfRect.height,
-            backgroundColor: "rgba(0,0,0,0)",
+            backgroundColor: "rgba(0,0,0,0.01)", // Slightly visible for debugging
             selection: true,
+            preserveObjectStacking: true,
           });
           
           console.log("Canvas created successfully", canvas);
@@ -73,7 +87,9 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
           
           canvasRef.current = canvas;
           setCanvasInitialized(true);
+          setIsCanvasSetup(true);
           
+          // Setup event listeners
           canvas.on("object:added", (e) => {
             if (!e.target) return;
             
@@ -95,6 +111,7 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
               };
               
               setFields(prev => [...prev, newField]);
+              console.log("Field added:", newField);
             }
           });
           
@@ -112,20 +129,27 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
                         ...field, 
                         x: obj.left || 0, 
                         y: obj.top || 0,
-                        width: obj.width || 0,
-                        height: obj.height || 0,
+                        width: obj.getScaledWidth ? obj.getScaledWidth() : obj.width || 0,
+                        height: obj.getScaledHeight ? obj.getScaledHeight() : obj.height || 0,
                         page: currentPage,
                       } 
                     : field
                 )
               );
+              console.log("Field modified:", id);
             }
           });
+          
+          // Re-render existing fields for current page
+          renderFieldsForCurrentPage();
+          
+          toast.success("Editor ready! Add signature and text fields to your document.");
         } catch (error) {
           console.error("Error initializing fabric canvas:", error);
+          toast.error("Failed to initialize document editor. Please try refreshing the page.");
         }
       }
-    }, 200);
+    }, 500);
     
     return () => {
       clearInterval(checkPdfRendered);
@@ -133,12 +157,12 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         canvasRef.current.dispose();
       }
     };
-  }, [canvasInitialized, currentPage]);
+  }, [pdfContainerRef.current, canvasContainerRef.current, currentPage]);
   
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
-      if (!canvasRef.current || !pdfContainerRef.current) return;
+      if (!canvasRef.current || !pdfContainerRef.current || !isCanvasSetup) return;
       
       const pdfElement = pdfContainerRef.current.querySelector(".react-pdf__Page");
       if (!pdfElement) return;
@@ -158,11 +182,89 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
       }
       
       canvasRef.current.renderAll();
+      
+      // Re-render fields for current page after resize
+      renderFieldsForCurrentPage();
     };
     
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [isCanvasSetup]);
+  
+  // Render fields for current page
+  const renderFieldsForCurrentPage = () => {
+    if (!canvasRef.current) return;
+    
+    // Clear canvas
+    canvasRef.current.clear();
+    
+    // Render only fields for current page
+    const fieldsForCurrentPage = fields.filter(field => field.page === currentPage);
+    
+    console.log(`Rendering ${fieldsForCurrentPage.length} fields for page ${currentPage}`);
+    
+    fieldsForCurrentPage.forEach(field => {
+      let obj;
+      
+      if (field.type === "signature") {
+        obj = new fabric.Rect({
+          left: field.x,
+          top: field.y,
+          width: field.width,
+          height: field.height,
+          fill: "rgba(200, 230, 255, 0.2)",
+          stroke: "#2563eb",
+          strokeWidth: 2,
+          rx: 5,
+          ry: 5,
+          data: { type: "signature", id: field.id, loaded: true },
+        });
+        
+        // Add a label
+        const text = new fabric.Textbox("Signature", {
+          left: field.x,
+          top: field.y - 30,
+          fontSize: 14,
+          fill: "#2563eb",
+          fontWeight: "bold",
+          selectable: false,
+          evented: false,
+        });
+        
+        canvasRef.current.add(text);
+      } else {
+        obj = new fabric.Rect({
+          left: field.x,
+          top: field.y,
+          width: field.width,
+          height: field.height,
+          fill: "rgba(230, 255, 230, 0.2)",
+          stroke: "#16a34a",
+          strokeWidth: 2,
+          rx: 5,
+          ry: 5,
+          data: { type: "text", id: field.id, loaded: true },
+        });
+        
+        // Add a label
+        const text = new fabric.Textbox("Text Field", {
+          left: field.x,
+          top: field.y - 30,
+          fontSize: 14,
+          fill: "#16a34a",
+          fontWeight: "bold",
+          selectable: false,
+          evented: false,
+        });
+        
+        canvasRef.current.add(text);
+      }
+      
+      canvasRef.current.add(obj);
+    });
+    
+    canvasRef.current.renderAll();
+  };
   
   const addSignatureField = () => {
     console.log("Adding signature field...");
@@ -184,6 +286,9 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         rx: 5,
         ry: 5,
         data: { type: "signature" },
+        cornerColor: "#2563eb",
+        cornerSize: 8,
+        transparentCorners: false,
       });
       
       // Add a label
@@ -202,7 +307,7 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
       canvasRef.current.setActiveObject(rect);
       canvasRef.current.renderAll();
       
-      toast.success("Signature field added");
+      toast.success("Signature field added - drag to position");
     } catch (error) {
       console.error("Error adding signature field:", error);
       toast.error("Failed to add signature field");
@@ -229,6 +334,9 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         rx: 5,
         ry: 5,
         data: { type: "text" },
+        cornerColor: "#16a34a",
+        cornerSize: 8,
+        transparentCorners: false,
       });
       
       // Add a label
@@ -247,7 +355,7 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
       canvasRef.current.setActiveObject(rect);
       canvasRef.current.renderAll();
       
-      toast.success("Text field added");
+      toast.success("Text field added - drag to position");
     } catch (error) {
       console.error("Error adding text field:", error);
       toast.error("Failed to add text field");
@@ -292,13 +400,14 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
     if (tool === "select") {
       canvasRef.current.selection = true;
       canvasRef.current.getObjects().forEach(obj => {
-        obj.selectable = true;
+        if (obj.data) obj.selectable = true;
       });
+      toast.info("Selection mode active - drag fields to position them");
     } else {
       // When in drawing mode, disable selection temporarily
       canvasRef.current.selection = false;
       canvasRef.current.getObjects().forEach(obj => {
-        obj.selectable = false;
+        if (obj.data) obj.selectable = false;
       });
       
       // Add the appropriate field
@@ -316,12 +425,7 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
   
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
-    
-    // Clear the canvas when changing pages
-    if (canvasRef.current) {
-      canvasRef.current.clear();
-      setCanvasInitialized(false);
-    }
+    setCanvasInitialized(false);
   };
   
   const handleContinue = () => {
@@ -331,6 +435,7 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
     }
     
     onFieldsAdded(fields);
+    toast.success(`${fields.length} fields added to document`);
   };
   
   return (
@@ -374,8 +479,8 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
               file={file} 
               onPageChange={handlePageChange}
             />
-            <div ref={canvasContainerRef} className="pointer-events-none">
-              <canvas id="fabric-canvas" className="pointer-events-auto" />
+            <div ref={canvasContainerRef} className="absolute top-0 left-0 w-full h-full pointer-events-none">
+              {/* Canvas will be inserted here */}
             </div>
           </div>
         </div>
