@@ -22,6 +22,7 @@ export function useTeamMembers() {
       
       if (error) throw new Error(error.message);
       
+      console.log("Fetched team members:", data);
       setTeamMembers(data || []);
     } catch (err) {
       console.error('Error fetching team members:', err);
@@ -33,6 +34,8 @@ export function useTeamMembers() {
 
   async function addTeamMember(newMember: TeamMemberFormValues) {
     try {
+      console.log("Adding team member:", newMember);
+      
       const { data, error } = await supabase
         .from('employees')
         .insert([newMember])
@@ -40,6 +43,8 @@ export function useTeamMembers() {
         .single();
       
       if (error) throw new Error(error.message);
+      
+      console.log("Added team member successfully:", data);
       
       toast({
         title: "Team member added",

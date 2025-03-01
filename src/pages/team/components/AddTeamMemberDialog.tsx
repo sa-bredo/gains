@@ -23,6 +23,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { TeamMemberFormValues, ROLE_OPTIONS } from '../types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface AddTeamMemberDialogProps {
   open: boolean;
@@ -38,6 +43,7 @@ const formSchema = z.object({
   role: z.string().min(1, 'Role is required'),
   mobile_number: z.string().optional(),
   address: z.string().optional(),
+  date_of_birth: z.string().optional(),
   hourly_rate: z.coerce.number().optional(),
 });
 
@@ -58,6 +64,7 @@ export function AddTeamMemberDialog({
       role: '',
       mobile_number: '',
       address: '',
+      date_of_birth: undefined,
       hourly_rate: undefined,
     },
   });
@@ -65,6 +72,8 @@ export function AddTeamMemberDialog({
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsSubmitting(true);
+      console.log("Submitting form values:", values);
+      
       // Ensure all required fields are provided in the correct type
       const memberData: TeamMemberFormValues = {
         first_name: values.first_name,
@@ -73,6 +82,7 @@ export function AddTeamMemberDialog({
         role: values.role,
         mobile_number: values.mobile_number,
         address: values.address,
+        date_of_birth: values.date_of_birth,
         hourly_rate: values.hourly_rate,
       };
       
@@ -192,6 +202,50 @@ export function AddTeamMemberDialog({
                   <FormControl>
                     <Input placeholder="123 Main St, City" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="date_of_birth"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Date of Birth</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(new Date(field.value), "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value ? new Date(field.value) : undefined}
+                        onSelect={(date) => 
+                          field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)
+                        }
+                        disabled={(date) => 
+                          date > new Date() || date < new Date("1900-01-01")
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
