@@ -34,15 +34,25 @@ const AssignFieldsForm = ({ fields, onAssignmentComplete }: AssignFieldsFormProp
   const handleAssigneeChange = (fieldId: string, employeeId: string) => {
     console.log('Assigning field', fieldId, 'to employee', employeeId);
     
+    const employee = employees.find(emp => emp.id === employeeId);
+    
     setAssignedFields(prev => 
       prev.map(field => 
         field.id === fieldId 
-          ? { ...field, assignedTo: employeeId } 
+          ? { 
+              ...field, 
+              assignedTo: employeeId,
+              // Store additional employee information for easy access
+              assignedToFirstName: employee?.first_name,
+              assignedToLastName: employee?.last_name,
+              assignedToEmail: employee?.email,
+              assignedToRole: employee?.role,
+              assignedToAvatar: employee?.avatar_url
+            } 
           : field
       )
     );
     
-    const employee = employees.find(emp => emp.id === employeeId);
     if (employee) {
       toast.success(`Field assigned to ${employee.first_name} ${employee.last_name}`);
     }
@@ -131,7 +141,7 @@ const AssignFieldsForm = ({ fields, onAssignmentComplete }: AssignFieldsFormProp
       
       <div className="flex justify-end">
         <Button onClick={handleSubmit}>
-          Continue to Signing
+          Continue
         </Button>
       </div>
     </div>

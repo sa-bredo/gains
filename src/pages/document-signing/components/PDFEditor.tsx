@@ -20,6 +20,11 @@ export interface Field {
   height: number;
   page: number;
   assignedTo: string | null;
+  assignedToFirstName?: string;
+  assignedToLastName?: string;
+  assignedToEmail?: string;
+  assignedToRole?: string;
+  assignedToAvatar?: string | null;
 }
 
 const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {

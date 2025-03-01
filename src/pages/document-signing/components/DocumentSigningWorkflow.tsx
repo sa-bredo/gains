@@ -3,25 +3,30 @@ import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, FileText, Edit3, Users, PenTool, Save } from 'lucide-react';
+import { Upload, FileText, Edit3, Save } from 'lucide-react';
 import UploadPDF from './UploadPDF';
 import PDFEditor, { Field } from './PDFEditor';
 import PDFViewer from './PDFViewer';
-import AssignFieldsForm from './AssignFieldsForm';
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { supabase } from '@/integrations/supabase/client';
 
 const STEPS = [
   { id: "upload", icon: Upload, label: "Upload PDF" },
   { id: "edit", icon: Edit3, label: "Add Fields" },
-  { id: "assign", icon: Users, label: "Assign People" },
-  { id: "sign", icon: PenTool, label: "Sign Document" },
-  { id: "save", icon: Save, label: "Save & Export" }
+  { id: "save", icon: Save, label: "Save Template" }
 ];
 
 const DocumentSigningWorkflow = () => {
   const [step, setStep] = useState<string>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [fields, setFields] = useState<Field[]>([]);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [templateDescription, setTemplateDescription] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   
   const handleFileUpload = (uploadedFile: File) => {
     setFile(uploadedFile);
@@ -32,30 +37,77 @@ const DocumentSigningWorkflow = () => {
 
   const handleAddFields = (newFields: Field[]) => {
     setFields(newFields);
-    setStep("assign");
-    toast.success("Fields added. Now assign people to the fields.");
+    setStep("save");
+    toast.success("Fields added. Now save your template.");
   };
   
-  const handleAssignPeople = (assignedFields: Field[]) => {
-    setFields(assignedFields);
-    setStep("sign");
-    toast.success("Fields assigned. Now complete the signing process.");
+  const handleSaveTemplateClick = () => {
+    setShowSaveDialog(true);
   };
 
-  const handleCompleteWorkflow = () => {
-    toast.success("Document signing process complete!");
-    // Reset workflow
-    setTimeout(() => {
-      setFile(null);
-      setFields([]);
-      setStep("upload");
-    }, 2000);
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim()) {
+      toast.error("Please enter a template name");
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      // Convert the PDF file to base64 for storage
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64File = reader.result?.toString().split(',')[1];
+          
+          // Save to Supabase
+          const { data, error } = await supabase
+            .from('document_templates')
+            .insert([
+              { 
+                name: templateName,
+                description: templateDescription || null,
+                pdf_data: base64File,
+                fields: fields,
+              }
+            ])
+            .select();
+          
+          if (error) throw error;
+          
+          toast.success("Template saved successfully!");
+          setShowSaveDialog(false);
+          
+          // Reset workflow
+          setTimeout(() => {
+            setFile(null);
+            setFields([]);
+            setStep("upload");
+            setTemplateName("");
+            setTemplateDescription("");
+          }, 1000);
+        } catch (err) {
+          console.error("Error saving template:", err);
+          toast.error("Failed to save template");
+        } finally {
+          setIsSaving(false);
+        }
+      };
+      
+      if (file) {
+        reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      console.error("Error in file reading:", err);
+      toast.error("Failed to process file");
+      setIsSaving(false);
+    }
   };
 
   return (
     <div className="space-y-6">
       <Tabs value={step} onValueChange={setStep} className="w-full">
-        <TabsList className="grid grid-cols-5 mb-8">
+        <TabsList className="grid grid-cols-3 mb-8">
           {STEPS.map((s) => (
             <TabsTrigger 
               key={s.id} 
@@ -90,90 +142,59 @@ const DocumentSigningWorkflow = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="assign" className="mt-6">
-          <Card>
-            <CardContent className="pt-6">
-              <AssignFieldsForm 
-                fields={fields}
-                onAssignmentComplete={handleAssignPeople}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="sign" className="mt-6">
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-xl font-semibold mb-4">Sign Document</h3>
-              <p className="text-muted-foreground mb-6">
-                Fill in your assigned fields.
-              </p>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <div className="border rounded-lg p-4 bg-background">
-                  {file && <PDFViewer file={file} />}
-                </div>
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-medium mb-3">Your Fields</h4>
-                  <ul className="space-y-3">
-                    {fields.slice(0, 2).map((field, index) => (
-                      <li key={field.id} className="p-3 border rounded bg-muted/30">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-medium flex items-center gap-2">
-                            {field.type === "signature" ? (
-                              <PenTool className="h-4 w-4 text-blue-500" />
-                            ) : (
-                              <FileText className="h-4 w-4 text-green-500" />
-                            )}
-                            {field.type === "signature" ? "Signature" : "Text"} Field {index + 1}
-                          </span>
-                          <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
-                            Assigned to you
-                          </span>
-                        </div>
-                        {field.type === "signature" ? (
-                          <div className="border-2 border-dashed rounded p-4 flex items-center justify-center h-20 cursor-pointer hover:bg-muted/50" onClick={() => toast.success("Signature added!")}>
-                            <span className="text-sm text-muted-foreground">Click to add your signature</span>
-                          </div>
-                        ) : (
-                          <input 
-                            type="text" 
-                            className="w-full border rounded px-3 py-2" 
-                            placeholder="Enter text here..."
-                            onChange={() => toast.success("Text field filled!")}
-                          />
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-              <Button onClick={() => setStep("save")}>Complete Signing</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="save" className="mt-6">
           <Card>
             <CardContent className="pt-6">
-              <h3 className="text-xl font-semibold mb-4">Save & Export</h3>
+              <h3 className="text-xl font-semibold mb-4">Save Document Template</h3>
               <p className="text-muted-foreground mb-6">
-                Your document has been signed! Download it or save it to your account.
+                Save your document as a template for future use.
               </p>
-              <div className="flex flex-col items-center justify-center border rounded-lg p-8 mb-6 bg-muted/30">
-                <Save className="h-12 w-12 text-green-500 mb-3" />
-                <h4 className="text-lg font-medium mb-2">Document Successfully Signed!</h4>
-                <p className="text-sm text-muted-foreground mb-4 text-center max-w-md">
-                  All parties have completed their assigned fields. The document is now ready for download or storage.
-                </p>
+              <div className="border rounded-lg p-4 bg-background mb-6">
+                {file && <PDFViewer file={file} />}
               </div>
-              <div className="flex gap-4 justify-center">
-                <Button onClick={handleCompleteWorkflow}>Download PDF</Button>
-                <Button variant="outline" onClick={handleCompleteWorkflow}>Save to Account</Button>
+              <div className="flex justify-end">
+                <Button onClick={handleSaveTemplateClick}>
+                  Save as Template
+                </Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save Document Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="template-name">Template Name</Label>
+              <Input 
+                id="template-name" 
+                placeholder="e.g., Front of House Contract" 
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="template-description">Description (Optional)</Label>
+              <Input 
+                id="template-description" 
+                placeholder="Brief description of this template" 
+                value={templateDescription}
+                onChange={(e) => setTemplateDescription(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>Cancel</Button>
+            <Button onClick={handleSaveTemplate} disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save Template"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
