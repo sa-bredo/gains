@@ -16,6 +16,7 @@ import EmployeesPage from './pages/employees';
 import TransactionsPage from './pages/financials/transactions';
 import TransactionsGoCardlessPage from './pages/financials/transactions-gocardless';
 import TeamPage from './pages/team';
+import DocumentSigning from './pages/document-signing';
 
 function App() {
   return (
@@ -55,6 +56,11 @@ function App() {
           <Route path="/team" element={
             <ProtectedRoute>
               <TeamPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/document-signing" element={
+            <ProtectedRoute>
+              <DocumentSigning />
             </ProtectedRoute>
           } />
           <Route path="*" element={<NotFound />} />
