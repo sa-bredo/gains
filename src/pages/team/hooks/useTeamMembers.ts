@@ -36,13 +36,23 @@ export function useTeamMembers() {
     try {
       console.log("Adding team member:", newMember);
       
+      // Strip any undefined values to avoid Supabase errors
+      const cleanMember = Object.fromEntries(
+        Object.entries(newMember).filter(([_, value]) => value !== undefined)
+      ) as TeamMemberFormValues;
+      
+      console.log("Cleaned member data:", cleanMember);
+      
       const { data, error } = await supabase
         .from('employees')
-        .insert([newMember])
+        .insert([cleanMember])
         .select()
         .single();
       
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error("Supabase error:", error);
+        throw new Error(error.message);
+      }
       
       console.log("Added team member successfully:", data);
       
