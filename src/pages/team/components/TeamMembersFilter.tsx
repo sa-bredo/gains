@@ -109,9 +109,10 @@ export function TeamMembersFilter({
                       <CommandItem
                         key={option.value}
                         onSelect={() => handleRoleSelect(option.value)}
+                        className="flex items-center gap-2 cursor-pointer"
                       >
                         <div
-                          className={`mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary ${
+                          className={`flex h-4 w-4 items-center justify-center rounded-sm border border-primary ${
                             isSelected
                               ? 'bg-primary text-primary-foreground'
                               : 'opacity-50 [&_svg]:invisible'
@@ -130,7 +131,7 @@ export function TeamMembersFilter({
                     <CommandGroup>
                       <CommandItem
                         onSelect={() => setSelectedRoles([])}
-                        className="justify-center text-center"
+                        className="justify-center text-center cursor-pointer"
                       >
                         Clear filters
                       </CommandItem>
