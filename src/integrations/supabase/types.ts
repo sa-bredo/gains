@@ -385,6 +385,65 @@ export type Database = {
           },
         ]
       }
+      transactions_gocardless: {
+        Row: {
+          account_id: string
+          amount: number
+          category: string | null
+          created_at: string | null
+          currency: string | null
+          date: string
+          description: string | null
+          id: string
+          merchant_name: string | null
+          pending: boolean | null
+          status: string | null
+          transaction_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          category?: string | null
+          created_at?: string | null
+          currency?: string | null
+          date: string
+          description?: string | null
+          id?: string
+          merchant_name?: string | null
+          pending?: boolean | null
+          status?: string | null
+          transaction_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          category?: string | null
+          created_at?: string | null
+          currency?: string | null
+          date?: string
+          description?: string | null
+          id?: string
+          merchant_name?: string | null
+          pending?: boolean | null
+          status?: string | null
+          transaction_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_gocardless_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "gocardless_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unavailable_shifts: {
         Row: {
           created_at: string | null
