@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
@@ -26,7 +25,7 @@ export interface Field {
 export interface PDFEditorProps {
   file: File;
   initialFields: Field[];
-  onFieldsAdded: (fields: Field[]) => void;
+  onFieldsAdded: (field: Field) => void;
   onUpdateField: (updatedField: Field) => void;
   onDeleteField: (fieldId: string) => void;
 }
@@ -89,6 +88,7 @@ const PDFEditor = ({ file, initialFields, onFieldsAdded, onUpdateField, onDelete
     };
     
     setFields(prev => [...prev, newField]);
+    onFieldsAdded(newField);
     toast.success("Signature field added - drag to position");
   };
   
@@ -105,6 +105,7 @@ const PDFEditor = ({ file, initialFields, onFieldsAdded, onUpdateField, onDelete
     };
     
     setFields(prev => [...prev, newField]);
+    onFieldsAdded(newField);
     toast.success("Text field added - drag to position");
   };
 
@@ -139,11 +140,6 @@ const PDFEditor = ({ file, initialFields, onFieldsAdded, onUpdateField, onDelete
       return;
     }
     
-    const updatedFields = fields.map(field => ({
-      ...field,
-    }));
-    
-    onFieldsAdded(updatedFields);
     toast.success(`${fields.length} fields added to document`);
   };
   

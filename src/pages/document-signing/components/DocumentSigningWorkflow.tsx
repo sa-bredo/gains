@@ -31,6 +31,7 @@ const DocumentSigningWorkflow = () => {
     setStep("edit");
   };
   
+  // This function now accepts a single Field instead of an array
   const handleAddField = (field: Field) => {
     setFields([...fields, field]);
   };
