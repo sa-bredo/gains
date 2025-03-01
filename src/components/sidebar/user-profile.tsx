@@ -1,7 +1,7 @@
 
 import { FC } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronsUpDown, LogOut, BadgeCheck } from "lucide-react";
+import { ChevronsUpDown, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -65,7 +65,9 @@ export const UserProfileMenu: FC<UserProfileMenuProps> = ({ user, isMobile }) =>
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">JD</AvatarFallback>
+                <AvatarFallback className="rounded-lg">
+                  {user.name.split(' ').map(n => n[0]).join('')}
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{user.name}</span>
@@ -84,7 +86,9 @@ export const UserProfileMenu: FC<UserProfileMenuProps> = ({ user, isMobile }) =>
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">JD</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">
+                    {user.name.split(' ').map(n => n[0]).join('')}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{user.name}</span>
@@ -92,13 +96,6 @@ export const UserProfileMenu: FC<UserProfileMenuProps> = ({ user, isMobile }) =>
                 </div>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck className="mr-2 h-4 w-4" />
-                Account
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />

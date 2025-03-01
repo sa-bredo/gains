@@ -1,4 +1,3 @@
-
 import {
   Heart,
   Brain,
@@ -18,12 +17,7 @@ import {
 } from "lucide-react";
 import { NavItem } from "./types";
 
-export const user = {
-  name: "John Doe",
-  email: "john@example.com",
-  avatar: "https://randomuser.me/api/portraits/men/21.jpg",
-};
-
+// We're not hardcoding user information anymore - it will be fetched from auth context
 export const navMain: NavItem[] = [
   {
     title: "Dashboard",

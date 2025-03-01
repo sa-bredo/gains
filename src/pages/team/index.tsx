@@ -22,6 +22,15 @@ export default function TeamPage() {
   } = useTeamMembers();
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
 
+  // Calculate the current date for determining terminated employees
+  const currentDate = new Date().toISOString().split('T')[0];
+
+  // Update the team members data to add a derived isTerminated property
+  const processedTeamMembers = teamMembers.map(member => ({
+    ...member,
+    isTerminated: member.end_job_date && member.end_job_date <= currentDate
+  }));
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -53,7 +62,7 @@ export default function TeamPage() {
             )}
 
             <TeamMembersList 
-              teamMembers={teamMembers} 
+              teamMembers={processedTeamMembers} 
               isLoading={isLoading} 
               onUpdate={updateTeamMember}
               onDelete={deleteTeamMember}
