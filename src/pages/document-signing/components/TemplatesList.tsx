@@ -13,7 +13,7 @@ import { FileText, Send, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { DocumentTemplate } from '../types';
 
 interface Template {
   id: string;
@@ -43,7 +43,7 @@ const TemplatesList = ({ onSendTemplate }: TemplatesListProps) => {
       
       if (error) throw error;
       
-      const formattedTemplates = data.map(template => ({
+      const formattedTemplates = data.map((template: DocumentTemplate) => ({
         id: template.id,
         name: template.name,
         description: template.description,

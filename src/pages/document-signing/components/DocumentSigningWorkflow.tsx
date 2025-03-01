@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,7 +29,6 @@ const DocumentSigningWorkflow = () => {
   
   const handleFileUpload = (uploadedFile: File) => {
     setFile(uploadedFile);
-    // Move to next step after uploading
     setStep("edit");
     toast.success("File uploaded. Now add signature and text fields.");
   };
@@ -54,13 +52,11 @@ const DocumentSigningWorkflow = () => {
     setIsSaving(true);
 
     try {
-      // Convert the PDF file to base64 for storage
       const reader = new FileReader();
       reader.onload = async () => {
         try {
           const base64File = reader.result?.toString().split(',')[1];
           
-          // Save to Supabase
           const { data, error } = await supabase
             .from('document_templates')
             .insert([
@@ -78,7 +74,6 @@ const DocumentSigningWorkflow = () => {
           toast.success("Template saved successfully!");
           setShowSaveDialog(false);
           
-          // Reset workflow
           setTimeout(() => {
             setFile(null);
             setFields([]);

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Employee } from '../hooks/useEmployees';
+import { DocumentTemplate, DocumentInstance } from '../types';
 
 const STEPS = [
   { id: "assign", icon: Users, label: "Assign People" },
@@ -20,23 +20,6 @@ const STEPS = [
 interface SendContractWorkflowProps {
   templateId: string;
   onBack: () => void;
-}
-
-interface DocumentTemplate {
-  id: string;
-  name: string;
-  description: string | null;
-  pdf_data: string;
-  fields: Field[];
-}
-
-interface DocumentInstance {
-  id: string;
-  template_id: string;
-  name: string;
-  status: 'draft' | 'sent' | 'signing' | 'completed';
-  created_at: string;
-  fields: Field[];
 }
 
 interface SigningStatus {
@@ -57,7 +40,6 @@ const SendContractWorkflow = ({ templateId, onBack }: SendContractWorkflowProps)
   const [signingStatuses, setSigningStatuses] = useState<SigningStatus[]>([]);
   const [file, setFile] = useState<File | null>(null);
   
-  // Fetch template data
   useEffect(() => {
     const fetchTemplate = async () => {
       setIsLoading(true);
@@ -70,18 +52,18 @@ const SendContractWorkflow = ({ templateId, onBack }: SendContractWorkflowProps)
         
         if (error) throw error;
         
-        setTemplate(data as DocumentTemplate);
-        setFields(data.fields || []);
+        const templateData = data as DocumentTemplate;
+        setTemplate(templateData);
+        setFields(templateData.fields || []);
         
-        // Convert base64 PDF data to File object
-        if (data.pdf_data) {
-          const binaryString = atob(data.pdf_data);
+        if (templateData.pdf_data) {
+          const binaryString = atob(templateData.pdf_data);
           const bytes = new Uint8Array(binaryString.length);
           for (let i = 0; i < binaryString.length; i++) {
             bytes[i] = binaryString.charCodeAt(i);
           }
           const blob = new Blob([bytes.buffer], { type: 'application/pdf' });
-          const pdfFile = new File([blob], `${data.name}.pdf`, { type: 'application/pdf' });
+          const pdfFile = new File([blob], `${templateData.name}.pdf`, { type: 'application/pdf' });
           setFile(pdfFile);
         }
       } catch (err) {
@@ -108,17 +90,15 @@ const SendContractWorkflow = ({ templateId, onBack }: SendContractWorkflowProps)
             fields: assignedFields,
           }
         ])
-        .select()
-        .single();
+        .select();
       
       if (error) throw error;
       
-      setDocumentInstance(data as DocumentInstance);
+      const instanceData = data[0] as DocumentInstance;
+      setDocumentInstance(instanceData);
       
-      // Prepare signing statuses
       const statuses: SigningStatus[] = [];
       
-      // Group employees by role
       const employeesByField: Record<string, Employee> = {};
       const uniqueEmployees: Record<string, Employee> = {};
       
@@ -156,21 +136,18 @@ const SendContractWorkflow = ({ templateId, onBack }: SendContractWorkflowProps)
   };
   
   const handleSendToNonManagers = () => {
-    // This would typically integrate with an email service
     const nonManagerStatuses = signingStatuses.filter(status => !status.is_manager);
     if (nonManagerStatuses.length === 0) {
       toast.info("No non-manager signers to send to");
       return;
     }
     
-    // Update document status to 'sent'
     updateDocumentStatus('sent');
     
     toast.success(`Sent to ${nonManagerStatuses.length} recipient(s)`);
   };
   
   const handleSimulateNonManagerSigning = async () => {
-    // Demo functionality to simulate signing
     const updatedStatuses = [...signingStatuses];
     let foundOne = false;
     
@@ -189,20 +166,17 @@ const SendContractWorkflow = ({ templateId, onBack }: SendContractWorkflowProps)
     
     setSigningStatuses(updatedStatuses);
     
-    // Check if all non-managers have signed
     const allNonManagersSigned = updatedStatuses
       .filter(status => !status.is_manager)
       .every(status => status.status === 'signed');
     
     if (allNonManagersSigned) {
       toast.success("All non-managers have signed! Now sending to managers...");
-      // Update document status to 'signing'
       updateDocumentStatus('signing');
     }
   };
   
   const handleSimulateManagerSigning = async () => {
-    // Demo functionality to simulate manager signing
     const updatedStatuses = [...signingStatuses];
     let foundOne = false;
     
@@ -221,18 +195,15 @@ const SendContractWorkflow = ({ templateId, onBack }: SendContractWorkflowProps)
     
     setSigningStatuses(updatedStatuses);
     
-    // Check if all have signed
     const allSigned = updatedStatuses.every(status => status.status === 'signed');
     
     if (allSigned) {
       toast.success("All parties have signed the document!");
-      // Update document status to 'completed'
       updateDocumentStatus('completed');
     }
   };
   
   const handleSendFinalDocument = () => {
-    // This would typically integrate with an email service
     toast.success("Signed document sent to all parties!");
   };
   
@@ -415,7 +386,6 @@ const SendContractWorkflow = ({ templateId, onBack }: SendContractWorkflowProps)
                   <h4 className="font-medium mb-4">Actions</h4>
                   
                   <div className="space-y-4">
-                    {/* Initial send to non-managers */}
                     {documentInstance?.status === 'draft' && (
                       <div className="flex flex-col items-start gap-2 p-3 rounded-md bg-muted/20">
                         <div className="font-medium">1. Send to all non-manager signers</div>
@@ -431,7 +401,6 @@ const SendContractWorkflow = ({ templateId, onBack }: SendContractWorkflowProps)
                       </div>
                     )}
                     
-                    {/* Demo action for non-manager signing */}
                     {documentInstance?.status === 'sent' && (
                       <div className="flex flex-col items-start gap-2 p-3 rounded-md bg-muted/20">
                         <div className="font-medium">Demo: Simulate Non-Manager Signing</div>
@@ -448,7 +417,6 @@ const SendContractWorkflow = ({ templateId, onBack }: SendContractWorkflowProps)
                       </div>
                     )}
                     
-                    {/* Demo action for manager signing */}
                     {documentInstance?.status === 'signing' && (
                       <div className="flex flex-col items-start gap-2 p-3 rounded-md bg-muted/20">
                         <div className="font-medium">Demo: Simulate Manager Signing</div>
@@ -465,7 +433,6 @@ const SendContractWorkflow = ({ templateId, onBack }: SendContractWorkflowProps)
                       </div>
                     )}
                     
-                    {/* Final step - send signed document */}
                     {documentInstance?.status === 'completed' && (
                       <div className="flex flex-col items-start gap-2 p-3 rounded-md bg-green-50 border border-green-200">
                         <div className="font-medium text-green-800">All signatures completed!</div>
