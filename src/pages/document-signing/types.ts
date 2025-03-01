@@ -40,3 +40,19 @@ export interface DbDocumentInstance {
   created_at: string;
   updated_at: string;
 }
+
+// Helper functions for converting between types
+export const convertDbTemplateToTemplate = (dbTemplate: DbDocumentTemplate): DocumentTemplate => {
+  return {
+    ...dbTemplate,
+    fields: Array.isArray(dbTemplate.fields) ? dbTemplate.fields as unknown as Field[] : []
+  };
+};
+
+export const convertDbInstanceToInstance = (dbInstance: DbDocumentInstance): DocumentInstance => {
+  return {
+    ...dbInstance,
+    status: dbInstance.status as 'draft' | 'sent' | 'signing' | 'completed',
+    fields: Array.isArray(dbInstance.fields) ? dbInstance.fields as unknown as Field[] : []
+  };
+};

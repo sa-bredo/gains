@@ -10,7 +10,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Employee } from '../hooks/useEmployees';
-import { DocumentTemplate, DocumentInstance, DbDocumentTemplate, DbDocumentInstance } from '../types';
+import { 
+  DocumentTemplate, DocumentInstance, DbDocumentTemplate, DbDocumentInstance,
+  convertDbTemplateToTemplate, convertDbInstanceToInstance 
+} from '../types';
 
 const STEPS = [
   { id: "assign", icon: Users, label: "Assign People" },
@@ -53,10 +56,7 @@ const SendContractWorkflow = ({ templateId, onBack }: SendContractWorkflowProps)
         if (error) throw error;
         
         const dbTemplate = data as DbDocumentTemplate;
-        const templateData: DocumentTemplate = {
-          ...dbTemplate,
-          fields: Array.isArray(dbTemplate.fields) ? dbTemplate.fields as unknown as Field[] : []
-        };
+        const templateData = convertDbTemplateToTemplate(dbTemplate);
         
         setTemplate(templateData);
         setFields(templateData.fields || []);
@@ -89,23 +89,18 @@ const SendContractWorkflow = ({ templateId, onBack }: SendContractWorkflowProps)
     try {
       const { data, error } = await supabase
         .from('document_instances')
-        .insert([
-          {
-            template_id: templateId,
-            name: template.name || "Untitled Document",
-            status: 'draft',
-            fields: assignedFields
-          }
-        ])
+        .insert({
+          template_id: templateId,
+          name: template.name || "Untitled Document",
+          status: 'draft',
+          fields: assignedFields as unknown as Json
+        })
         .select();
       
       if (error) throw error;
       
       const instanceData = data[0] as DbDocumentInstance;
-      const documentData: DocumentInstance = {
-        ...instanceData,
-        fields: Array.isArray(instanceData.fields) ? instanceData.fields as unknown as Field[] : []
-      };
+      const documentData = convertDbInstanceToInstance(instanceData);
       
       setDocumentInstance(documentData);
       

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -12,7 +13,7 @@ import { FileText, Send, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DocumentTemplate, DbDocumentTemplate } from '../types';
+import { DbDocumentTemplate, convertDbTemplateToTemplate } from '../types';
 
 interface Template {
   id: string;

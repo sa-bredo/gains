@@ -25,7 +25,7 @@ const DocumentSigningWorkflow = () => {
   const [templateDescription, setTemplateDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   
-  const handleFileUpload = (uploadedFile: File) => {
+  const handleFileUploaded = (uploadedFile: File) => {
     setFile(uploadedFile);
     setStep("edit");
   };
@@ -64,7 +64,7 @@ const DocumentSigningWorkflow = () => {
             name: templateName,
             description: templateDescription || null,
             pdf_data: pdfData,
-            fields: fields
+            fields: fields as unknown as Json
           });
         
         if (error) throw error;
@@ -89,7 +89,7 @@ const DocumentSigningWorkflow = () => {
   const renderUploadStep = () => (
     <Card>
       <CardContent className="pt-6">
-        <UploadPDF onFileUpload={handleFileUpload} />
+        <UploadPDF onFileUploaded={handleFileUploaded} />
       </CardContent>
     </Card>
   );
@@ -99,8 +99,8 @@ const DocumentSigningWorkflow = () => {
       <CardContent className="pt-6">
         {file && (
           <PDFEditor 
-            file={file}
-            fields={fields}
+            pdfFile={file}
+            initialFields={fields}
             onAddField={handleAddField}
             onUpdateField={handleUpdateField}
             onDeleteField={handleDeleteField}
