@@ -1,208 +1,177 @@
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import React, { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { EmployeeFormValues } from "..";
-import { useState } from "react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Employee, EmployeeFormValues } from "..";
 
-// Define form schema with Zod
-const formSchema = z.object({
-  first_name: z.string().min(2, { message: "First name is required" }),
-  last_name: z.string().min(2, { message: "Last name is required" }),
-  email: z.string().email({ message: "Invalid email address" }),
-  role: z.enum(["Admin", "Manager", "Front Of House"], {
-    required_error: "Please select a role",
-  }),
-  mobile_number: z.string().optional(),
-});
-
-// Derive the type from the schema
-type FormValues = z.infer<typeof formSchema>;
-
-interface AddEmployeeDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (values: EmployeeFormValues) => Promise<boolean>;
+export interface AddEmployeeDialogProps {
+  onEmployeeAdded: (newEmployee: Employee) => void;
 }
 
-export function AddEmployeeDialog({
-  open,
-  onOpenChange,
-  onSubmit,
-}: AddEmployeeDialogProps) {
+export function AddEmployeeDialog({ onEmployeeAdded }: AddEmployeeDialogProps) {
+  const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      first_name: "",
-      last_name: "",
-      email: "",
-      mobile_number: "",
-    },
+  const [formValues, setFormValues] = useState<EmployeeFormValues>({
+    first_name: "",
+    last_name: "",
+    email: "",
+    role: "Front Of House",
+    mobile_number: "",
   });
+  const { toast } = useToast();
 
-  const handleSubmit = async (values: FormValues) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormValues((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleRoleChange = (value: "Front Of House" | "Manager" | "Admin") => {
+    setFormValues((prev) => ({ ...prev, role: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsSubmitting(true);
+
     try {
-      // Convert values to EmployeeFormValues explicitly to ensure type compatibility
-      const employeeFormValues: EmployeeFormValues = {
-        first_name: values.first_name,
-        last_name: values.last_name,
-        email: values.email,
-        role: values.role,
-        mobile_number: values.mobile_number,
-      };
-      
-      const success = await onSubmit(employeeFormValues);
-      if (success) {
-        form.reset();
-        onOpenChange(false);
+      // Ensure all required fields are present
+      if (!formValues.first_name || !formValues.last_name || !formValues.email || !formValues.role) {
+        toast({
+          title: "Missing required fields",
+          description: "Please fill in all required fields.",
+          variant: "destructive",
+        });
+        return;
       }
+
+      const { data, error } = await supabase
+        .from("employees")
+        .insert([formValues])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error adding employee:", error);
+        toast({
+          title: "Error adding employee",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Employee added",
+        description: `${formValues.first_name} ${formValues.last_name} has been added successfully.`,
+      });
+
+      // Add the invited status to the new employee data
+      const newEmployee = { ...data, invited: false } as Employee;
+      onEmployeeAdded(newEmployee);
+
+      // Reset form and close dialog
+      setFormValues({
+        first_name: "",
+        last_name: "",
+        email: "",
+        role: "Front Of House",
+        mobile_number: "",
+      });
+      setOpen(false);
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      toast({
+        title: "Unexpected error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>Add Employee</Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add Employee</DialogTitle>
-          <DialogDescription>
-            Add a new employee to your organization.
-          </DialogDescription>
+          <DialogTitle>Add New Employee</DialogTitle>
         </DialogHeader>
-
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-4 py-4"
-          >
-            <FormField
-              control={form.control}
-              name="first_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>First Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="last_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Last Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Doe" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
+        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="first_name">First Name *</Label>
+              <Input
+                id="first_name"
+                name="first_name"
+                value={formValues.first_name}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="last_name">Last Name *</Label>
+              <Input
+                id="last_name"
+                name="last_name"
+                value={formValues.last_name}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email *</Label>
+            <Input
+              id="email"
               name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="john.doe@example.com"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              type="email"
+              value={formValues.email}
+              onChange={handleInputChange}
+              required
             />
-
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Role</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a role" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Admin">Admin</SelectItem>
-                      <SelectItem value="Manager">Manager</SelectItem>
-                      <SelectItem value="Front Of House">
-                        Front Of House
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="role">Role *</Label>
+            <Select
+              value={formValues.role}
+              onValueChange={(value) => handleRoleChange(value as "Front Of House" | "Manager" | "Admin")}
+            >
+              <SelectTrigger id="role">
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Front Of House">Front Of House</SelectItem>
+                <SelectItem value="Manager">Manager</SelectItem>
+                <SelectItem value="Admin">Admin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="mobile_number">Mobile Number</Label>
+            <Input
+              id="mobile_number"
               name="mobile_number"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mobile Number (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="+1 (555) 123-4567" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              value={formValues.mobile_number || ""}
+              onChange={handleInputChange}
             />
-
-            <DialogFooter>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Add Employee
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" type="button" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Adding..." : "Add Employee"}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

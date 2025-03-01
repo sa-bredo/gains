@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Tables } from "@/integrations/supabase/types";
-import { supabaseClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AddEmployeeDialog } from "./components/add-employee-dialog";
 import { EmployeesTable } from "./components/employees-table";
@@ -31,7 +31,7 @@ const EmployeesPage: React.FC = () => {
   const fetchEmployees = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabaseClient
+      const { data, error } = await supabase
         .from("employees")
         .select("*");
 
@@ -47,7 +47,7 @@ const EmployeesPage: React.FC = () => {
       if (data) {
         const employeesWithInvitedStatus = await Promise.all(
           data.map(async (employee) => {
-            const { data: inviteData, error: inviteError } = await supabaseClient
+            const { data: inviteData, error: inviteError } = await supabase
               .from("employee_invites")
               .select("*")
               .eq("employee_id", employee.id)
@@ -73,7 +73,7 @@ const EmployeesPage: React.FC = () => {
 
   const handleInviteEmployee = async (employeeId: string) => {
     try {
-      const { data, error } = await supabaseClient.functions.invoke(
+      const { data, error } = await supabase.functions.invoke(
         "create_invite_token",
         {
           body: { employee_id: employeeId },
@@ -114,7 +114,6 @@ const EmployeesPage: React.FC = () => {
           return;
         }
 
-        // Optimistically update the invited status
         setEmployees((prevEmployees) =>
           prevEmployees.map((employee) =>
             employee.id === employeeId ? { ...employee, invited: true } : employee

@@ -195,6 +195,17 @@ const navMain = [
     ],
   },
   {
+    title: "Employees",
+    url: "/employees",
+    icon: Users,
+    items: [
+      {
+        title: "All Employees",
+        url: "/employees",
+      },
+    ],
+  },
+  {
     title: "Settings",
     url: "/settings",
     icon: Settings,
