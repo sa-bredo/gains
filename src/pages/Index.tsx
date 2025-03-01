@@ -1,7 +1,7 @@
 
 import { FC } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Brain, Bone, BookOpen, Activity, ChevronRight } from 'lucide-react';
+import { Heart, Brain, Bone, BookOpen, Activity, ChevronRight, FileSignature } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 
@@ -36,6 +36,7 @@ const Index: FC = () => {
           <nav className="hidden md:flex space-x-8">
             <Link to="/" className="text-sm font-medium hover:text-primary transition-colors">Home</Link>
             <Link to="/dashboard" className="text-sm font-medium hover:text-primary transition-colors">Dashboard</Link>
+            <Link to="/document-signing" className="text-sm font-medium hover:text-primary transition-colors">Documents</Link>
             <Link to="/explore" className="text-sm font-medium hover:text-primary transition-colors">Explore</Link>
             <Link to="/about" className="text-sm font-medium hover:text-primary transition-colors">About</Link>
           </nav>
@@ -98,9 +99,9 @@ const Index: FC = () => {
                   description: "Understand the heart and circulatory system in intricate detail."
                 },
                 {
-                  icon: <Bone className="h-8 w-8" />,
-                  title: "Musculoskeletal",
-                  description: "Study bones, joints, and muscles with interactive models."
+                  icon: <FileSignature className="h-8 w-8" />,
+                  title: "Document Signing",
+                  description: "Sign and manage important documents securely with our platform."
                 }
               ].map((feature, index) => (
                 <motion.div 

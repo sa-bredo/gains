@@ -61,6 +61,17 @@ export const navMain: NavItem[] = [
     ],
   },
   {
+    title: "Documents",
+    url: "/document-signing",
+    icon: FileSignature,
+    items: [
+      {
+        title: "Sign Documents",
+        url: "/document-signing",
+      },
+    ],
+  },
+  {
     title: "Financials",
     url: "/financials",
     icon: DollarSign,
@@ -144,17 +155,6 @@ export const navMain: NavItem[] = [
       {
         title: "Management",
         url: "/operations/management",
-      },
-    ],
-  },
-  {
-    title: "Documents",
-    url: "/document-signing",
-    icon: FileSignature,
-    items: [
-      {
-        title: "Sign Documents",
-        url: "/document-signing",
       },
     ],
   },
