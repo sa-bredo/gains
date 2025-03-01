@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, UserPlus, MoreHorizontal } from 'lucide-react';
+import { Pencil, Trash2, UserPlus, MoreHorizontal, Flame } from 'lucide-react';
 import { TeamMember, formatDate } from '../types';
 import { TeamMemberAvatar } from './TeamMemberAvatar';
 import { EditTeamMemberDialog } from './EditTeamMemberDialog';
@@ -139,7 +139,11 @@ export const TeamMembersList = ({
                         <Pencil className="h-4 w-4 mr-2" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleTerminate(member)}>
+                      <DropdownMenuItem 
+                        onClick={() => handleTerminate(member)}
+                        className="text-amber-500"
+                      >
+                        <Flame className="h-4 w-4 mr-2 text-amber-500" />
                         Terminate
                       </DropdownMenuItem>
                       <DropdownMenuItem 
