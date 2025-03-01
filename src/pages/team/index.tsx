@@ -10,8 +10,12 @@ import { AddTeamMemberDialog } from './components/AddTeamMemberDialog';
 import { useTeamMembers } from './hooks/useTeamMembers';
 import { TeamMember } from './types';
 import { TeamMembersFilter } from './components/TeamMembersFilter';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function TeamPage() {
+  // Add auth context to ensure we're properly handling authentication
+  const { user } = useAuth();
+  
   const { 
     teamMembers, 
     isLoading, 
@@ -116,6 +120,9 @@ export default function TeamPage() {
     await safeRefetch();
     setAddDialogOpen(false);
   };
+
+  // Check user authentication
+  console.log("Current authenticated user:", user);
 
   return (
     <SidebarProvider>
