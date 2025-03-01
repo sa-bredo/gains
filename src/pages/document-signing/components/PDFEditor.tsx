@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
@@ -27,19 +26,41 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
   const canvasRef = useRef<fabric.Canvas | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const pdfContainerRef = useRef<HTMLDivElement | null>(null);
+  const canvasElementRef = useRef<HTMLCanvasElement | null>(null);
   const [fields, setFields] = useState<Field[]>([]);
   const [currentTool, setCurrentTool] = useState<"select" | "signature" | "text">("select");
   const [canvasInitialized, setCanvasInitialized] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isCanvasSetup, setIsCanvasSetup] = useState(false);
   
-  // Initialize canvas and position it over the PDF
+  const disposeCanvas = () => {
+    if (canvasRef.current) {
+      try {
+        canvasRef.current.off();
+        canvasRef.current.dispose();
+        canvasRef.current = null;
+        
+        if (canvasElementRef.current) {
+          const context = canvasElementRef.current.getContext('2d');
+          if (context) {
+            context.clearRect(0, 0, canvasElementRef.current.width, canvasElementRef.current.height);
+          }
+        }
+        
+        console.log("Canvas disposed successfully");
+      } catch (error) {
+        console.error("Error disposing canvas:", error);
+      }
+    }
+  };
+  
   useEffect(() => {
     if (!canvasContainerRef.current || !pdfContainerRef.current) return;
     
     console.log("Attempting to initialize canvas...");
     
-    // Wait for PDF to be rendered before initializing the canvas
+    disposeCanvas();
+    
     const checkPdfRendered = setInterval(() => {
       const pdfElement = pdfContainerRef.current?.querySelector(".react-pdf__Page");
       if (pdfElement) {
@@ -47,39 +68,38 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         console.log("PDF rendered, creating canvas");
         
         try {
-          // Create canvas element programmatically if it doesn't exist
           let canvasElement = document.getElementById("fabric-canvas") as HTMLCanvasElement;
           if (!canvasElement) {
             console.log("Creating new canvas element");
             canvasElement = document.createElement("canvas");
             canvasElement.id = "fabric-canvas";
-            canvasContainerRef.current.appendChild(canvasElement);
+            if (canvasContainerRef.current) {
+              canvasContainerRef.current.appendChild(canvasElement);
+            }
           }
+          
+          canvasElementRef.current = canvasElement;
           
           const pdfRect = pdfElement.getBoundingClientRect();
           const containerRect = pdfContainerRef.current.getBoundingClientRect();
           
           console.log("PDF dimensions:", pdfRect.width, pdfRect.height);
           
-          // Clean up any previous canvas instance
           if (canvasRef.current) {
-            console.log("Disposing previous canvas");
             canvasRef.current.dispose();
           }
           
-          // Initialize new fabric canvas
           console.log("Creating new fabric canvas");
           const canvas = new fabric.Canvas(canvasElement.id, {
             width: pdfRect.width,
             height: pdfRect.height,
-            backgroundColor: "rgba(0,0,0,0.01)", // Slightly visible for debugging
+            backgroundColor: "rgba(0,0,0,0.01)",
             selection: true,
             preserveObjectStacking: true,
           });
           
           console.log("Canvas created successfully", canvas);
           
-          // Position canvas over PDF
           canvasElement.style.position = "absolute";
           canvasElement.style.top = `${pdfRect.top - containerRect.top}px`;
           canvasElement.style.left = `${pdfRect.left - containerRect.left}px`;
@@ -89,7 +109,6 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
           setCanvasInitialized(true);
           setIsCanvasSetup(true);
           
-          // Setup event listeners
           canvas.on("object:added", (e) => {
             if (!e.target) return;
             
@@ -97,7 +116,6 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
             const id = obj.data?.id || uuidv4();
             obj.set("data", { ...obj.data, id });
             
-            // Add field to state when manually added (not during load)
             if (!obj.data?.loaded) {
               const newField: Field = {
                 id,
@@ -140,7 +158,6 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
             }
           });
           
-          // Re-render existing fields for current page
           renderFieldsForCurrentPage();
           
           toast.success("Editor ready! Add signature and text fields to your document.");
@@ -153,13 +170,10 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
     
     return () => {
       clearInterval(checkPdfRendered);
-      if (canvasRef.current) {
-        canvasRef.current.dispose();
-      }
+      disposeCanvas();
     };
   }, [pdfContainerRef.current, canvasContainerRef.current, currentPage]);
   
-  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       if (!canvasRef.current || !pdfContainerRef.current || !isCanvasSetup) return;
@@ -173,7 +187,6 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
       canvasRef.current.setWidth(pdfRect.width);
       canvasRef.current.setHeight(pdfRect.height);
       
-      // Reposition canvas
       const canvasElement = document.getElementById("fabric-canvas");
       if (canvasElement) {
         canvasElement.style.position = "absolute";
@@ -183,7 +196,6 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
       
       canvasRef.current.renderAll();
       
-      // Re-render fields for current page after resize
       renderFieldsForCurrentPage();
     };
     
@@ -191,14 +203,11 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
     return () => window.removeEventListener("resize", handleResize);
   }, [isCanvasSetup]);
   
-  // Render fields for current page
   const renderFieldsForCurrentPage = () => {
     if (!canvasRef.current) return;
     
-    // Clear canvas
     canvasRef.current.clear();
     
-    // Render only fields for current page
     const fieldsForCurrentPage = fields.filter(field => field.page === currentPage);
     
     console.log(`Rendering ${fieldsForCurrentPage.length} fields for page ${currentPage}`);
@@ -220,7 +229,6 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
           data: { type: "signature", id: field.id, loaded: true },
         });
         
-        // Add a label
         const text = new fabric.Textbox("Signature", {
           left: field.x,
           top: field.y - 30,
@@ -246,7 +254,6 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
           data: { type: "text", id: field.id, loaded: true },
         });
         
-        // Add a label
         const text = new fabric.Textbox("Text Field", {
           left: field.x,
           top: field.y - 30,
@@ -291,7 +298,6 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         transparentCorners: false,
       });
       
-      // Add a label
       const text = new fabric.Textbox("Signature", {
         left: 100,
         top: 70,
@@ -339,7 +345,6 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         transparentCorners: false,
       });
       
-      // Add a label
       const text = new fabric.Textbox("Text Field", {
         left: 100,
         top: 170,
@@ -365,13 +370,11 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
   const handleDeleteField = (fieldId: string) => {
     if (!canvasRef.current) return;
     
-    // Remove from canvas
     const objects = canvasRef.current.getObjects();
     const fieldObject = objects.find(obj => obj.data?.id === fieldId);
     if (fieldObject) {
       canvasRef.current.remove(fieldObject);
       
-      // Also try to remove the label
       const labelY = fieldObject.top as number - 30;
       const labelX = fieldObject.left;
       const possibleLabel = objects.find(
@@ -387,7 +390,6 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
       canvasRef.current.renderAll();
     }
     
-    // Remove from state
     setFields(prev => prev.filter(field => field.id !== fieldId));
     toast.success("Field removed");
   };
@@ -404,20 +406,16 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
       });
       toast.info("Selection mode active - drag fields to position them");
     } else {
-      // When in drawing mode, disable selection temporarily
       canvasRef.current.selection = false;
       canvasRef.current.getObjects().forEach(obj => {
         if (obj.data) obj.selectable = false;
       });
       
-      // Add the appropriate field
       if (tool === "signature") {
         addSignatureField();
-        // Reset to select after adding
         setTimeout(() => setCurrentTool("select"), 100);
       } else if (tool === "text") {
         addTextField();
-        // Reset to select after adding
         setTimeout(() => setCurrentTool("select"), 100);
       }
     }
@@ -425,7 +423,6 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
   
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
-    setCanvasInitialized(false);
   };
   
   const handleContinue = () => {
