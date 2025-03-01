@@ -158,6 +158,11 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
             }
           });
           
+          // Fix pointer events for canvas container
+          if (canvasContainerRef.current) {
+            canvasContainerRef.current.style.pointerEvents = "auto";
+          }
+          
           renderFieldsForCurrentPage();
           
           toast.success("Editor ready! Add signature and text fields to your document.");
@@ -227,6 +232,14 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
           rx: 5,
           ry: 5,
           data: { type: "signature", id: field.id, loaded: true },
+          selectable: currentTool === "select",
+          hasControls: true,
+          hasBorders: true,
+          lockMovementX: false,
+          lockMovementY: false,
+          cornerColor: '#2563eb',
+          cornerSize: 8,
+          transparentCorners: false
         });
         
         const text = new fabric.Textbox("Signature", {
@@ -252,6 +265,14 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
           rx: 5,
           ry: 5,
           data: { type: "text", id: field.id, loaded: true },
+          selectable: currentTool === "select",
+          hasControls: true,
+          hasBorders: true,
+          lockMovementX: false,
+          lockMovementY: false,
+          cornerColor: '#16a34a',
+          cornerSize: 8,
+          transparentCorners: false
         });
         
         const text = new fabric.Textbox("Text Field", {
@@ -293,6 +314,9 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         rx: 5,
         ry: 5,
         data: { type: "signature" },
+        selectable: true,
+        hasControls: true,
+        hasBorders: true,
         cornerColor: "#2563eb",
         cornerSize: 8,
         transparentCorners: false,
@@ -340,6 +364,9 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         rx: 5,
         ry: 5,
         data: { type: "text" },
+        selectable: true,
+        hasControls: true,
+        hasBorders: true,
         cornerColor: "#16a34a",
         cornerSize: 8,
         transparentCorners: false,
@@ -402,14 +429,16 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
     if (tool === "select") {
       canvasRef.current.selection = true;
       canvasRef.current.getObjects().forEach(obj => {
-        if (obj.data) obj.selectable = true;
+        if (obj.data) {
+          obj.selectable = true;
+          obj.hasControls = true;
+          obj.hasBorders = true;
+        }
       });
       toast.info("Selection mode active - drag fields to position them");
     } else {
+      // Keep objects selectable but disable multi-selection
       canvasRef.current.selection = false;
-      canvasRef.current.getObjects().forEach(obj => {
-        if (obj.data) obj.selectable = false;
-      });
       
       if (tool === "signature") {
         addSignatureField();
@@ -419,6 +448,8 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         setTimeout(() => setCurrentTool("select"), 100);
       }
     }
+    
+    canvasRef.current.renderAll();
   };
   
   const handlePageChange = (pageNumber: number) => {
@@ -476,7 +507,11 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
               file={file} 
               onPageChange={handlePageChange}
             />
-            <div ref={canvasContainerRef} className="absolute top-0 left-0 w-full h-full pointer-events-none">
+            <div 
+              ref={canvasContainerRef} 
+              className="absolute top-0 left-0 w-full h-full"
+              style={{ pointerEvents: "auto" }}
+            >
               {/* Canvas will be inserted here */}
             </div>
           </div>
