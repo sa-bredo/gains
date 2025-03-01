@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Table, 
@@ -12,7 +11,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Mail, Phone, Loader2, Send } from "lucide-react";
-import { Employee } from "..";
+import { Tables } from "@/integrations/supabase/types";
+
+// Define the Employee type based on the Tables type from Supabase
+type Employee = Tables<"employees"> & {
+  invited: boolean;
+};
 
 interface EmployeesTableProps {
   employees: Employee[];
