@@ -1,208 +1,247 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, UserPlus, MoreHorizontal, Flame } from 'lucide-react';
-import { TeamMember, formatDate } from '../types';
-import { TeamMemberAvatar } from './TeamMemberAvatar';
-import { EditTeamMemberDialog } from './EditTeamMemberDialog';
-import { DeleteTeamMemberDialog } from './DeleteTeamMemberDialog';
-import { TerminateEmployeeDialog } from './TerminateEmployeeDialog';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card } from '@/components/ui/card';
+} from '@/components/ui/dropdown-menu';
+import { EditTeamMemberDialog } from './EditTeamMemberDialog';
+import { DeleteTeamMemberDialog } from './DeleteTeamMemberDialog';
+import { TerminateEmployeeDialog } from './TerminateEmployeeDialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { TeamMember, TeamMemberFormValues } from '../types';
+import { TeamMemberAvatar } from './TeamMemberAvatar';
+import { MoreHorizontal, Edit, Trash2, UserX, Check, FileText } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface TeamMembersListProps {
-  teamMembers: TeamMember[];
+  teamMembers: (TeamMember & { isTerminated?: boolean })[];
   isLoading: boolean;
-  onUpdate: (id: string, data: Partial<TeamMember>) => Promise<void>;
+  onUpdate: (id: string, data: Partial<TeamMemberFormValues>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onTerminate: (id: string, endDate: string) => Promise<void>;
   refetchTeamMembers: () => void;
 }
 
-export const TeamMembersList = ({ 
-  teamMembers, 
-  isLoading, 
+export function TeamMembersList({
+  teamMembers,
+  isLoading,
   onUpdate,
   onDelete,
   onTerminate,
   refetchTeamMembers
-}: TeamMembersListProps) => {
+}: TeamMembersListProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [terminateDialogOpen, setTerminateDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
 
-  const handleEdit = (member: TeamMember) => {
+  const handleEditMember = (member: TeamMember) => {
     setSelectedMember(member);
     setEditDialogOpen(true);
   };
 
-  const handleDelete = (member: TeamMember) => {
+  const handleDeleteMember = (member: TeamMember) => {
     setSelectedMember(member);
     setDeleteDialogOpen(true);
   };
 
-  const handleTerminate = (member: TeamMember) => {
+  const handleTerminateMember = (member: TeamMember) => {
     setSelectedMember(member);
     setTerminateDialogOpen(true);
   };
 
+  const handleAvatarUpdate = (url: string, memberId: string) => {
+    if (selectedMember && selectedMember.id === memberId) {
+      setSelectedMember({...selectedMember, avatar_url: url});
+    }
+    refetchTeamMembers();
+  };
+
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Card className="p-4 animate-pulse">
-          <div className="h-10 bg-muted rounded w-full"></div>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {Array(6).fill(0).map((_, i) => (
+          <Card key={i} className="overflow-hidden">
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div>
+                    <Skeleton className="h-4 w-32 mb-2" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-3/4" />
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Skeleton className="h-9 w-full" />
+            </CardFooter>
+          </Card>
+        ))}
       </div>
     );
   }
 
-  if (!teamMembers.length) {
+  if (teamMembers.length === 0) {
     return (
-      <Card className="p-8 flex flex-col items-center justify-center text-center">
-        <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium">No team members found</h3>
-        <p className="text-muted-foreground mb-6">
-          You haven't added any team members yet.
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium">No team members yet</h3>
+        <p className="text-muted-foreground mt-1">
+          Add your first team member to get started.
         </p>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[250px]">Employee</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Phone</TableHead>
-            <TableHead className="w-[80px]"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {teamMembers.map((member) => (
-            <TableRow key={member.id}>
-              <TableCell className="flex items-center gap-3">
-                <TeamMemberAvatar
-                  src={member.avatar_url}
-                  name={`${member.first_name} ${member.last_name}`}
-                  size="md"
-                />
-                <div>
-                  <div className="font-medium">
-                    {member.first_name} {member.last_name}
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {teamMembers.map((member) => (
+          <Card key={member.id} className={`overflow-hidden ${member.isTerminated ? 'border-destructive/40 bg-destructive/5' : ''}`}>
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <TeamMemberAvatar
+                    src={member.avatar_url}
+                    name={`${member.first_name} ${member.last_name}`}
+                    employeeId={member.id}
+                    onAvatarUpdate={(url) => handleAvatarUpdate(url, member.id)}
+                    editable={true}
+                  />
+                  <div>
+                    <CardTitle className="text-base">
+                      {member.first_name} {member.last_name}
+                    </CardTitle>
+                    <CardDescription>{member.role}</CardDescription>
                   </div>
-                  {member.end_job_date && !member.isTerminated && (
-                    <div className="text-sm bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full inline-block">
-                      Notice Period
-                    </div>
-                  )}
-                  {member.isTerminated && (
-                    <div className="text-sm text-destructive bg-destructive/10 px-2 py-0.5 rounded-full inline-block">
-                      Ended {formatDate(member.end_job_date || '')}
-                    </div>
-                  )}
                 </div>
-              </TableCell>
-              <TableCell>{member.email}</TableCell>
-              <TableCell>
-                <span className={`inline-block px-2 py-1 rounded-full ${member.role.toLowerCase() === 'admin' ? 'bg-black text-white' : 'bg-muted'}`}>
-                  {member.role}
-                </span>
-              </TableCell>
-              <TableCell>{member.phone}</TableCell>
-              <TableCell>
-                {!member.isTerminated ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEdit(member)}>
-                        <Pencil className="h-4 w-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleTerminate(member)}
-                        className="text-amber-500"
-                      >
-                        <Flame className="h-4 w-4 mr-2 text-amber-500" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleEditMember(member)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit
+                    </DropdownMenuItem>
+                    {!member.isTerminated && (
+                      <DropdownMenuItem onClick={() => handleTerminateMember(member)}>
+                        <UserX className="mr-2 h-4 w-4" />
                         Terminate
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleDelete(member)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : (
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => handleDelete(member)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                    )}
+                    <DropdownMenuItem onClick={() => handleDeleteMember(member)}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-start gap-2">
+                  <span className="text-muted-foreground w-24">Email:</span>
+                  <span className="font-medium truncate">{member.email}</span>
+                </div>
+                {member.mobile_number && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-muted-foreground w-24">Phone:</span>
+                    <span className="font-medium">{member.mobile_number}</span>
+                  </div>
                 )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                {member.start_job_date && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-muted-foreground w-24">Started:</span>
+                    <span className="font-medium">{new Date(member.start_job_date).toLocaleDateString()}</span>
+                  </div>
+                )}
+                {member.end_job_date && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-muted-foreground w-24">End date:</span>
+                    <span className="font-medium text-destructive">{new Date(member.end_job_date).toLocaleDateString()}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between border-t p-3">
+              <div className="flex gap-1 text-xs">
+                {member.isTerminated ? (
+                  <Badge variant="destructive">Terminated</Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50">
+                    <Check className="mr-1 h-3 w-3" /> Active
+                  </Badge>
+                )}
+                {member.contract_signed && (
+                  <Badge variant="secondary" className="gap-1">
+                    <FileText className="h-3 w-3" />
+                    Contract
+                  </Badge>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleEditMember(member)}
+              >
+                Edit
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
 
       {selectedMember && (
         <>
-          <EditTeamMemberDialog 
-            open={editDialogOpen} 
-            onOpenChange={setEditDialogOpen} 
+          <EditTeamMemberDialog
             teamMember={selectedMember}
-            onUpdate={(data) => {
-              onUpdate(selectedMember.id, data as Partial<TeamMember>);
-              return Promise.resolve(selectedMember);
-            }}
+            open={editDialogOpen}
+            onOpenChange={setEditDialogOpen}
+            onUpdate={onUpdate}
             onSuccess={refetchTeamMembers}
           />
-          
-          <DeleteTeamMemberDialog 
+
+          <DeleteTeamMemberDialog
+            teamMember={selectedMember}
             open={deleteDialogOpen}
             onOpenChange={setDeleteDialogOpen}
-            teamMember={selectedMember}
-            onDelete={() => {
-              onDelete(selectedMember.id);
-              return Promise.resolve(true);
-            }}
+            onDelete={onDelete}
             onSuccess={refetchTeamMembers}
           />
-          
+
           <TerminateEmployeeDialog
+            teamMember={selectedMember}
             open={terminateDialogOpen}
             onOpenChange={setTerminateDialogOpen}
-            teamMember={selectedMember}
-            onTerminate={(endDate) => onTerminate(selectedMember.id, endDate)}
+            onTerminate={onTerminate}
             onSuccess={refetchTeamMembers}
           />
         </>
       )}
-    </Card>
+    </>
   );
-};
+}

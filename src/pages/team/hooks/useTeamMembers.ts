@@ -75,14 +75,26 @@ export function useTeamMembers() {
 
   async function updateTeamMember(id: string, updates: Partial<TeamMemberFormValues>) {
     try {
+      console.log("Updating team member:", id, updates);
+      
+      // Strip any undefined values to avoid Supabase errors
+      const cleanUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([_, value]) => value !== undefined)
+      ) as Partial<TeamMemberFormValues>;
+      
       const { data, error } = await supabase
         .from('employees')
-        .update(updates)
+        .update(cleanUpdates)
         .eq('id', id)
         .select()
         .single();
       
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error("Update error:", error);
+        throw new Error(error.message);
+      }
+      
+      console.log("Updated team member successfully:", data);
       
       toast({
         title: "Team member updated",

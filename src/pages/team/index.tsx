@@ -34,15 +34,30 @@ export default function TeamPage() {
 
   // Create wrapped handlers that return void instead of the actual return values
   const handleUpdateMember = async (id: string, data: Partial<TeamMember>): Promise<void> => {
-    await updateTeamMember(id, data);
+    try {
+      await updateTeamMember(id, data);
+      refetchTeamMembers(); // Refetch after update to ensure UI is in sync
+    } catch (error) {
+      console.error('Error updating team member:', error);
+    }
   };
 
   const handleDeleteMember = async (id: string): Promise<void> => {
-    await deleteTeamMember(id);
+    try {
+      await deleteTeamMember(id);
+      refetchTeamMembers(); // Refetch after delete
+    } catch (error) {
+      console.error('Error deleting team member:', error);
+    }
   };
 
   const handleTerminateMember = async (id: string, endDate: string): Promise<void> => {
-    await terminateTeamMember(id, endDate);
+    try {
+      await terminateTeamMember(id, endDate);
+      refetchTeamMembers(); // Refetch after termination
+    } catch (error) {
+      console.error('Error terminating team member:', error);
+    }
   };
 
   return (

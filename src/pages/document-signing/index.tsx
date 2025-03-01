@@ -11,7 +11,7 @@ import SendContractWorkflow from './components/SendContractWorkflow';
 import SentContractsList from './components/SentContractsList';
 
 export default function DocumentSigningPage() {
-  const [activeTab, setActiveTab] = useState<"templates" | "create" | "sent" | "send">("templates");
+  const [activeTab, setActiveTab] = useState<"templates" | "create" | "sent" | "send">("sent");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
   const handleSendTemplate = (templateId: string) => {
@@ -42,6 +42,10 @@ export default function DocumentSigningPage() {
             {!selectedTemplateId ? (
               <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "templates" | "create" | "sent" | "send")}>
                 <TabsList className="mb-8">
+                  <TabsTrigger value="sent" className="flex items-center gap-2">
+                    <ClipboardCheck className="h-4 w-4" />
+                    Sent Contracts
+                  </TabsTrigger>
                   <TabsTrigger value="templates" className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
                     Templates
@@ -49,10 +53,6 @@ export default function DocumentSigningPage() {
                   <TabsTrigger value="create" className="flex items-center gap-2">
                     <Send className="h-4 w-4" />
                     Create New Template
-                  </TabsTrigger>
-                  <TabsTrigger value="sent" className="flex items-center gap-2">
-                    <ClipboardCheck className="h-4 w-4" />
-                    Sent Contracts
                   </TabsTrigger>
                 </TabsList>
                 
