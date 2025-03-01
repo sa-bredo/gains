@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -9,6 +9,7 @@ import { TeamMembersList } from './components/TeamMembersList';
 import { AddTeamMemberDialog } from './components/AddTeamMemberDialog';
 import { useTeamMembers } from './hooks/useTeamMembers';
 import { TeamMember } from './types';
+import { TeamMembersFilter } from './components/TeamMembersFilter';
 
 export default function TeamPage() {
   const { 
@@ -22,6 +23,8 @@ export default function TeamPage() {
     terminateTeamMember
   } = useTeamMembers();
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
   // Calculate the current date for determining terminated employees
   const currentDate = new Date().toISOString().split('T')[0];
@@ -31,6 +34,22 @@ export default function TeamPage() {
     ...member,
     isTerminated: member.end_job_date && member.end_job_date <= currentDate
   }));
+
+  // Filter team members based on search and role filter
+  const filteredTeamMembers = useMemo(() => {
+    return processedTeamMembers.filter(member => {
+      // Search filter
+      const searchMatch = searchQuery.trim() === '' || 
+        member.first_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        member.last_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        member.email.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Role filter
+      const roleMatch = selectedRoles.length === 0 || selectedRoles.includes(member.role);
+      
+      return searchMatch && roleMatch;
+    });
+  }, [processedTeamMembers, searchQuery, selectedRoles]);
 
   // Create wrapped handlers that return void instead of the actual return values
   const handleUpdateMember = async (id: string, data: Partial<TeamMember>): Promise<void> => {
@@ -90,8 +109,15 @@ export default function TeamPage() {
               </div>
             )}
 
+            <TeamMembersFilter 
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              selectedRoles={selectedRoles}
+              setSelectedRoles={setSelectedRoles}
+            />
+
             <TeamMembersList 
-              teamMembers={processedTeamMembers} 
+              teamMembers={filteredTeamMembers} 
               isLoading={isLoading} 
               onUpdate={handleUpdateMember}
               onDelete={handleDeleteMember}
