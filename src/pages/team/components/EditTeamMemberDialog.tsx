@@ -86,8 +86,10 @@ export function EditTeamMemberDialog({
   }, [teamMember, open, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
       console.log("Submitting update for member:", teamMember.id, values);
       
       // Make sure all fields are properly typed
@@ -105,17 +107,22 @@ export function EditTeamMemberDialog({
       await onUpdate(teamMember.id, updates);
       
       // Call onSuccess callback after the update is done
-      await onSuccess();
+      onSuccess();
       
       // Close dialog after everything is complete
       onOpenChange(false);
     } catch (error) {
       console.error('Error updating team member:', error);
     } finally {
-      setIsSubmitting(false);
+      // Add a slight delay before resetting the submitting state
+      // to avoid UI flicker and ensure state propagation completes
+      setTimeout(() => {
+        setIsSubmitting(false);
+      }, 100);
     }
   };
 
+  // This only closes the dialog if we're not currently submitting
   const handleCloseDialog = () => {
     if (!isSubmitting) {
       onOpenChange(false);
