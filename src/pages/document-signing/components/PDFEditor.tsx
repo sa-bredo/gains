@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
-import { Canvas, IEvent, Rect, Textbox } from "fabric";
+import { fabric } from "fabric";
 import { toast } from "sonner";
 import { Signature, Type, Users, Trash2 } from "lucide-react";
 import PDFViewer from "./PDFViewer";
@@ -24,7 +24,7 @@ interface Field {
 }
 
 const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
-  const canvasRef = useRef<Canvas | null>(null);
+  const canvasRef = useRef<fabric.Canvas | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const pdfContainerRef = useRef<HTMLDivElement | null>(null);
   const [fields, setFields] = useState<Field[]>([]);
@@ -46,7 +46,12 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         const containerRect = pdfContainerRef.current.getBoundingClientRect();
         
         // Initialize fabric canvas with PDF dimensions
-        const canvas = new Canvas("fabric-canvas", {
+        if (!document.getElementById("fabric-canvas")) {
+          console.error("Canvas element not found");
+          return;
+        }
+        
+        const canvas = new fabric.Canvas("fabric-canvas", {
           width: pdfRect.width,
           height: pdfRect.height,
           backgroundColor: "rgba(0,0,0,0)",
@@ -65,7 +70,7 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         canvasRef.current = canvas;
         setCanvasInitialized(true);
         
-        canvas.on("object:added", (e: IEvent) => {
+        canvas.on("object:added", (e) => {
           if (!e.target) return;
           
           const obj = e.target;
@@ -89,7 +94,7 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
           }
         });
         
-        canvas.on("object:modified", (e: IEvent) => {
+        canvas.on("object:modified", (e) => {
           if (!e.target) return;
           
           const obj = e.target;
@@ -155,7 +160,7 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
   const addSignatureField = () => {
     if (!canvasRef.current) return;
     
-    const rect = new Rect({
+    const rect = new fabric.Rect({
       left: 100,
       top: 100,
       width: 200,
@@ -169,7 +174,7 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
     });
     
     // Add a label
-    const text = new Textbox("Signature", {
+    const text = new fabric.Textbox("Signature", {
       left: 100,
       top: 70,
       fontSize: 14,
@@ -189,7 +194,7 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
   const addTextField = () => {
     if (!canvasRef.current) return;
     
-    const rect = new Rect({
+    const rect = new fabric.Rect({
       left: 100,
       top: 200,
       width: 300,
@@ -203,7 +208,7 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
     });
     
     // Add a label
-    const text = new Textbox("Text Field", {
+    const text = new fabric.Textbox("Text Field", {
       left: 100,
       top: 170,
       fontSize: 14,
