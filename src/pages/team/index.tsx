@@ -17,7 +17,8 @@ export default function TeamPage() {
     refetchTeamMembers,
     addTeamMember,
     updateTeamMember,
-    deleteTeamMember
+    deleteTeamMember,
+    terminateTeamMember
   } = useTeamMembers();
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
 
@@ -56,6 +57,7 @@ export default function TeamPage() {
               isLoading={isLoading} 
               onUpdate={updateTeamMember}
               onDelete={deleteTeamMember}
+              onTerminate={terminateTeamMember}
               refetchTeamMembers={refetchTeamMembers}
             />
 

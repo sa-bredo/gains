@@ -12,6 +12,12 @@ export interface TeamMember {
   auth_id?: string;
   created_at?: string;
   invited?: boolean;
+  avatar_url?: string;
+  start_job_date?: string;
+  end_job_date?: string;
+  contract_signed?: boolean;
+  contract_url?: string;
+  insurance_url?: string;
 }
 
 export interface TeamMemberFormValues {

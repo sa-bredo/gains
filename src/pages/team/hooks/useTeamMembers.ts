@@ -101,6 +101,34 @@ export function useTeamMembers() {
     }
   }
 
+  async function terminateTeamMember(id: string, endDate: string) {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .update({ end_job_date: endDate })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw new Error(error.message);
+      
+      toast({
+        title: "Employee termination scheduled",
+        description: `The employee has been scheduled for termination on ${new Date(endDate).toLocaleDateString()}.`,
+      });
+      
+      return data;
+    } catch (err) {
+      console.error('Error terminating team member:', err);
+      toast({
+        variant: "destructive",
+        title: "Failed to terminate employee",
+        description: err instanceof Error ? err.message : "Unknown error occurred",
+      });
+      throw err;
+    }
+  }
+
   async function deleteTeamMember(id: string) {
     try {
       const { error } = await supabase
@@ -138,6 +166,7 @@ export function useTeamMembers() {
     refetchTeamMembers: fetchTeamMembers,
     addTeamMember,
     updateTeamMember,
-    deleteTeamMember
+    deleteTeamMember,
+    terminateTeamMember
   };
 }
