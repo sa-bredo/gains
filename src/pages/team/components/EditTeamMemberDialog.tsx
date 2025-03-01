@@ -104,11 +104,11 @@ export function EditTeamMemberDialog({
       
       await onUpdate(teamMember.id, updates);
       
-      // Only close dialog after successful update
-      onOpenChange(false);
+      // Only call onSuccess callback after the update is done
+      await onSuccess();
       
-      // Call onSuccess callback after everything is done
-      onSuccess();
+      // Close dialog after everything is complete
+      onOpenChange(false);
     } catch (error) {
       console.error('Error updating team member:', error);
     } finally {
@@ -116,13 +116,18 @@ export function EditTeamMemberDialog({
     }
   };
 
+  const handleCloseDialog = () => {
+    if (!isSubmitting) {
+      onOpenChange(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
       // If we're closing the dialog and not submitting, clean up
       if (!newOpen && !isSubmitting) {
-        setTimeout(() => form.reset(), 100);
+        handleCloseDialog();
       }
-      onOpenChange(newOpen);
     }}>
       <DialogContent className="sm:max-w-[485px]">
         <DialogHeader>
@@ -243,7 +248,7 @@ export function EditTeamMemberDialog({
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => onOpenChange(false)}
+                onClick={handleCloseDialog}
                 disabled={isSubmitting}
               >
                 Cancel

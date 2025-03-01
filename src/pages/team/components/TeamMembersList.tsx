@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -59,18 +60,22 @@ export function TeamMembersList({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [terminateDialogOpen, setTerminateDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleEditMember = (member: TeamMember) => {
+    if (isProcessing) return;
     setSelectedMember(member);
     setEditDialogOpen(true);
   };
 
   const handleDeleteMember = (member: TeamMember) => {
+    if (isProcessing) return;
     setSelectedMember(member);
     setDeleteDialogOpen(true);
   };
 
   const handleTerminateMember = (member: TeamMember) => {
+    if (isProcessing) return;
     setSelectedMember(member);
     setTerminateDialogOpen(true);
   };
@@ -80,6 +85,18 @@ export function TeamMembersList({
       setSelectedMember({...selectedMember, avatar_url: url});
     }
     refetchTeamMembers();
+  };
+
+  const handleRefetchWithDebounce = async () => {
+    setIsProcessing(true);
+    try {
+      await refetchTeamMembers();
+    } finally {
+      // Add a short delay to prevent rapid button clicks
+      setTimeout(() => {
+        setIsProcessing(false);
+      }, 300);
+    }
   };
 
   if (isLoading) {
@@ -148,7 +165,7 @@ export function TeamMembersList({
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isProcessing}>
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -219,6 +236,7 @@ export function TeamMembersList({
                 variant="outline"
                 size="sm"
                 onClick={() => handleEditMember(member)}
+                disabled={isProcessing}
               >
                 Edit
               </Button>
@@ -234,7 +252,7 @@ export function TeamMembersList({
             open={editDialogOpen}
             onOpenChange={setEditDialogOpen}
             onUpdate={onUpdate}
-            onSuccess={refetchTeamMembers}
+            onSuccess={handleRefetchWithDebounce}
           />
 
           <DeleteTeamMemberDialog
@@ -242,7 +260,7 @@ export function TeamMembersList({
             open={deleteDialogOpen}
             onOpenChange={setDeleteDialogOpen}
             onDelete={onDelete}
-            onSuccess={refetchTeamMembers}
+            onSuccess={handleRefetchWithDebounce}
           />
 
           <TerminateEmployeeDialog
@@ -250,7 +268,7 @@ export function TeamMembersList({
             open={terminateDialogOpen}
             onOpenChange={setTerminateDialogOpen}
             onTerminate={onTerminate}
-            onSuccess={refetchTeamMembers}
+            onSuccess={handleRefetchWithDebounce}
           />
         </>
       )}
