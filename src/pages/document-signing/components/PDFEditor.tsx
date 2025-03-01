@@ -36,87 +36,94 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
   useEffect(() => {
     if (!canvasContainerRef.current || !pdfContainerRef.current || canvasInitialized) return;
     
+    console.log("Initializing canvas...");
+    
     // Wait for PDF to be rendered before initializing the canvas
     const checkPdfRendered = setInterval(() => {
       const pdfElement = pdfContainerRef.current?.querySelector(".react-pdf__Page");
       if (pdfElement) {
         clearInterval(checkPdfRendered);
+        console.log("PDF rendered, creating canvas");
         
         const pdfRect = pdfElement.getBoundingClientRect();
         const containerRect = pdfContainerRef.current.getBoundingClientRect();
         
         // Initialize fabric canvas with PDF dimensions
-        if (!document.getElementById("fabric-canvas")) {
+        const canvasElement = document.getElementById("fabric-canvas");
+        if (!canvasElement) {
           console.error("Canvas element not found");
           return;
         }
         
-        const canvas = new fabric.Canvas("fabric-canvas", {
-          width: pdfRect.width,
-          height: pdfRect.height,
-          backgroundColor: "rgba(0,0,0,0)",
-          selection: true,
-        });
-        
-        // Position canvas over PDF
-        const canvasElement = document.getElementById("fabric-canvas");
-        if (canvasElement) {
+        try {
+          const canvas = new fabric.Canvas("fabric-canvas", {
+            width: pdfRect.width,
+            height: pdfRect.height,
+            backgroundColor: "rgba(0,0,0,0)",
+            selection: true,
+          });
+          
+          console.log("Canvas created successfully", canvas);
+          
+          // Position canvas over PDF
           canvasElement.style.position = "absolute";
           canvasElement.style.top = `${pdfRect.top - containerRect.top}px`;
           canvasElement.style.left = `${pdfRect.left - containerRect.left}px`;
           canvasElement.style.pointerEvents = "auto";
-        }
-        
-        canvasRef.current = canvas;
-        setCanvasInitialized(true);
-        
-        canvas.on("object:added", (e) => {
-          if (!e.target) return;
           
-          const obj = e.target;
-          const id = obj.data?.id || uuidv4();
-          obj.set("data", { ...obj.data, id });
+          canvasRef.current = canvas;
+          setCanvasInitialized(true);
           
-          // Add field to state when manually added (not during load)
-          if (!obj.data?.loaded) {
-            const newField: Field = {
-              id,
-              type: obj.data?.type || "text",
-              x: obj.left || 0,
-              y: obj.top || 0,
-              width: obj.width || 0,
-              height: obj.height || 0,
-              page: currentPage,
-              assignedTo: null,
-            };
+          canvas.on("object:added", (e) => {
+            if (!e.target) return;
             
-            setFields(prev => [...prev, newField]);
-          }
-        });
-        
-        canvas.on("object:modified", (e) => {
-          if (!e.target) return;
+            const obj = e.target;
+            const id = obj.data?.id || uuidv4();
+            obj.set("data", { ...obj.data, id });
+            
+            // Add field to state when manually added (not during load)
+            if (!obj.data?.loaded) {
+              const newField: Field = {
+                id,
+                type: obj.data?.type || "text",
+                x: obj.left || 0,
+                y: obj.top || 0,
+                width: obj.width || 0,
+                height: obj.height || 0,
+                page: currentPage,
+                assignedTo: null,
+              };
+              
+              setFields(prev => [...prev, newField]);
+            }
+          });
           
-          const obj = e.target;
-          const id = obj.data?.id;
-          
-          if (id) {
-            setFields(prev => 
-              prev.map(field => 
-                field.id === id 
-                  ? { 
-                      ...field, 
-                      x: obj.left || 0, 
-                      y: obj.top || 0,
-                      width: obj.width || 0,
-                      height: obj.height || 0,
-                      page: currentPage,
-                    } 
-                  : field
-              )
-            );
-          }
-        });
+          canvas.on("object:modified", (e) => {
+            if (!e.target) return;
+            
+            const obj = e.target;
+            const id = obj.data?.id;
+            
+            if (id) {
+              setFields(prev => 
+                prev.map(field => 
+                  field.id === id 
+                    ? { 
+                        ...field, 
+                        x: obj.left || 0, 
+                        y: obj.top || 0,
+                        width: obj.width || 0,
+                        height: obj.height || 0,
+                        page: currentPage,
+                      } 
+                    : field
+                )
+              );
+            }
+          });
+        } catch (error) {
+          console.error("Error initializing fabric canvas:", error);
+        }
       }
     }, 200);
     
@@ -158,71 +165,93 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
   }, []);
   
   const addSignatureField = () => {
-    if (!canvasRef.current) return;
+    console.log("Adding signature field...");
+    if (!canvasRef.current) {
+      console.error("Canvas reference not available");
+      toast.error("Cannot add field, please try again");
+      return;
+    }
     
-    const rect = new fabric.Rect({
-      left: 100,
-      top: 100,
-      width: 200,
-      height: 80,
-      fill: "rgba(200, 230, 255, 0.2)",
-      stroke: "#2563eb",
-      strokeWidth: 2,
-      rx: 5,
-      ry: 5,
-      data: { type: "signature" },
-    });
-    
-    // Add a label
-    const text = new fabric.Textbox("Signature", {
-      left: 100,
-      top: 70,
-      fontSize: 14,
-      fill: "#2563eb",
-      fontWeight: "bold",
-      selectable: false,
-      evented: false,
-    });
-    
-    canvasRef.current.add(rect);
-    canvasRef.current.add(text);
-    canvasRef.current.setActiveObject(rect);
-    
-    toast.success("Signature field added");
+    try {
+      const rect = new fabric.Rect({
+        left: 100,
+        top: 100,
+        width: 200,
+        height: 80,
+        fill: "rgba(200, 230, 255, 0.2)",
+        stroke: "#2563eb",
+        strokeWidth: 2,
+        rx: 5,
+        ry: 5,
+        data: { type: "signature" },
+      });
+      
+      // Add a label
+      const text = new fabric.Textbox("Signature", {
+        left: 100,
+        top: 70,
+        fontSize: 14,
+        fill: "#2563eb",
+        fontWeight: "bold",
+        selectable: false,
+        evented: false,
+      });
+      
+      canvasRef.current.add(rect);
+      canvasRef.current.add(text);
+      canvasRef.current.setActiveObject(rect);
+      canvasRef.current.renderAll();
+      
+      toast.success("Signature field added");
+    } catch (error) {
+      console.error("Error adding signature field:", error);
+      toast.error("Failed to add signature field");
+    }
   };
   
   const addTextField = () => {
-    if (!canvasRef.current) return;
+    console.log("Adding text field...");
+    if (!canvasRef.current) {
+      console.error("Canvas reference not available");
+      toast.error("Cannot add field, please try again");
+      return;
+    }
     
-    const rect = new fabric.Rect({
-      left: 100,
-      top: 200,
-      width: 300,
-      height: 40,
-      fill: "rgba(230, 255, 230, 0.2)",
-      stroke: "#16a34a",
-      strokeWidth: 2,
-      rx: 5,
-      ry: 5,
-      data: { type: "text" },
-    });
-    
-    // Add a label
-    const text = new fabric.Textbox("Text Field", {
-      left: 100,
-      top: 170,
-      fontSize: 14,
-      fill: "#16a34a",
-      fontWeight: "bold",
-      selectable: false,
-      evented: false,
-    });
-    
-    canvasRef.current.add(rect);
-    canvasRef.current.add(text);
-    canvasRef.current.setActiveObject(rect);
-    
-    toast.success("Text field added");
+    try {
+      const rect = new fabric.Rect({
+        left: 100,
+        top: 200,
+        width: 300,
+        height: 40,
+        fill: "rgba(230, 255, 230, 0.2)",
+        stroke: "#16a34a",
+        strokeWidth: 2,
+        rx: 5,
+        ry: 5,
+        data: { type: "text" },
+      });
+      
+      // Add a label
+      const text = new fabric.Textbox("Text Field", {
+        left: 100,
+        top: 170,
+        fontSize: 14,
+        fill: "#16a34a",
+        fontWeight: "bold",
+        selectable: false,
+        evented: false,
+      });
+      
+      canvasRef.current.add(rect);
+      canvasRef.current.add(text);
+      canvasRef.current.setActiveObject(rect);
+      canvasRef.current.renderAll();
+      
+      toast.success("Text field added");
+    } catch (error) {
+      console.error("Error adding text field:", error);
+      toast.error("Failed to add text field");
+    }
   };
 
   const handleDeleteField = (fieldId: string) => {
@@ -246,6 +275,8 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
       if (possibleLabel) {
         canvasRef.current.remove(possibleLabel);
       }
+      
+      canvasRef.current.renderAll();
     }
     
     // Remove from state
@@ -274,11 +305,11 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
       if (tool === "signature") {
         addSignatureField();
         // Reset to select after adding
-        setCurrentTool("select");
+        setTimeout(() => setCurrentTool("select"), 100);
       } else if (tool === "text") {
         addTextField();
         // Reset to select after adding
-        setCurrentTool("select");
+        setTimeout(() => setCurrentTool("select"), 100);
       }
     }
   };
