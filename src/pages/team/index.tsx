@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -11,10 +11,12 @@ import { useTeamMembers } from './hooks/useTeamMembers';
 import { TeamMember } from './types';
 import { TeamMembersFilter } from './components/TeamMembersFilter';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 export default function TeamPage() {
-  // Add auth context to ensure we're properly handling authentication
-  const { user } = useAuth();
+  // Use auth context to properly handle authentication
+  const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
   
   const { 
     teamMembers, 
@@ -26,6 +28,19 @@ export default function TeamPage() {
     deleteTeamMember,
     terminateTeamMember
   } = useTeamMembers();
+  
+  // Add effect to fetch team members when component mounts
+  useEffect(() => {
+    refetchTeamMembers().catch(error => {
+      console.error("Failed to fetch team members:", error);
+      toast({
+        title: "Error loading team data",
+        description: "There was a problem loading the team data. Please try again.",
+        variant: "destructive",
+      });
+    });
+  }, [refetchTeamMembers, toast]);
+
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
@@ -63,22 +78,37 @@ export default function TeamPage() {
     try {
       setIsUpdating(true);
       await refetchTeamMembers();
+    } catch (error) {
+      console.error("Error refetching team members:", error);
+      toast({
+        title: "Refresh failed",
+        description: "There was a problem refreshing the team data.",
+        variant: "destructive",
+      });
     } finally {
       setTimeout(() => {
         setIsUpdating(false);
       }, 1000); // Ensure UI has time to update
     }
-  }, [refetchTeamMembers]);
+  }, [refetchTeamMembers, toast]);
 
   // Handle update with proper typing and error handling
   const handleUpdateMember = async (id: string, data: Partial<TeamMember>) => {
     try {
       setIsUpdating(true);
-      console.log("Updating team member:", id, data);
       await updateTeamMember(id, data);
       await refetchTeamMembers(); // Await the refetch to ensure UI is updated
+      toast({
+        title: "Team member updated",
+        description: "The team member has been successfully updated.",
+      });
     } catch (error) {
       console.error('Error updating team member:', error);
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating this team member.",
+        variant: "destructive",
+      });
     } finally {
       setTimeout(() => {
         setIsUpdating(false);
@@ -92,8 +122,17 @@ export default function TeamPage() {
       setIsUpdating(true);
       await deleteTeamMember(id);
       await refetchTeamMembers(); // Await the refetch
+      toast({
+        title: "Team member deleted",
+        description: "The team member has been successfully removed.",
+      });
     } catch (error) {
       console.error('Error deleting team member:', error);
+      toast({
+        title: "Delete failed",
+        description: "There was a problem deleting this team member.",
+        variant: "destructive",
+      });
     } finally {
       setTimeout(() => {
         setIsUpdating(false);
@@ -107,8 +146,17 @@ export default function TeamPage() {
       setIsUpdating(true);
       await terminateTeamMember(id, endDate);
       await refetchTeamMembers(); // Await the refetch
+      toast({
+        title: "Employment terminated",
+        description: "The team member's employment has been terminated.",
+      });
     } catch (error) {
       console.error('Error terminating team member:', error);
+      toast({
+        title: "Termination failed",
+        description: "There was a problem terminating this team member's employment.",
+        variant: "destructive",
+      });
     } finally {
       setTimeout(() => {
         setIsUpdating(false);
@@ -119,10 +167,11 @@ export default function TeamPage() {
   const handleAddMemberSuccess = async () => {
     await safeRefetch();
     setAddDialogOpen(false);
+    toast({
+      title: "Team member added",
+      description: "The new team member has been successfully added.",
+    });
   };
-
-  // Check user authentication
-  console.log("Current authenticated user:", user);
 
   return (
     <SidebarProvider>

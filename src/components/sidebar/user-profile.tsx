@@ -36,16 +36,15 @@ export const UserProfileMenu: FC<UserProfileMenuProps> = ({ user, isMobile }) =>
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Always prioritize authenticated user data over props
-  const displayUser = authUser || user;
+  // IMPORTANT: Only use authUser if it has actual content (not just the default data)
+  // Check if authUser is the default "John Doe" data that's used as a placeholder
+  const isAuthUserValid = authUser && authUser.email !== "john@example.com";
   
-  // Check if we have actual user data and fall back only if necessary
-  const userName = displayUser?.name || user.name;
-  const userEmail = displayUser?.email || user.email;
-  const userAvatar = displayUser?.avatar || user.avatar;
+  // Only use authenticated user if it's valid, otherwise use props
+  const displayUser = isAuthUserValid ? authUser : user;
   
   // Create initials from name for avatar fallback
-  const initials = userName
+  const initials = displayUser.name
     .split(' ')
     .map(n => n[0])
     .join('')
@@ -79,14 +78,14 @@ export const UserProfileMenu: FC<UserProfileMenuProps> = ({ user, isMobile }) =>
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={userAvatar} alt={userName} />
+                <AvatarImage src={displayUser.avatar} alt={displayUser.name} />
                 <AvatarFallback className="rounded-lg">
                   {initials}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{userName}</span>
-                <span className="truncate text-xs text-muted-foreground">{userEmail}</span>
+                <span className="truncate font-semibold">{displayUser.name}</span>
+                <span className="truncate text-xs text-muted-foreground">{displayUser.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -100,14 +99,14 @@ export const UserProfileMenu: FC<UserProfileMenuProps> = ({ user, isMobile }) =>
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={userAvatar} alt={userName} />
+                  <AvatarImage src={displayUser.avatar} alt={displayUser.name} />
                   <AvatarFallback className="rounded-lg">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{userName}</span>
-                  <span className="truncate text-xs">{userEmail}</span>
+                  <span className="truncate font-semibold">{displayUser.name}</span>
+                  <span className="truncate text-xs">{displayUser.email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
