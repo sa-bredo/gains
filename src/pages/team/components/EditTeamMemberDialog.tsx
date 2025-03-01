@@ -104,7 +104,7 @@ export function EditTeamMemberDialog({
       
       await onUpdate(teamMember.id, updates);
       
-      // Only call onSuccess callback after the update is done
+      // Call onSuccess callback after the update is done
       await onSuccess();
       
       // Close dialog after everything is complete
@@ -123,12 +123,7 @@ export function EditTeamMemberDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(newOpen) => {
-      // If we're closing the dialog and not submitting, clean up
-      if (!newOpen && !isSubmitting) {
-        handleCloseDialog();
-      }
-    }}>
+    <Dialog open={open} onOpenChange={handleCloseDialog}>
       <DialogContent className="sm:max-w-[485px]">
         <DialogHeader>
           <DialogTitle>Edit Team Member</DialogTitle>

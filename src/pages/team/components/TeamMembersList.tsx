@@ -92,10 +92,37 @@ export function TeamMembersList({
     try {
       await refetchTeamMembers();
     } finally {
-      // Add a short delay to prevent rapid button clicks
       setTimeout(() => {
         setIsProcessing(false);
-      }, 300);
+      }, 500); // Increase the delay to 500ms to ensure UI has time to update
+    }
+  };
+
+  // Handle dialog closures
+  const handleEditDialogOpenChange = (open: boolean) => {
+    if (!isProcessing) {
+      setEditDialogOpen(open);
+      if (!open) {
+        setTimeout(() => setSelectedMember(null), 300);
+      }
+    }
+  };
+
+  const handleDeleteDialogOpenChange = (open: boolean) => {
+    if (!isProcessing) {
+      setDeleteDialogOpen(open);
+      if (!open) {
+        setTimeout(() => setSelectedMember(null), 300);
+      }
+    }
+  };
+
+  const handleTerminateDialogOpenChange = (open: boolean) => {
+    if (!isProcessing) {
+      setTerminateDialogOpen(open);
+      if (!open) {
+        setTimeout(() => setSelectedMember(null), 300);
+      }
     }
   };
 
@@ -250,7 +277,7 @@ export function TeamMembersList({
           <EditTeamMemberDialog
             teamMember={selectedMember}
             open={editDialogOpen}
-            onOpenChange={setEditDialogOpen}
+            onOpenChange={handleEditDialogOpenChange}
             onUpdate={onUpdate}
             onSuccess={handleRefetchWithDebounce}
           />
@@ -258,7 +285,7 @@ export function TeamMembersList({
           <DeleteTeamMemberDialog
             teamMember={selectedMember}
             open={deleteDialogOpen}
-            onOpenChange={setDeleteDialogOpen}
+            onOpenChange={handleDeleteDialogOpenChange}
             onDelete={onDelete}
             onSuccess={handleRefetchWithDebounce}
           />
@@ -266,7 +293,7 @@ export function TeamMembersList({
           <TerminateEmployeeDialog
             teamMember={selectedMember}
             open={terminateDialogOpen}
-            onOpenChange={setTerminateDialogOpen}
+            onOpenChange={handleTerminateDialogOpenChange}
             onTerminate={onTerminate}
             onSuccess={handleRefetchWithDebounce}
           />
