@@ -1,163 +1,141 @@
-
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React, { useState, useCallback } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { TeamMember } from '../types';
 import { TeamMemberAvatar } from './TeamMemberAvatar';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/components/ui/use-toast';
+import { useSupabaseClient } from '@/integrations/supabase/useSupabaseClient';
 
 interface AvatarUploadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   teamMember: TeamMember;
-  onSuccess: () => void;
+  onAvatarUpdate: (avatarUrl: string) => Promise<void>;
 }
 
-export function AvatarUploadDialog({ 
-  open, 
-  onOpenChange, 
+export const AvatarUploadDialog: React.FC<AvatarUploadDialogProps> = ({
+  open,
+  onOpenChange,
   teamMember,
-  onSuccess
-}: AvatarUploadDialogProps) {
-  const [isUploading, setIsUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  onAvatarUpdate,
+}) => {
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(teamMember.avatar_url || null);
+  const [uploading, setUploading] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const { toast } = useToast();
+  const supabase = useSupabaseClient();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setSelectedFile(file);
-      
-      // Create preview URL
-      const fileReader = new FileReader();
-      fileReader.onload = () => {
-        setPreviewUrl(fileReader.result as string);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+
+    if (selectedFile) {
+      setFile(selectedFile);
+      setPreviewLoading(true);
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
+        setPreviewLoading(false);
       };
-      fileReader.readAsDataURL(file);
+      reader.readAsDataURL(selectedFile);
     }
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) {
+    if (!file) {
       toast({
-        variant: "destructive",
-        title: "No file selected",
-        description: "Please select an image to upload",
+        title: 'No file selected',
+        description: 'Please select a file to upload.',
+        variant: 'destructive',
       });
       return;
     }
 
-    try {
-      setIsUploading(true);
+    setUploading(true);
 
-      // Upload directly to Supabase Storage
-      const fileName = `${teamMember.id}_${Date.now()}.${selectedFile.name.split('.').pop()}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${teamMember.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      const { error } = await supabase.storage
         .from('avatars')
-        .upload(fileName, selectedFile, {
+        .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: true
+          upsert: false,
         });
-      
-      if (uploadError) throw uploadError;
-      
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-      
-      // Update the team member record with the avatar URL
-      const { error: updateError } = await supabase
-        .from('employees')
-        .update({ avatar_url: publicUrl })
-        .eq('id', teamMember.id);
-      
-      if (updateError) throw updateError;
-      
+
+      if (error) {
+        throw error;
+      }
+
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      const publicURL = data.publicUrl;
+
+      await onAvatarUpdate(publicURL);
+
       toast({
-        title: "Avatar uploaded",
-        description: "The team member's avatar has been updated.",
+        title: 'Upload successful',
+        description: 'Your profile picture has been updated.',
       });
-      
-      onSuccess();
       onOpenChange(false);
-    } catch (error) {
-      console.error('Error uploading avatar:', error);
+      setFile(null);
+      setPreview(publicURL);
+    } catch (error: any) {
       toast({
-        variant: "destructive",
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        title: 'Upload failed',
+        description: error.message || 'An error occurred while uploading.',
+        variant: 'destructive',
       });
     } finally {
-      setIsUploading(false);
-      setSelectedFile(null);
-      setPreviewUrl(null);
+      setUploading(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Upload Profile Picture</DialogTitle>
           <DialogDescription>
             Upload a profile picture for {teamMember.first_name} {teamMember.last_name}.
           </DialogDescription>
         </DialogHeader>
-        
-        <div className="flex flex-col items-center space-y-4 py-4">
-          <div className="mb-2">
-            {previewUrl ? (
-              <div className="h-24 w-24 rounded-full overflow-hidden">
-                <img 
-                  src={previewUrl} 
-                  alt="Preview" 
-                  className="h-full w-full object-cover"
-                />
-              </div>
+        <div className="flex flex-col items-center space-y-4">
+          <div className="flex flex-col items-center">
+            {previewLoading ? (
+              <Skeleton className="h-24 w-24 rounded-full" />
             ) : (
               <TeamMemberAvatar 
-                firstName={teamMember.first_name} 
+                name={`${teamMember.first_name} ${teamMember.last_name}`}
+                src={preview || teamMember.avatar_url} 
+                size="lg"
+                firstName={teamMember.first_name}
                 lastName={teamMember.last_name}
                 avatarUrl={teamMember.avatar_url}
-                size="lg"
               />
             )}
           </div>
           
-          <div className="grid w-full items-center gap-1.5">
-            <Label htmlFor="avatar">Profile Picture</Label>
-            <Input 
-              id="avatar" 
-              type="file" 
-              accept="image/*"
-              onChange={handleFileChange}
-              disabled={isUploading}
-            />
+          <div className="space-y-2 w-full">
+            <Label htmlFor="picture">Upload a picture</Label>
+            <Input id="picture" type="file" onChange={handleFileChange} />
           </div>
+          <Button disabled={uploading} onClick={handleUpload}>
+            {uploading ? 'Uploading...' : 'Upload'}
+          </Button>
         </div>
-        
-        <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={() => onOpenChange(false)}
-            disabled={isUploading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleUpload}
-            disabled={!selectedFile || isUploading}
-          >
-            {isUploading ? "Uploading..." : "Upload"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-}
+};

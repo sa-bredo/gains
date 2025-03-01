@@ -152,7 +152,7 @@ export const TeamMembersList = ({
             onOpenChange={setEditDialogOpen} 
             teamMember={selectedMember}
             onUpdate={(data) => {
-              onUpdate(selectedMember.id, data);
+              onUpdate(selectedMember.id, data as Partial<TeamMember>);
               return Promise.resolve(selectedMember);
             }}
             onSuccess={refetchTeamMembers}
