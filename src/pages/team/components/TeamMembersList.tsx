@@ -1,10 +1,8 @@
 
 import React, { useState } from 'react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, UserPlus, MoreHorizontal } from 'lucide-react';
 import { TeamMember, formatDate } from '../types';
-import { Separator } from '@/components/ui/separator';
 import { TeamMemberAvatar } from './TeamMemberAvatar';
 import { EditTeamMemberDialog } from './EditTeamMemberDialog';
 import { DeleteTeamMemberDialog } from './DeleteTeamMemberDialog';
@@ -23,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Card } from '@/components/ui/card';
 
 interface TeamMembersListProps {
   teamMembers: TeamMember[];
@@ -64,17 +63,9 @@ export const TeamMembersList = ({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="p-4 animate-pulse">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-muted"></div>
-              <div className="flex-1 space-y-2">
-                <div className="h-4 bg-muted rounded w-1/4"></div>
-                <div className="h-3 bg-muted rounded w-1/3"></div>
-              </div>
-            </div>
-          </Card>
-        ))}
+        <Card className="p-4 animate-pulse">
+          <div className="h-10 bg-muted rounded w-full"></div>
+        </Card>
       </div>
     );
   }
@@ -92,56 +83,54 @@ export const TeamMembersList = ({
   }
 
   return (
-    <div className="space-y-4">
-      {teamMembers.map((member) => (
-        <Card key={member.id} className="p-6">
-          <div className="flex flex-col md:flex-row gap-6">
-            <div className="flex-shrink-0">
-              <TeamMemberAvatar
-                src={member.avatar_url}
-                name={`${member.first_name} ${member.last_name}`}
-                size="lg"
-              />
-            </div>
-
-            <div className="flex-1 space-y-4">
-              <div>
-                <h3 className="text-xl font-semibold flex items-center gap-2">
-                  {member.first_name} {member.last_name}
-                  {member.isTerminated && (
-                    <span className="text-sm font-normal text-destructive bg-destructive/10 px-2 py-0.5 rounded">
-                      Ended {member.end_job_date && formatDate(member.end_job_date)}
-                    </span>
+    <Card>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[250px]">Employee</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Phone</TableHead>
+            <TableHead className="w-[80px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {teamMembers.map((member) => (
+            <TableRow key={member.id}>
+              <TableCell className="flex items-center gap-3">
+                <TeamMemberAvatar
+                  src={member.avatar_url}
+                  name={`${member.first_name} ${member.last_name}`}
+                  size="md"
+                />
+                <div>
+                  <div className="font-medium">
+                    {member.first_name} {member.last_name}
+                  </div>
+                  {member.end_job_date && !member.isTerminated && (
+                    <div className="text-sm bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full inline-block">
+                      Notice Period
+                    </div>
                   )}
-                </h3>
-                <p className="text-muted-foreground">{member.role}</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Contact Information</h4>
-                  <p className="text-sm">{member.email}</p>
-                  {member.phone && <p className="text-sm">{member.phone}</p>}
+                  {member.isTerminated && (
+                    <div className="text-sm text-destructive bg-destructive/10 px-2 py-0.5 rounded-full inline-block">
+                      Ended {formatDate(member.end_job_date || '')}
+                    </div>
+                  )}
                 </div>
-
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Employment Details</h4>
-                  <p className="text-sm">Started: {formatDate(member.start_job_date)}</p>
-                  {member.isTerminated ? (
-                    <p className="text-sm text-destructive">Ended: {formatDate(member.end_job_date || '')}</p>
-                  ) : member.end_job_date ? (
-                    <p className="text-sm">Notice Period until: {formatDate(member.end_job_date)}</p>
-                  ) : null}
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-end gap-2">
-                {!member.isTerminated && (
+              </TableCell>
+              <TableCell>{member.email}</TableCell>
+              <TableCell>
+                <span className={`inline-block px-2 py-1 rounded-full ${member.role.toLowerCase() === 'admin' ? 'bg-black text-white' : 'bg-muted'}`}>
+                  {member.role}
+                </span>
+              </TableCell>
+              <TableCell>{member.phone}</TableCell>
+              <TableCell>
+                {!member.isTerminated ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
+                      <Button variant="ghost" size="icon">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -162,22 +151,20 @@ export const TeamMembersList = ({
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                )}
-                {member.isTerminated && (
+                ) : (
                   <Button 
-                    variant="destructive" 
-                    size="sm" 
+                    variant="ghost" 
+                    size="icon"
                     onClick={() => handleDelete(member)}
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
+                    <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 )}
-              </div>
-            </div>
-          </div>
-        </Card>
-      ))}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
 
       {selectedMember && (
         <>
@@ -212,6 +199,6 @@ export const TeamMembersList = ({
           />
         </>
       )}
-    </div>
+    </Card>
   );
 };
