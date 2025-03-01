@@ -28,9 +28,17 @@ export interface PDFEditorProps {
   onFieldsAdded: (field: Field) => void;
   onUpdateField: (updatedField: Field) => void;
   onDeleteField: (fieldId: string) => void;
+  onContinue?: () => void;
 }
 
-const PDFEditor = ({ file, initialFields, onFieldsAdded, onUpdateField, onDeleteField }: PDFEditorProps) => {
+const PDFEditor = ({ 
+  file, 
+  initialFields, 
+  onFieldsAdded, 
+  onUpdateField, 
+  onDeleteField,
+  onContinue 
+}: PDFEditorProps) => {
   const pdfContainerRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<any>(null);
   const layerRef = useRef<any>(null);
@@ -140,7 +148,11 @@ const PDFEditor = ({ file, initialFields, onFieldsAdded, onUpdateField, onDelete
       return;
     }
     
-    toast.success(`${fields.length} fields added to document`);
+    if (onContinue) {
+      onContinue();
+    } else {
+      toast.success(`${fields.length} fields added to document`);
+    }
   };
   
   const handleSelectShape = (id: string) => {
