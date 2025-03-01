@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
-import { Signature, Type, Users, Trash2 } from "lucide-react";
+import { Signature, Type, Users, Trash2 } from 'lucide-react';
 import PDFViewer from "./PDFViewer";
 import { Stage, Layer, Rect, Text, Transformer, Group } from "react-konva";
 
@@ -287,14 +287,13 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
               onPageChange={handlePageChange}
             />
             <div 
-              className="absolute top-0 left-0 w-full h-full"
-              style={{ pointerEvents: "none" }}
+              className="absolute top-0 left-0 w-full h-full pointer-events-auto"
+              style={{ zIndex: 10 }}
             >
               <Stage 
                 width={stageSize.width} 
                 height={stageSize.height}
                 ref={stageRef}
-                style={{ pointerEvents: "auto" }}
               >
                 <Layer ref={layerRef}>
                   {renderKonvaFields()}
