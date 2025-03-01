@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
@@ -5,11 +6,6 @@ import { toast } from "sonner";
 import { Signature, Type, Users, Trash2 } from 'lucide-react';
 import PDFViewer from "./PDFViewer";
 import { Stage, Layer, Rect, Text, Transformer, Group } from "react-konva";
-
-interface PDFEditorProps {
-  file: File;
-  onFieldsAdded: (fields: any[]) => void;
-}
 
 export interface Field {
   id: string;
@@ -27,13 +23,21 @@ export interface Field {
   assignedToAvatar?: string | null;
 }
 
-const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
+export interface PDFEditorProps {
+  file: File;
+  initialFields: Field[];
+  onFieldsAdded: (fields: Field[]) => void;
+  onUpdateField: (updatedField: Field) => void;
+  onDeleteField: (fieldId: string) => void;
+}
+
+const PDFEditor = ({ file, initialFields, onFieldsAdded, onUpdateField, onDeleteField }: PDFEditorProps) => {
   const pdfContainerRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<any>(null);
   const layerRef = useRef<any>(null);
   const transformerRef = useRef<any>(null);
   
-  const [fields, setFields] = useState<Field[]>([]);
+  const [fields, setFields] = useState<Field[]>(initialFields || []);
   const [currentTool, setCurrentTool] = useState<"select" | "signature" | "text">("select");
   const [currentPage, setCurrentPage] = useState(1);
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });

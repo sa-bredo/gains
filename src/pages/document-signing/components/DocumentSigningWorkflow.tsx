@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Json } from '@/integrations/supabase/types';
 
 const STEPS = [
   { id: "upload", icon: FileUp, label: "Upload PDF" },
@@ -99,9 +100,9 @@ const DocumentSigningWorkflow = () => {
       <CardContent className="pt-6">
         {file && (
           <PDFEditor 
-            pdfFile={file}
+            file={file}
             initialFields={fields}
-            onAddField={handleAddField}
+            onFieldsAdded={handleAddField}
             onUpdateField={handleUpdateField}
             onDeleteField={handleDeleteField}
           />
