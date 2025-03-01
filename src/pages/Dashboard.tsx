@@ -1,10 +1,11 @@
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Brain, Heart, Activity, ActivitySquare, Eye, ScrollText, Users, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
+
 export default function Dashboard() {
   const fadeIn = {
     hidden: {
