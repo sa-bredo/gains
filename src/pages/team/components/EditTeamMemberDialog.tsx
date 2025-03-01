@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -30,7 +29,7 @@ interface EditTeamMemberDialogProps {
   teamMember: TeamMember;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdate: (id: string, updates: Partial<TeamMemberFormValues>) => Promise<TeamMember>;
+  onUpdate: (id: string, updates: Partial<TeamMemberFormValues>) => Promise<void>;
   onSuccess: () => void;
 }
 
@@ -68,7 +67,6 @@ export function EditTeamMemberDialog({
     },
   });
 
-  // Update form values when teamMember changes
   React.useEffect(() => {
     form.reset({
       first_name: teamMember.first_name,
@@ -149,7 +147,6 @@ export function EditTeamMemberDialog({
               )}
             />
             
-            {/* Role and Hourly Rate row */}
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}

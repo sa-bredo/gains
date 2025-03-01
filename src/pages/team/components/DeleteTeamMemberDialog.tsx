@@ -16,7 +16,8 @@ interface DeleteTeamMemberDialogProps {
   teamMember: TeamMember;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onDelete: (id: string) => Promise<boolean>;
+  // Update the return type to match the handler in TeamPage
+  onDelete: (id: string) => Promise<void>;
   onSuccess: () => void;
 }
 
