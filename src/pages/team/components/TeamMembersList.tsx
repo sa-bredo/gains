@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -150,7 +151,10 @@ export const TeamMembersList = ({
             open={editDialogOpen} 
             onOpenChange={setEditDialogOpen} 
             teamMember={selectedMember}
-            onUpdate={(data) => onUpdate(selectedMember.id, data)}
+            onUpdate={(data) => {
+              onUpdate(selectedMember.id, data);
+              return Promise.resolve(selectedMember);
+            }}
             onSuccess={refetchTeamMembers}
           />
           
@@ -158,7 +162,10 @@ export const TeamMembersList = ({
             open={deleteDialogOpen}
             onOpenChange={setDeleteDialogOpen}
             teamMember={selectedMember}
-            onDelete={() => onDelete(selectedMember.id)}
+            onDelete={() => {
+              onDelete(selectedMember.id);
+              return Promise.resolve(true);
+            }}
             onSuccess={refetchTeamMembers}
           />
           

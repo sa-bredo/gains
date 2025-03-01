@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -7,6 +6,11 @@ type AuthContextType = {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  user?: {
+    name: string;
+    email: string;
+    avatar: string | null;
+  };
 };
 
 // Create the context with a default value
@@ -15,6 +19,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Provider component that wraps our app and makes auth available to any child component
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<AuthContextType['user']>({
+    name: "John Doe",
+    email: "john@example.com",
+    avatar: null
+  });
   
   // Check if user was previously logged in and synchronize with Supabase
   useEffect(() => {
@@ -34,6 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log("Active Supabase session found");
           setIsAuthenticated(true);
           localStorage.setItem("isAuthenticated", "true");
+          setUser({
+            name: data.session.user.user_metadata.name || "John Doe",
+            email: data.session.user.email || "john@example.com",
+            avatar: data.session.user.user_metadata.avatar_url || null
+          });
           return;
         }
         
@@ -60,6 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               console.log("Successfully signed in with stored credentials");
               setIsAuthenticated(true);
               localStorage.setItem("isAuthenticated", "true");
+              setUser({
+                name: data.session.user.user_metadata.name || "John Doe",
+                email: data.session.user.email || "john@example.com",
+                avatar: data.session.user.user_metadata.avatar_url || null
+              });
               return;
             }
           } catch (error) {
@@ -95,6 +114,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session) {
         setIsAuthenticated(true);
         localStorage.setItem("isAuthenticated", "true");
+        setUser({
+          name: session.user.user_metadata.name || "John Doe",
+          email: session.user.email || "john@example.com",
+          avatar: session.user.user_metadata.avatar_url || null
+        });
       } else if (event === 'SIGNED_OUT') {
         setIsAuthenticated(false);
         localStorage.removeItem("isAuthenticated");
@@ -134,6 +158,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem("userEmail", email);
           localStorage.setItem("userPassword", password);
           localStorage.setItem("authTimestamp", Date.now().toString());
+          setUser({
+            name: data.session.user.user_metadata.name || "John Doe",
+            email: data.session.user.email || "john@example.com",
+            avatar: data.session.user.user_metadata.avatar_url || null
+          });
           return { success: true };
         }
       } catch (error) {
@@ -146,6 +175,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAuthenticated(true);
         localStorage.setItem("isAuthenticated", "true");
         localStorage.setItem("authTimestamp", Date.now().toString());
+        setUser({
+          name: "John Doe",
+          email: "john@example.com",
+          avatar: null
+        });
         return { success: true };
       } else {
         const errorMsg = "Invalid credentials";
@@ -179,7 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, logout, user }}>
       {children}
     </AuthContext.Provider>
   );
