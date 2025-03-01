@@ -1,7 +1,9 @@
 
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Explore from './pages/Explore';
@@ -17,25 +19,49 @@ import TeamPage from './pages/team';
 
 function App() {
   return (
-    <div>
+    <AuthProvider>
       <Router>
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/home" element={<Home />} />
+          <Route path="/index" element={<Index />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/about" element={<About />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/table-example" element={<TableExample />} />
-          <Route path="/employees" element={<EmployeesPage />} />
-          <Route path="/financials/transactions" element={<TransactionsPage />} />
-          <Route path="/financials/transactions-gocardless" element={<TransactionsGoCardlessPage />} />
-          <Route path="/team" element={<TeamPage />} />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/table-example" element={
+            <ProtectedRoute>
+              <TableExample />
+            </ProtectedRoute>
+          } />
+          <Route path="/employees" element={
+            <ProtectedRoute>
+              <EmployeesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/financials/transactions" element={
+            <ProtectedRoute>
+              <TransactionsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/financials/transactions-gocardless" element={
+            <ProtectedRoute>
+              <TransactionsGoCardlessPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/team" element={
+            <ProtectedRoute>
+              <TeamPage />
+            </ProtectedRoute>
+          } />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
       <Toaster position="top-right" richColors />
-    </div>
+    </AuthProvider>
   );
 }
 
