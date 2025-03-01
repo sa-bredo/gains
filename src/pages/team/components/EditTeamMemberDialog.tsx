@@ -23,6 +23,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { TeamMember, TeamMemberFormValues, ROLE_OPTIONS } from '../types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DateOfBirthField } from './form-fields/DateOfBirthField';
+import { HourlyRateField } from './form-fields/HourlyRateField';
 
 interface EditTeamMemberDialogProps {
   teamMember: TeamMember;
@@ -39,6 +41,7 @@ const formSchema = z.object({
   role: z.string().min(1, 'Role is required'),
   mobile_number: z.string().optional(),
   address: z.string().optional(),
+  date_of_birth: z.string().optional(),
   hourly_rate: z.coerce.number().optional(),
 });
 
@@ -60,6 +63,7 @@ export function EditTeamMemberDialog({
       role: teamMember.role,
       mobile_number: teamMember.mobile_number || '',
       address: teamMember.address || '',
+      date_of_birth: teamMember.date_of_birth || '',
       hourly_rate: teamMember.hourly_rate,
     },
   });
@@ -73,6 +77,7 @@ export function EditTeamMemberDialog({
       role: teamMember.role,
       mobile_number: teamMember.mobile_number || '',
       address: teamMember.address || '',
+      date_of_birth: teamMember.date_of_birth || '',
       hourly_rate: teamMember.hourly_rate,
     });
   }, [teamMember, form]);
@@ -201,24 +206,9 @@ export function EditTeamMemberDialog({
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="hourly_rate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Hourly Rate</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      step="0.01"
-                      {...field} 
-                      value={field.value || ''} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <DateOfBirthField form={form} />
+            
+            <HourlyRateField form={form} />
             
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

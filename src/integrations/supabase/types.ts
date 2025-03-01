@@ -520,6 +520,10 @@ export type Database = {
         }
         Returns: string
       }
+      get_user_auth_data: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       employee_role: "Front Of House" | "Manager" | "Admin"
