@@ -1,6 +1,6 @@
 
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { motion } from "framer-motion";
 import { columns } from "./table-example/components/columns";

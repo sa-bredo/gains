@@ -1,5 +1,7 @@
 
+import { useIsMobile } from "@/hooks/use-mobile";
+
 export function useSidebar() {
-  const isMobile = window.innerWidth < 768;
+  const isMobile = useIsMobile();
   return { isMobile };
 }
