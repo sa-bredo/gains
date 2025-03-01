@@ -30,10 +30,12 @@ export default function TeamPage() {
   const currentDate = new Date().toISOString().split('T')[0];
 
   // Update the team members data to add a derived isTerminated property
-  const processedTeamMembers = teamMembers.map(member => ({
-    ...member,
-    isTerminated: member.end_job_date && member.end_job_date <= currentDate
-  }));
+  const processedTeamMembers = useMemo(() => {
+    return teamMembers.map(member => ({
+      ...member,
+      isTerminated: member.end_job_date && member.end_job_date <= currentDate
+    }));
+  }, [teamMembers, currentDate]);
 
   // Filter team members based on search and role filter
   const filteredTeamMembers = useMemo(() => {
@@ -51,29 +53,32 @@ export default function TeamPage() {
     });
   }, [processedTeamMembers, searchQuery, selectedRoles]);
 
-  // Create wrapped handlers that return void instead of the actual return values
-  const handleUpdateMember = async (id: string, data: Partial<TeamMember>): Promise<void> => {
+  // Handle update with proper typing and error handling
+  const handleUpdateMember = async (id: string, data: Partial<TeamMember>) => {
     try {
+      console.log("Updating team member:", id, data);
       await updateTeamMember(id, data);
-      refetchTeamMembers(); // Refetch after update to ensure UI is in sync
+      await refetchTeamMembers(); // Await the refetch to ensure UI is updated
     } catch (error) {
       console.error('Error updating team member:', error);
     }
   };
 
-  const handleDeleteMember = async (id: string): Promise<void> => {
+  // Handle delete with proper typing and error handling
+  const handleDeleteMember = async (id: string) => {
     try {
       await deleteTeamMember(id);
-      refetchTeamMembers(); // Refetch after delete
+      await refetchTeamMembers(); // Await the refetch
     } catch (error) {
       console.error('Error deleting team member:', error);
     }
   };
 
-  const handleTerminateMember = async (id: string, endDate: string): Promise<void> => {
+  // Handle terminate with proper typing and error handling
+  const handleTerminateMember = async (id: string, endDate: string) => {
     try {
       await terminateTeamMember(id, endDate);
-      refetchTeamMembers(); // Refetch after termination
+      await refetchTeamMembers(); // Await the refetch
     } catch (error) {
       console.error('Error terminating team member:', error);
     }

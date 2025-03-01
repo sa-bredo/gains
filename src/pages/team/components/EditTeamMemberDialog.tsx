@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -29,7 +30,7 @@ interface EditTeamMemberDialogProps {
   teamMember: TeamMember;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdate: (id: string, updates: Partial<TeamMemberFormValues>) => Promise<void>;
+  onUpdate: (id: string, updates: Partial<TeamMember>) => Promise<void>;
   onSuccess: () => void;
 }
 
@@ -53,6 +54,7 @@ export function EditTeamMemberDialog({
 }: EditTeamMemberDialogProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   
+  // Create the form with proper default values
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -67,24 +69,45 @@ export function EditTeamMemberDialog({
     },
   });
 
+  // Reset form when team member changes or dialog opens
   React.useEffect(() => {
-    form.reset({
-      first_name: teamMember.first_name,
-      last_name: teamMember.last_name,
-      email: teamMember.email,
-      role: teamMember.role,
-      mobile_number: teamMember.mobile_number || '',
-      address: teamMember.address || '',
-      date_of_birth: teamMember.date_of_birth || '',
-      hourly_rate: teamMember.hourly_rate || undefined,
-    });
-  }, [teamMember, form]);
+    if (open) {
+      form.reset({
+        first_name: teamMember.first_name,
+        last_name: teamMember.last_name,
+        email: teamMember.email,
+        role: teamMember.role,
+        mobile_number: teamMember.mobile_number || '',
+        address: teamMember.address || '',
+        date_of_birth: teamMember.date_of_birth || '',
+        hourly_rate: teamMember.hourly_rate || undefined,
+      });
+    }
+  }, [teamMember, open, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsSubmitting(true);
-      await onUpdate(teamMember.id, values);
+      console.log("Submitting update for member:", teamMember.id, values);
+      
+      // Make sure all fields are properly typed
+      const updates: Partial<TeamMember> = {
+        first_name: values.first_name,
+        last_name: values.last_name,
+        email: values.email,
+        role: values.role,
+        mobile_number: values.mobile_number || null,
+        address: values.address || null,
+        date_of_birth: values.date_of_birth || null,
+        hourly_rate: values.hourly_rate || null,
+      };
+      
+      await onUpdate(teamMember.id, updates);
+      
+      // Only close dialog after successful update
       onOpenChange(false);
+      
+      // Call onSuccess callback after everything is done
       onSuccess();
     } catch (error) {
       console.error('Error updating team member:', error);
@@ -94,7 +117,13 @@ export function EditTeamMemberDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      // If we're closing the dialog and not submitting, clean up
+      if (!newOpen && !isSubmitting) {
+        setTimeout(() => form.reset(), 100);
+      }
+      onOpenChange(newOpen);
+    }}>
       <DialogContent className="sm:max-w-[485px]">
         <DialogHeader>
           <DialogTitle>Edit Team Member</DialogTitle>
@@ -211,7 +240,12 @@ export function EditTeamMemberDialog({
             <DateOfBirthField form={form} />
             
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
