@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Select,
   SelectContent,
@@ -22,7 +22,18 @@ const AssignFieldsForm = ({ fields, onAssignmentComplete }: AssignFieldsFormProp
   const [assignedFields, setAssignedFields] = useState<Field[]>(fields);
   const { employees, isLoading, error } = useEmployees();
 
+  // Update assignedFields when fields prop changes
+  useEffect(() => {
+    setAssignedFields(fields);
+  }, [fields]);
+  
+  console.log('AssignFieldsForm - Employees:', employees);
+  console.log('AssignFieldsForm - Fields:', fields);
+  console.log('AssignFieldsForm - AssignedFields:', assignedFields);
+
   const handleAssigneeChange = (fieldId: string, employeeId: string) => {
+    console.log('Assigning field', fieldId, 'to employee', employeeId);
+    
     setAssignedFields(prev => 
       prev.map(field => 
         field.id === fieldId 
@@ -45,6 +56,7 @@ const AssignFieldsForm = ({ fields, onAssignmentComplete }: AssignFieldsFormProp
       return;
     }
     
+    console.log('Submitting assigned fields:', assignedFields);
     onAssignmentComplete(assignedFields);
   };
 
@@ -100,11 +112,15 @@ const AssignFieldsForm = ({ fields, onAssignmentComplete }: AssignFieldsFormProp
                     <SelectValue placeholder="Select assignee" />
                   </SelectTrigger>
                   <SelectContent>
-                    {employees.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {employee.first_name} {employee.last_name}
-                      </SelectItem>
-                    ))}
+                    {employees.length > 0 ? (
+                      employees.map((employee) => (
+                        <SelectItem key={employee.id} value={employee.id}>
+                          {employee.first_name} {employee.last_name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="" disabled>No employees available</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </li>

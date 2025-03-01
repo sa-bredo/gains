@@ -30,6 +30,7 @@ export function useEmployees() {
       if (error) throw new Error(error.message);
       
       setEmployees(data || []);
+      console.log('Fetched employees:', data);
     } catch (err) {
       console.error('Error fetching employees:', err);
       setError(err instanceof Error ? err : new Error('Unknown error occurred'));
