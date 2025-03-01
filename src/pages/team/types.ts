@@ -4,40 +4,32 @@ export interface TeamMember {
   first_name: string;
   last_name: string;
   email: string;
+  phone?: string;
   role: string;
-  mobile_number?: string;
-  address?: string;
-  date_of_birth?: string;
-  hourly_rate?: number;
-  auth_id?: string;
-  created_at?: string;
+  start_job_date: string;
+  end_job_date?: string | null;
+  hourly_rate?: number | null;
+  avatar_url?: string | null;
+  date_of_birth?: string | null;
+  created_at: string;
   invited?: boolean;
-  avatar_url?: string;
-  start_job_date?: string;
-  end_job_date?: string;
-  contract_signed?: boolean;
-  contract_url?: string;
-  insurance_url?: string;
+  isTerminated?: boolean;
 }
 
 export interface TeamMemberFormValues {
   first_name: string;
   last_name: string;
   email: string;
+  phone?: string;
   role: string;
-  mobile_number?: string;
-  address?: string;
-  date_of_birth?: string;
+  start_job_date: string;
+  end_job_date?: string;
   hourly_rate?: number;
+  date_of_birth?: string;
 }
 
-export type RoleOption = {
-  value: string;
-  label: string;
-};
-
-export const ROLE_OPTIONS: RoleOption[] = [
-  { value: "Admin", label: "Admin" },
-  { value: "Manager", label: "Manager" },
-  { value: "Front Of House", label: "Front Of House" }
-];
+export interface ApiError {
+  message: string;
+  status?: number;
+  details?: any;
+}

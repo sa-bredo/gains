@@ -1,3 +1,4 @@
+
 import {
   Heart,
   Brain,
@@ -13,7 +14,8 @@ import {
   BarChart,
   Briefcase,
   ListCheck,
-  BanknoteIcon
+  BanknoteIcon,
+  FileSignature
 } from "lucide-react";
 import { NavItem } from "./types";
 
@@ -142,6 +144,17 @@ export const navMain: NavItem[] = [
       {
         title: "Management",
         url: "/operations/management",
+      },
+    ],
+  },
+  {
+    title: "Documents",
+    url: "/document-signing",
+    icon: FileSignature,
+    items: [
+      {
+        title: "Sign Documents",
+        url: "/document-signing",
       },
     ],
   },
