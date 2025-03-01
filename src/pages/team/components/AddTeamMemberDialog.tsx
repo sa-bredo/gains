@@ -109,9 +109,14 @@ export function AddTeamMemberDialog({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <BasicInfoFields form={form} />
             <ContactInfoFields form={form} />
-            <RoleField form={form} />
+            
+            {/* Role and Hourly Rate row */}
+            <div className="grid grid-cols-2 gap-4">
+              <RoleField form={form} />
+              <HourlyRateField form={form} />
+            </div>
+            
             <DateOfBirthField form={form} />
-            <HourlyRateField form={form} />
             
             <DialogFooter>
               <Button 
