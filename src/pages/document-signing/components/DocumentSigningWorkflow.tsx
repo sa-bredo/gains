@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload, FileText, Edit3, Users, PenTool, Save } from 'lucide-react';
 import UploadPDF from './UploadPDF';
 import PDFEditor from './PDFEditor';
+import PDFViewer from './PDFViewer';
 import { toast } from "sonner";
 
 const STEPS = [
