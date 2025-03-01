@@ -8,6 +8,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Eye, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import ViewContract from './ViewContract';
 
 const StatusBadge = ({ status }: { status: string }) => {
   const getStatusConfig = (status: string) => {
@@ -36,6 +37,7 @@ const StatusBadge = ({ status }: { status: string }) => {
 const SentContractsList = () => {
   const [sentContracts, setSentContracts] = useState<DocumentInstance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
 
   const fetchSentContracts = async () => {
     setLoading(true);
@@ -65,9 +67,16 @@ const SentContractsList = () => {
   }, []);
 
   const viewContract = (id: string) => {
-    // This will be implemented in the future to view the contract
-    toast.info('View contract functionality will be implemented soon');
+    setSelectedContractId(id);
   };
+
+  const handleBackToList = () => {
+    setSelectedContractId(null);
+  };
+
+  if (selectedContractId) {
+    return <ViewContract contractId={selectedContractId} onBack={handleBackToList} />;
+  }
 
   if (loading) {
     return (
