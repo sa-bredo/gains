@@ -32,10 +32,17 @@ export function ShiftsTable({ shifts, isLoading, locations, staffMembers }: Shif
     return location ? location.name : 'Unknown';
   };
 
-  // Get staff member name from ID
-  const getStaffName = (employeeId: string | null) => {
-    if (!employeeId) return 'Unassigned';
-    const staff = staffMembers.find(s => s.id === employeeId);
+  // Get staff member name from shift
+  const getStaffName = (shift: Shift) => {
+    if (!shift.employee_id) return 'Unassigned';
+    
+    // First try to get the name from the joined data
+    if (shift.employees) {
+      return `${shift.employees.first_name} ${shift.employees.last_name}`;
+    }
+    
+    // Fallback to the staffMembers array
+    const staff = staffMembers.find(s => s.id === shift.employee_id);
     return staff ? `${staff.first_name} ${staff.last_name}` : 'Unknown';
   };
 
@@ -123,7 +130,7 @@ export function ShiftsTable({ shifts, isLoading, locations, staffMembers }: Shif
               <TableCell className="text-left">{shift.name}</TableCell>
               <TableCell className="text-left">{formatTime(shift.start_time)}</TableCell>
               <TableCell className="text-left">{formatTime(shift.end_time)}</TableCell>
-              <TableCell className="text-left">{getStaffName(shift.employee_id)}</TableCell>
+              <TableCell className="text-left">{getStaffName(shift)}</TableCell>
               <TableCell className="text-left">{getLocationName(shift.location_id)}</TableCell>
               <TableCell className="text-left">
                 <span 
