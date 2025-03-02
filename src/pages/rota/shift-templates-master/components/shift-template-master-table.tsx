@@ -1,8 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ShiftTemplateMaster } from '../../shift-templates/types';
 import { Button } from '@/components/ui/button';
-import { Edit, Copy } from 'lucide-react';
+import { Edit, Copy, CalendarPlus } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -18,6 +18,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { formatDistanceToNow } from 'date-fns';
+import { AddShiftDialog } from '../../shifts/components/add-shift-dialog';
 
 interface ShiftTemplateMasterTableProps {
   templateMasters: ShiftTemplateMaster[];
@@ -32,6 +33,9 @@ export function ShiftTemplateMasterTable({
   onViewTemplates,
   onCloneTemplates
 }: ShiftTemplateMasterTableProps) {
+  const [addShiftDialogOpen, setAddShiftDialogOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<{locationId: string, version: number} | null>(null);
+
   // Format the date for display
   const formatDate = (dateString: string) => {
     try {
@@ -40,6 +44,12 @@ export function ShiftTemplateMasterTable({
     } catch (error) {
       return dateString;
     }
+  };
+
+  // Handle opening the add shift dialog with prefilled location and version
+  const handleAddShift = (locationId: string, version: number) => {
+    setSelectedTemplate({ locationId, version });
+    setAddShiftDialogOpen(true);
   };
 
   return (
@@ -51,7 +61,7 @@ export function ShiftTemplateMasterTable({
               <TableHead>Location</TableHead>
               <TableHead>Version</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead className="w-[120px]">Actions</TableHead>
+              <TableHead className="w-[180px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -108,6 +118,23 @@ export function ShiftTemplateMasterTable({
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleAddShift(master.location_id, master.version)}
+                            >
+                              <CalendarPlus className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Add Shifts</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -116,6 +143,16 @@ export function ShiftTemplateMasterTable({
           </TableBody>
         </Table>
       </div>
+
+      {/* Add Shift Dialog with prefilled values */}
+      {selectedTemplate && (
+        <AddShiftDialog
+          open={addShiftDialogOpen}
+          onOpenChange={setAddShiftDialogOpen}
+          defaultLocationId={selectedTemplate.locationId}
+          defaultVersion={selectedTemplate.version}
+        />
+      )}
     </div>
   );
 }

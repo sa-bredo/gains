@@ -1,39 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { Location, ShiftTemplate, ShiftTemplateMaster, StaffMember } from '../../shift-templates/types';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { format, addWeeks, isSameDay, getDay, addDays, isBefore, parse } from 'date-fns';
-import { useForm } from 'react-hook-form';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { toast } from 'sonner';
-import { ShiftPreview } from './shift-preview';
-import { supabase } from "@/integrations/supabase/client";
+import { format, parse, addDays, addWeeks, isAfter, isBefore, getDay } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Sheet, ShiftPreview } from './shift-preview';
 
-// Mapping from day names to day numbers (0-6, Sunday is 0)
-const DAY_NAME_TO_NUMBER: Record<string, number> = {
+export interface AddShiftDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onAddComplete?: () => void;
+  defaultLocationId?: string;
+  defaultVersion?: number;
+}
+
+// Days of week mapping
+const DAYS_OF_WEEK: Record<string, number> = {
   Sunday: 0,
   Monday: 1,
   Tuesday: 2,
@@ -57,545 +47,304 @@ const DAY_ORDER = {
 // Form schema
 const formSchema = z.object({
   location_id: z.string().uuid({ message: 'Please select a location.' }),
-  version: z.number().min(1, { message: 'Please select a version.' }),
-  start_date: z.string({ required_error: 'Please select a start date.' }),
-  num_weeks: z.number().min(1).max(8),
+  version: z.coerce.number().positive({ message: 'Please select a version.' }),
+  start_date: z.string().min(1, { message: 'Please select a start date.' }),
+  weeks: z.coerce.number().min(1).max(12),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+// Function to generate weeks options
+const weeksOptions = Array.from({ length: 12 }, (_, i) => ({
+  value: (i + 1).toString(),
+  label: i === 0 ? '1 week' : `${i + 1} weeks`,
+}));
 
-interface PreviewShift {
-  template_id: string;
-  template_name?: string;
-  date: Date;
-  day_of_week: string;
-  start_time: string;
-  end_time: string;
-  location_id: string;
-  location_name?: string;
-  employee_id: string | null;
-  employee_name?: string;
-  status: string;
-  hasConflict: boolean;
-}
-
-interface AddShiftDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  shiftTemplates: ShiftTemplate[];
-  locations: Location[];
-  staffMembers: StaffMember[];
-  selectedLocationId: string | null;
-  selectedDate: Date;
-  onSuccess: () => void;
-}
-
-export function AddShiftDialog({
-  open,
-  onOpenChange,
-  shiftTemplates,
-  locations,
-  staffMembers,
-  selectedLocationId,
-  selectedDate,
-  onSuccess,
+export function AddShiftDialog({ 
+  open, 
+  onOpenChange, 
+  onAddComplete,
+  defaultLocationId,
+  defaultVersion
 }: AddShiftDialogProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [previewShifts, setPreviewShifts] = useState<PreviewShift[]>([]);
-  const [showPreview, setShowPreview] = useState(false);
-  const [existingShifts, setExistingShifts] = useState<any[]>([]);
+  const { toast } = useToast();
+  const [locations, setLocations] = useState<Location[]>([]);
   const [templateMasters, setTemplateMasters] = useState<ShiftTemplateMaster[]>([]);
-  const [selectedLocationTemplates, setSelectedLocationTemplates] = useState<ShiftTemplate[]>([]);
-  const [availableStartDates, setAvailableStartDates] = useState<{value: string, label: string}[]>([]);
+  const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
+  const [generatedShifts, setGeneratedShifts] = useState<ShiftPreview[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<any>(null);
 
-  // Setup form
-  const form = useForm<FormValues>({
+  // Set up the form with react-hook-form and zod validation
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      location_id: selectedLocationId || '',
-      version: 1,
+      location_id: defaultLocationId || '',
+      version: defaultVersion || 0,
       start_date: '',
-      num_weeks: 1,
+      weeks: 1,
     },
   });
 
-  // Fetch template masters when dialog opens
-  useEffect(() => {
-    if (open) {
-      fetchTemplateMasters();
-    }
-  }, [open]);
+  // Fetch locations from Supabase
+  const fetchLocations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('locations')
+        .select('*')
+        .order('name');
 
-  // Reset form when dialog opens
-  useEffect(() => {
-    if (open) {
-      form.reset({
-        location_id: selectedLocationId || '',
-        version: 1,
-        start_date: '',
-        num_weeks: 1,
+      if (error) {
+        throw error;
+      }
+
+      setLocations(data || []);
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+      toast({
+        title: "Failed to load locations",
+        description: "There was a problem loading the locations data.",
+        variant: "destructive",
       });
-      setShowPreview(false);
-      setPreviewShifts([]);
-      setSelectedLocationTemplates([]);
-      setAvailableStartDates([]);
     }
-  }, [open, form, selectedDate, selectedLocationId]);
+  };
 
-  // Fetch template masters to get versions
+  // Fetch template masters from Supabase
   const fetchTemplateMasters = async () => {
     try {
       const { data, error } = await supabase
-        .from('shift_templates')
-        .select(`
-          location_id,
-          locations(name),
-          version,
-          created_at
-        `)
-        .order('created_at', { ascending: false });
-      
+        .from('shift_template_masters')
+        .select('*');
+
       if (error) {
         throw error;
       }
-      
-      // Process the data to create ShiftTemplateMaster objects
-      const masterMap = new Map<string, ShiftTemplateMaster[]>();
-      
-      data.forEach((item) => {
-        const locationId = item.location_id;
-        const version = item.version;
-        const locationName = item.locations?.name || 'Unknown';
-        const createdAt = item.created_at;
-        
-        // Create or update the entry
-        if (!masterMap.has(locationId)) {
-          masterMap.set(locationId, []);
-        }
-        
-        const existingVersions = masterMap.get(locationId)!.map(m => m.version);
-        if (!existingVersions.includes(version)) {
-          masterMap.get(locationId)!.push({
-            location_id: locationId,
-            location_name: locationName,
-            version: version,
-            created_at: createdAt,
-          });
-        }
-      });
-      
-      // Flatten the map to array and sort
-      const mastersList: ShiftTemplateMaster[] = [];
-      masterMap.forEach((versions) => {
-        versions.sort((a, b) => b.version - a.version); // Sort versions descending
-        mastersList.push(...versions);
-      });
-      
-      // Sort by location name
-      mastersList.sort((a, b) => a.location_name.localeCompare(b.location_name));
-      
-      setTemplateMasters(mastersList);
+
+      setTemplateMasters(data || []);
     } catch (error) {
-      console.error('Error fetching template masters:', error);
-      toast.error('Failed to load template versions');
+      console.error("Error fetching template masters:", error);
+      toast({
+        title: "Failed to load template masters",
+        description: "There was a problem loading the template masters data.",
+        variant: "destructive",
+      });
     }
   };
 
-  // Watch location_id and version changes to update templates
-  useEffect(() => {
-    const locationId = form.watch('location_id');
-    const version = form.watch('version');
-    
-    if (locationId && version) {
-      fetchLocationTemplates(locationId, version);
-    }
-  }, [form.watch('location_id'), form.watch('version')]);
-
-  // Generate available start dates when templates change
-  useEffect(() => {
-    if (selectedLocationTemplates.length > 0) {
-      const dates = generateStartDateOptions();
-      setAvailableStartDates(dates);
-      
-      if (dates.length > 0) {
-        form.setValue('start_date', dates[0].value);
-      }
-    }
-  }, [selectedLocationTemplates]);
-
-  // Fetch templates for selected location and version
-  const fetchLocationTemplates = async (locationId: string, version: number) => {
+  const fetchTemplates = async (locationId: string, version: number) => {
     try {
       const { data, error } = await supabase
         .from('shift_templates')
-        .select(`
-          *,
-          locations(id, name),
-          employees(id, first_name, last_name, role, email)
-        `)
+        .select('*')
         .eq('location_id', locationId)
         .eq('version', version);
-      
+
       if (error) {
         throw error;
       }
-      
-      setSelectedLocationTemplates(data as ShiftTemplate[] || []);
+
+      // Sort templates by day of week
+      const sortedTemplates = data?.sort((a, b) => DAY_ORDER[a.day_of_week] - DAY_ORDER[b.day_of_week]) || [];
+      setTemplates(sortedTemplates);
     } catch (error) {
-      console.error('Error fetching location templates:', error);
-      toast.error('Failed to load templates for selected location and version');
-    }
-  };
-
-  // Get available versions for selected location
-  const getAvailableVersions = () => {
-    const locationId = form.watch('location_id');
-    if (!locationId) return [];
-    
-    return templateMasters
-      .filter(master => master.location_id === locationId)
-      .map(master => master.version)
-      .sort((a, b) => b - a); // Sort descending
-  };
-
-  // Get employee name from ID
-  const getEmployeeName = (employeeId: string | null) => {
-    if (!employeeId) return null;
-    const employee = staffMembers.find(e => e.id === employeeId);
-    return employee ? `${employee.first_name} ${employee.last_name}` : null;
-  };
-
-  // Get location name from ID
-  const getLocationName = (locationId: string) => {
-    const location = locations.find(l => l.id === locationId);
-    return location ? location.name : null;
-  };
-
-  // Find the next occurrence of a specific day of the week from a given date
-  const findNextDayOccurrence = (fromDate: Date, dayOfWeek: string) => {
-    const targetDay = DAY_NAME_TO_NUMBER[dayOfWeek];
-    const currentDay = getDay(fromDate);
-    
-    // Calculate days to add
-    let daysToAdd = targetDay - currentDay;
-    if (daysToAdd < 0) {
-      daysToAdd += 7; // Go to next week if target day has already passed this week
-    }
-    
-    return addDays(fromDate, daysToAdd);
-  };
-
-  // Generate start date options only for the first day of the week from templates
-  const generateStartDateOptions = () => {
-    if (selectedLocationTemplates.length === 0) return [];
-    
-    // Get unique days of week from templates
-    const daysOfWeek = [...new Set(selectedLocationTemplates.map(t => t.day_of_week))];
-    if (daysOfWeek.length === 0) return [];
-    
-    // Sort days of week by DAY_ORDER
-    daysOfWeek.sort((a, b) => DAY_ORDER[a] - DAY_ORDER[b]);
-    
-    // Get only the first day of the week from the templates
-    const firstDay = daysOfWeek[0];
-    
-    const today = new Date();
-    const options: {value: string, label: string}[] = [];
-    
-    // Find the next occurrence of the first day from today
-    let currentDate = findNextDayOccurrence(today, firstDay);
-    
-    // Add the next 8 occurrences of this first day
-    for (let i = 0; i < 8; i++) {
-      options.push({
-        value: format(currentDate, 'yyyy-MM-dd'),
-        label: `${firstDay}, ${format(currentDate, 'dd MMM yyyy')}`
+      console.error("Error fetching templates:", error);
+      toast({
+        title: "Failed to load templates",
+        description: "There was a problem loading the shift templates data.",
+        variant: "destructive",
       });
-      
-      // Add 7 days to get to the next occurrence of this day
-      currentDate = addDays(currentDate, 7);
     }
-    
+  };
+
+  // Load initial data
+  useEffect(() => {
+    fetchLocations();
+    fetchTemplateMasters();
+  }, []);
+
+  // Effect to update form defaults when defaultLocationId or defaultVersion change
+  useEffect(() => {
+    if (defaultLocationId) {
+      form.setValue('location_id', defaultLocationId);
+      // Trigger location change to fetch templates
+      handleLocationChange(defaultLocationId);
+    }
+  }, [defaultLocationId, form]);
+
+  useEffect(() => {
+    if (defaultVersion) {
+      form.setValue('version', defaultVersion);
+      // If we also have a location ID, fetch templates for this version
+      const locationId = form.getValues('location_id');
+      if (locationId) {
+        fetchTemplates(locationId, defaultVersion);
+      }
+    }
+  }, [defaultVersion, form]);
+
+  // Function to find the next occurrence of a specific day of the week
+  const findNextDayOccurrence = (startDate: Date, dayOfWeek: string): Date => {
+    const dayNo = DAYS_OF_WEEK[dayOfWeek];
+    const startDayNo = startDate.getDay();
+    const daysToAdd = (dayNo + 7 - startDayNo) % 7;
+    const resultDate = new Date(startDate);
+    resultDate.setDate(startDate.getDate() + daysToAdd);
+    return resultDate;
+  };
+
+  // Function to generate start date options based on the selected location
+  const generateStartDateOptions = (): { value: string; label: string }[] => {
+    const locationId = form.getValues('location_id');
+    if (!locationId) {
+      return [];
+    }
+
+    const today = new Date();
+    const options: { value: string; label: string }[] = [];
+
+    // Generate options for each day of the week in the next 7 days
+    Object.keys(DAYS_OF_WEEK).forEach(dayOfWeek => {
+      const nextOccurrence = findNextDayOccurrence(today, dayOfWeek);
+      options.push({
+        value: format(nextOccurrence, 'yyyy-MM-dd'),
+        label: `Next ${dayOfWeek} (${format(nextOccurrence, 'MMM dd')})`,
+      });
+    });
+
     return options;
   };
 
-  // Check for conflicts with existing shifts
-  const fetchExistingShifts = async (startDate: Date, numWeeks: number) => {
-    const endDate = addWeeks(startDate, numWeeks);
-    
-    try {
-      const { data, error } = await supabase
-        .from('shifts')
-        .select('*')
-        .gte('date', format(startDate, 'yyyy-MM-dd'))
-        .lte('date', format(endDate, 'yyyy-MM-dd'));
-      
-      if (error) {
-        throw error;
-      }
-      
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching existing shifts:', error);
-      return [];
+  // Handle location change
+  const handleLocationChange = (locationId: string) => {
+    if (locationId) {
+      // Fetch the latest version for the selected location
+      const latestVersion = templateMasters.find(master => master.location_id === locationId)?.version || 1;
+      form.setValue('version', latestVersion);
+      fetchTemplates(locationId, latestVersion);
     }
   };
 
-  // Generate preview shifts
-  const generatePreview = async () => {
-    const values = form.getValues();
-    if (!values.location_id || !values.version || !values.start_date) return;
-    
-    setIsSubmitting(true);
-    
+  // Handle version change
+  const handleVersionChange = (version: number) => {
+    const locationId = form.getValues('location_id');
+    if (locationId) {
+      fetchTemplates(locationId, version);
+    }
+  };
+
+  // Handle form submission
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setError(null);
+    setIsGenerating(true);
     try {
-      // Parse start date
       const startDate = parse(values.start_date, 'yyyy-MM-dd', new Date());
-      const numWeeks = values.num_weeks;
-      
-      // Fetch existing shifts for the date range
-      const existing = await fetchExistingShifts(startDate, numWeeks);
-      setExistingShifts(existing);
-      
-      // Generate preview shifts
-      const shifts: PreviewShift[] = [];
-      const templates = selectedLocationTemplates;
-      
-      if (templates.length === 0) {
-        toast.error('No templates found for selected location and version');
-        setIsSubmitting(false);
-        return;
-      }
-      
-      // Process each template
-      for (const template of templates) {
-        // Find first occurrence of the template's day of week
-        let currentDate = findNextDayOccurrence(startDate, template.day_of_week);
-        const endDate = addWeeks(startDate, numWeeks);
-        
-        while (isBefore(currentDate, endDate) || isSameDay(currentDate, endDate)) {
-          // Check for conflicts
-          const hasConflict = existing.some(shift => 
-            shift.date === format(currentDate, 'yyyy-MM-dd') && 
-            shift.location_id === template.location_id &&
-            ((shift.start_time <= template.start_time && shift.end_time > template.start_time) ||
-             (shift.start_time >= template.start_time && shift.start_time < template.end_time))
-          );
-          
+      const weeks = values.weeks;
+
+      let shifts: ShiftPreview[] = [];
+
+      for (let i = 0; i < weeks; i++) {
+        templates.forEach(template => {
+          const shiftDate = addWeeks(findNextDayOccurrence(startDate, template.day_of_week), i);
           shifts.push({
-            template_id: template.id,
-            template_name: template.name,
-            date: currentDate,
+            date: format(shiftDate, 'yyyy-MM-dd'),
             day_of_week: template.day_of_week,
             start_time: template.start_time,
             end_time: template.end_time,
             location_id: template.location_id,
-            location_name: getLocationName(template.location_id),
             employee_id: template.employee_id,
-            employee_name: getEmployeeName(template.employee_id),
-            status: 'pending',
-            hasConflict
+            version: template.version,
           });
-          
-          // Move to next week
-          currentDate = addDays(currentDate, 7);
-        }
+        });
       }
-      
-      setPreviewShifts(shifts);
-      setShowPreview(true);
-    } catch (error) {
-      console.error('Error generating preview:', error);
-      toast.error('Failed to generate shift preview');
+
+      setGeneratedShifts(shifts);
+    } catch (e: any) {
+      console.error("Error generating shifts:", e);
+      setError(e);
+      toast({
+        title: "Failed to generate shifts",
+        description: "There was a problem generating the shifts.",
+        variant: "destructive",
+      });
     } finally {
-      setIsSubmitting(false);
+      setIsGenerating(false);
     }
   };
 
-  // Handle saving shifts
-  const handleSaveShifts = async () => {
-    setIsSubmitting(true);
-    
+  // Function to create shifts in Supabase
+  const createShifts = async () => {
+    setIsCreating(true);
     try {
-      // Prepare shifts for saving
-      const shiftsToSave = previewShifts.map(shift => ({
-        name: shift.template_name || `${shift.day_of_week} Shift`,
-        date: format(shift.date, 'yyyy-MM-dd'),
+      const shiftsToCreate = generatedShifts.map(shift => ({
+        date: shift.date,
+        day_of_week: shift.day_of_week,
         start_time: shift.start_time,
         end_time: shift.end_time,
         location_id: shift.location_id,
         employee_id: shift.employee_id,
-        status: 'pending'
+        version: shift.version,
       }));
-      
-      // Save shifts to database
-      const { data, error } = await supabase
+
+      const { error } = await supabase
         .from('shifts')
-        .insert(shiftsToSave)
-        .select();
-      
+        .insert(shiftsToCreate);
+
       if (error) {
         throw error;
       }
-      
-      toast.success(`Successfully created ${shiftsToSave.length} shifts`);
-      onSuccess();
+
+      toast({
+        title: "Shifts created successfully",
+        description: "The shifts have been created successfully.",
+      });
       onOpenChange(false);
-    } catch (error) {
-      console.error('Error saving shifts:', error);
-      toast.error('Failed to save shifts');
+      setGeneratedShifts([]);
+      if (onAddComplete) {
+        onAddComplete();
+      }
+    } catch (e: any) {
+      console.error("Error creating shifts:", e);
+      setError(e);
+      toast({
+        title: "Failed to create shifts",
+        description: "There was a problem creating the shifts.",
+        variant: "destructive",
+      });
     } finally {
-      setIsSubmitting(false);
+      setIsCreating(false);
     }
   };
 
-  // Set default version when location changes
-  useEffect(() => {
-    const locationId = form.watch('location_id');
-    if (locationId) {
-      const versions = getAvailableVersions();
-      if (versions.length > 0) {
-        form.setValue('version', versions[0]); // Set to highest version
-      }
-    }
-  }, [form.watch('location_id')]);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={showPreview ? "sm:max-w-[1000px]" : "sm:max-w-[600px]"}>
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Add Shifts</DialogTitle>
           <DialogDescription>
-            Create shifts based on templates. Select a location and version to apply shifts starting from the first day of the template.
+            Generate shifts based on a shift template.
           </DialogDescription>
         </DialogHeader>
-
-        {!showPreview ? (
+        <ScrollArea className="h-[400px] w-full">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(generatePreview)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="location_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Location</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
+                    <Select onValueChange={(value) => {
+                      field.onChange(value);
+                      handleLocationChange(value);
+                    }} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a location" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {locations.length === 0 ? (
-                          <div className="p-2 text-sm text-muted-foreground">
-                            No locations found
-                          </div>
-                        ) : (
-                          locations.map((location) => (
-                            <SelectItem key={location.id} value={location.id}>
-                              {location.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="version"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Version</FormLabel>
-                    <Select
-                      value={field.value.toString()}
-                      onValueChange={(value) => field.onChange(parseInt(value))}
-                      disabled={!form.watch('location_id')}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select version" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {getAvailableVersions().length === 0 ? (
-                          <div className="p-2 text-sm text-muted-foreground">
-                            No versions found for this location
-                          </div>
-                        ) : (
-                          getAvailableVersions().map((version) => (
-                            <SelectItem key={version} value={version.toString()}>
-                              v{version}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="start_date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Date</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={availableStartDates.length === 0}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select start date" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {availableStartDates.length === 0 ? (
-                          <div className="p-2 text-sm text-muted-foreground">
-                            Select a location and version first
-                          </div>
-                        ) : (
-                          availableStartDates.map((date) => (
-                            <SelectItem key={date.value} value={date.value}>
-                              {date.label}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="num_weeks"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Number of Weeks</FormLabel>
-                    <Select
-                      value={field.value.toString()}
-                      onValueChange={(value) => field.onChange(parseInt(value))}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select number of weeks" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
-                          <SelectItem key={num} value={num.toString()}>
-                            {num} {num === 1 ? 'week' : 'weeks'}
+                        {locations.map((location) => (
+                          <SelectItem key={location.id} value={location.id}>
+                            {location.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -604,35 +353,119 @@ export function AddShiftDialog({
                   </FormItem>
                 )}
               />
-
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => onOpenChange(false)}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting || !form.watch('location_id') || !form.watch('version') || !form.watch('start_date')}
-                >
-                  {isSubmitting ? 'Loading...' : 'Preview Shifts'}
-                </Button>
-              </DialogFooter>
+              <FormField
+                control={form.control}
+                name="version"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Version</FormLabel>
+                    <Select onValueChange={(value) => {
+                      field.onChange(Number(value));
+                      handleVersionChange(Number(value));
+                    }} defaultValue={field.value?.toString()}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a version" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {templateMasters
+                          .filter(master => master.location_id === form.getValues('location_id'))
+                          .sort((a, b) => b.version - a.version)
+                          .map((master) => (
+                            <SelectItem key={master.version} value={master.version.toString()}>
+                              v{master.version}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="start_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Start Date</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a start date" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {generateStartDateOptions().map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="weeks"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Weeks</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select number of weeks" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {weeksOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" disabled={isGenerating}>
+                {isGenerating ? "Generating..." : "Generate Shifts"}
+              </Button>
             </form>
           </Form>
-        ) : (
-          <div className="space-y-4">
-            <ShiftPreview 
-              shifts={previewShifts}
-              onSave={handleSaveShifts}
-              onBack={() => setShowPreview(false)}
-              isSubmitting={isSubmitting}
-            />
-          </div>
-        )}
+          <Separator className="my-4" />
+          {error && (
+            <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+              <p>
+                <strong>Error!</strong> {error.message}
+              </p>
+            </div>
+          )}
+          {generatedShifts.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Shift Preview</h3>
+              <p className="text-sm text-muted-foreground">
+                Here is a preview of the shifts that will be created.
+              </p>
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {generatedShifts.map((shift, index) => (
+                  <ShiftPreview key={index} {...shift} />
+                ))}
+              </div>
+            </div>
+          )}
+        </ScrollArea>
+        <DialogFooter>
+          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="button" onClick={createShifts} disabled={isCreating || generatedShifts.length === 0}>
+            {isCreating ? "Creating..." : "Create Shifts"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

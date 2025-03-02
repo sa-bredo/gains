@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -20,7 +19,6 @@ export default function ShiftTemplatesMasterPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Fetch all shift template versions (not just the latest)
   const fetchShiftTemplateVersions = async () => {
     try {
       setIsLoading(true);
@@ -39,7 +37,6 @@ export default function ShiftTemplatesMasterPage() {
         throw error;
       }
       
-      // Process data to show all unique location+version combinations
       const uniqueTemplates = new Map<string, ShiftTemplateMaster>();
       
       data?.forEach(template => {
@@ -57,14 +54,10 @@ export default function ShiftTemplatesMasterPage() {
         }
       });
       
-      // Convert to array and sort by location name and version (descending)
       const templates = Array.from(uniqueTemplates.values());
       templates.sort((a, b) => {
-        // First sort by location name
         if (a.location_name < b.location_name) return -1;
         if (a.location_name > b.location_name) return 1;
-        
-        // Then sort by version (highest first)
         return b.version - a.version;
       });
       
@@ -81,7 +74,6 @@ export default function ShiftTemplatesMasterPage() {
     }
   };
 
-  // Fetch locations
   const fetchLocations = async () => {
     try {
       const { data, error } = await supabase
@@ -104,26 +96,21 @@ export default function ShiftTemplatesMasterPage() {
     }
   };
 
-  // Load initial data
   useEffect(() => {
     fetchLocations();
     fetchShiftTemplateVersions();
   }, []);
 
-  // Handle going to template details
   const handleViewTemplates = (locationId: string, version: number) => {
     navigate(`/rota/shift-templates?location=${locationId}&version=${version}`);
   };
 
-  // Handle creating a new template version
   const handleCreateNewVersion = (locationId: string, newVersion: number) => {
     navigate(`/rota/shift-templates?location=${locationId}&version=${newVersion}&new=true`);
   };
 
-  // Handle cloning templates
   const handleCloneTemplates = async (locationId: string, version: number) => {
     try {
-      // First, get the current highest version for this location
       const { data: versionData, error: versionError } = await supabase
         .from('shift_templates')
         .select('version')
@@ -137,7 +124,6 @@ export default function ShiftTemplatesMasterPage() {
         ? versionData[0].version + 1 
         : 1;
         
-      // Get templates to clone
       const { data: templatesData, error: templatesError } = await supabase
         .from('shift_templates')
         .select('*')
@@ -147,10 +133,9 @@ export default function ShiftTemplatesMasterPage() {
       if (templatesError) throw templatesError;
       
       if (templatesData && templatesData.length > 0) {
-        // Clone the templates with a new version
         const newTemplates = templatesData.map(template => ({
           ...template,
-          id: undefined, // Let Supabase generate a new ID
+          id: undefined,
           version: newVersion,
           created_at: new Date().toISOString()
         }));
@@ -166,7 +151,6 @@ export default function ShiftTemplatesMasterPage() {
           description: `Created version ${newVersion} based on version ${version}`,
         });
         
-        // Refresh the templates list
         fetchShiftTemplateVersions();
       } else {
         toast({
