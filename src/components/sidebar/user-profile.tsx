@@ -24,14 +24,14 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import { UserProfile } from "./types";
+import { UserProfile as UserProfileType } from "./types";
 
 interface UserProfileMenuProps {
-  user: UserProfile;
+  user: UserProfileType;
   isMobile: boolean;
 }
 
-export const UserProfileMenu: FC<UserProfileMenuProps> = ({ user, isMobile }) => {
+const UserProfileMenu: FC<UserProfileMenuProps> = ({ user, isMobile }) => {
   const { logout, user: authUser } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -121,3 +121,24 @@ export const UserProfileMenu: FC<UserProfileMenuProps> = ({ user, isMobile }) =>
     </SidebarMenu>
   );
 };
+
+// Default user profile for guest users
+const defaultUserProfile: UserProfileType = {
+  name: "Guest User",
+  email: "guest@example.com",
+  avatar: "",
+};
+
+// Export the component and use default user if none provided
+export function UserProfile() {
+  const { isLoaded, user } = useAuth();
+  const isMobile = false; // We could use a hook here but keeping it simple
+  
+  const userProfileData: UserProfileType = user ? {
+    name: user.name || "User",
+    email: user.email || "",
+    avatar: user.avatar || "",
+  } : defaultUserProfile;
+  
+  return <UserProfileMenu user={userProfileData} isMobile={isMobile} />;
+}

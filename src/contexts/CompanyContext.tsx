@@ -15,6 +15,26 @@ type CompanyContextType = {
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
+// Mock companies data for development until we create the companies table
+const mockCompanies: Company[] = [
+  {
+    id: "1",
+    name: "Acme Inc",
+    logo_url: null,
+    address: "123 Main St, New York, NY",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "2",
+    name: "TechCorp",
+    logo_url: null,
+    address: "456 Tech Ave, San Francisco, CA",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
+
 export function CompanyProvider({ children }: { children: ReactNode }) {
   const { userId, isSignedIn } = useAuth();
   const { toast } = useToast();
@@ -32,37 +52,27 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // For now, just fetch all companies since we don't have employee-company relationship yet
-      const { data: companiesData, error: companiesError } = await supabase
-        .from('companies')
-        .select('*');
-
-      if (companiesError) {
-        throw companiesError;
-      }
-
-      // Type guard to ensure we have Company objects
-      const typedCompanies = companiesData?.filter(
-        (item): item is Company => 'name' in item && typeof item.name === 'string'
-      ) || [];
+      // TODO: Replace with actual API call once companies table is created
+      // For now, use mock data
+      const companiesData = mockCompanies;
       
-      setUserCompanies(typedCompanies);
+      setUserCompanies(companiesData);
       
       // If we have companies but no current company selected, select the first one
-      if (typedCompanies.length > 0 && !currentCompany) {
-        setCurrentCompany(typedCompanies[0]);
+      if (companiesData.length > 0 && !currentCompany) {
+        setCurrentCompany(companiesData[0]);
         // Store the selected company in localStorage
-        localStorage.setItem('currentCompanyId', typedCompanies[0].id);
-      } else if (typedCompanies.length > 0) {
+        localStorage.setItem('currentCompanyId', companiesData[0].id);
+      } else if (companiesData.length > 0) {
         // Check if the stored company is still valid
         const storedCompanyId = localStorage.getItem('currentCompanyId');
         if (storedCompanyId) {
-          const storedCompany = typedCompanies.find(c => c.id === storedCompanyId);
+          const storedCompany = companiesData.find(c => c.id === storedCompanyId);
           if (storedCompany) {
             setCurrentCompany(storedCompany);
           } else {
-            setCurrentCompany(typedCompanies[0]);
-            localStorage.setItem('currentCompanyId', typedCompanies[0].id);
+            setCurrentCompany(companiesData[0]);
+            localStorage.setItem('currentCompanyId', companiesData[0].id);
           }
         }
       }
