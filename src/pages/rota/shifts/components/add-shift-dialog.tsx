@@ -13,7 +13,8 @@ import * as z from 'zod';
 import { format, parse, addDays, addWeeks, isAfter, isBefore, getDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { ShiftPreview } from './shift-preview';
+import { ShiftPreview, ShiftPreviewItem } from './shift-preview';
+import { Sheet } from '@/components/ui/sheet';
 
 export interface AddShiftDialogProps {
   open: boolean;
@@ -70,7 +71,8 @@ export function AddShiftDialog({
   const [locations, setLocations] = useState<Location[]>([]);
   const [templateMasters, setTemplateMasters] = useState<ShiftTemplateMaster[]>([]);
   const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
-  const [generatedShifts, setGeneratedShifts] = useState<ShiftPreview[]>([]);
+  const [generatedShifts, setGeneratedShifts] = useState<ShiftPreviewItem[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<any>(null);
@@ -262,7 +264,7 @@ export function AddShiftDialog({
       const startDate = parse(values.start_date, 'yyyy-MM-dd', new Date());
       const weeks = values.weeks;
 
-      let shifts: ShiftPreview[] = [];
+      let shifts: ShiftPreviewItem[] = [];
 
       for (let i = 0; i < weeks; i++) {
         templates.forEach(template => {
@@ -280,6 +282,7 @@ export function AddShiftDialog({
       }
 
       setGeneratedShifts(shifts);
+      setShowPreview(true);
     } catch (e: any) {
       console.error("Error generating shifts:", e);
       setError(e);
@@ -323,6 +326,7 @@ export function AddShiftDialog({
       });
       onOpenChange(false);
       setGeneratedShifts([]);
+      setShowPreview(false);
       if (onAddComplete) {
         onAddComplete();
       }
@@ -339,6 +343,30 @@ export function AddShiftDialog({
     }
   };
 
+  const handleBack = () => {
+    setShowPreview(false);
+  };
+
+  // Create preview shifts from the generated shifts data
+  const previewShifts = generatedShifts.map(shift => {
+    const locationName = locations.find(loc => loc.id === shift.location_id)?.name || '';
+    
+    return {
+      template_id: '',
+      template_name: '',
+      date: new Date(shift.date),
+      day_of_week: shift.day_of_week,
+      start_time: shift.start_time,
+      end_time: shift.end_time,
+      location_id: shift.location_id,
+      location_name: locationName,
+      employee_id: shift.employee_id,
+      employee_name: '', // We don't have this information in the preview
+      status: 'new',
+      hasConflict: false
+    };
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -348,158 +376,150 @@ export function AddShiftDialog({
             Generate shifts based on a shift template.
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="h-[400px] w-full">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="location_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <Select onValueChange={(value) => {
-                      field.onChange(value);
-                      handleLocationChange(value);
-                    }} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a location" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {locations.map((location) => (
-                          <SelectItem key={location.id} value={location.id}>
-                            {location.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="version"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Version</FormLabel>
-                    <Select onValueChange={(value) => {
-                      field.onChange(Number(value));
-                      handleVersionChange(Number(value));
-                    }} defaultValue={field.value?.toString()}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a version" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {templateMasters
-                          .filter(master => master.location_id === form.getValues('location_id'))
-                          .sort((a, b) => b.version - a.version)
-                          .map((master) => (
-                            <SelectItem key={master.version} value={master.version.toString()}>
-                              v{master.version}
+        
+        {showPreview ? (
+          <ShiftPreview 
+            shifts={previewShifts} 
+            onSave={createShifts} 
+            onBack={handleBack}
+            isSubmitting={isCreating}
+          />
+        ) : (
+          <ScrollArea className="h-[400px] w-full">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="location_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <Select onValueChange={(value) => {
+                        field.onChange(value);
+                        handleLocationChange(value);
+                      }} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a location" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {locations.map((location) => (
+                            <SelectItem key={location.id} value={location.id}>
+                              {location.name}
                             </SelectItem>
                           ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="start_date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Date</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a start date" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {generateStartDateOptions().map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="weeks"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Weeks</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select number of weeks" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {weeksOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" disabled={isGenerating}>
-                {isGenerating ? "Generating..." : "Generate Shifts"}
-              </Button>
-            </form>
-          </Form>
-          <Separator className="my-4" />
-          {error && (
-            <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-              <p>
-                <strong>Error!</strong> {error.message}
-              </p>
-            </div>
-          )}
-          {generatedShifts.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Shift Preview</h3>
-              <p className="text-sm text-muted-foreground">
-                Here is a preview of the shifts that will be created.
-              </p>
-              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {generatedShifts.map((shift, index) => (
-                  <div 
-                    key={index} 
-                    className="rounded-lg border p-3 shadow-sm"
-                  >
-                    <div className="font-medium">{shift.day_of_week}</div>
-                    <div className="text-sm text-muted-foreground">{shift.date}</div>
-                    <div className="text-sm">
-                      {shift.start_time.substring(0, 5)} - {shift.end_time.substring(0, 5)}
-                    </div>
-                  </div>
-                ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="version"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Version</FormLabel>
+                      <Select onValueChange={(value) => {
+                        field.onChange(Number(value));
+                        handleVersionChange(Number(value));
+                      }} defaultValue={field.value?.toString()}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a version" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {templateMasters
+                            .filter(master => master.location_id === form.getValues('location_id'))
+                            .sort((a, b) => b.version - a.version)
+                            .map((master) => (
+                              <SelectItem key={master.version} value={master.version.toString()}>
+                                v{master.version}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="start_date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a start date" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {generateStartDateOptions().map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="weeks"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Number of Weeks</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select number of weeks" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {weeksOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </form>
+            </Form>
+            
+            {error && (
+              <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive mt-4">
+                <p>
+                  <strong>Error!</strong> {error.message}
+                </p>
               </div>
-            </div>
-          )}
-        </ScrollArea>
-        <DialogFooter>
-          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button type="button" onClick={createShifts} disabled={isCreating || generatedShifts.length === 0}>
-            {isCreating ? "Creating..." : "Create Shifts"}
-          </Button>
-        </DialogFooter>
+            )}
+          </ScrollArea>
+        )}
+        
+        {!showPreview && (
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button 
+              type="button" 
+              onClick={form.handleSubmit(onSubmit)} 
+              disabled={isGenerating}
+            >
+              {isGenerating ? "Generating..." : "Preview Shifts"}
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );
