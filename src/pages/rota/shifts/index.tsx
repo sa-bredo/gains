@@ -73,7 +73,11 @@ function ShiftsPage() {
 
       <AddShiftDialog
         open={isAddShiftDialogOpen}
-        onClose={() => setIsAddShiftDialogOpen(false)}
+        onOpenChange={setIsAddShiftDialogOpen}
+        onAddComplete={() => {
+          // Refetch the shifts data after adding new shifts
+          // The query will be invalidated and refetched automatically
+        }}
         onSuccess={(newShift) => {
           setShifts([...shifts, newShift]);
           setIsAddShiftDialogOpen(false);
