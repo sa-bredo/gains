@@ -38,12 +38,10 @@ export default function ShiftsPage() {
   const [activeTab, setActiveTab] = useState<string>("view");
   const [error, setError] = useState<any>(null);
 
-  // Fetch shifts
   const fetchShifts = async () => {
     try {
       setIsLoading(true);
       
-      // Build the query with optional filters
       let query = supabase
         .from('shifts')
         .select(`
@@ -53,13 +51,11 @@ export default function ShiftsPage() {
         `)
         .order('date', { ascending: true });
       
-      // Add date filter if selected
       if (selectedDate) {
         const formattedDate = format(selectedDate, 'yyyy-MM-dd');
         query = query.eq('date', formattedDate);
       }
       
-      // Add location filter if selected
       if (selectedLocationId) {
         query = query.eq('location_id', selectedLocationId);
       }
@@ -83,7 +79,6 @@ export default function ShiftsPage() {
     }
   };
 
-  // Fetch locations
   const fetchLocations = async () => {
     try {
       const { data, error } = await supabase
@@ -97,7 +92,6 @@ export default function ShiftsPage() {
       
       setLocations(data || []);
       
-      // Set the first location as selected if none is selected and there are locations
       if (!selectedLocationId && data && data.length > 0) {
         setSelectedLocationId(data[0].id);
       }
@@ -111,7 +105,6 @@ export default function ShiftsPage() {
     }
   };
 
-  // Fetch staff members
   const fetchStaffMembers = async () => {
     try {
       const { data, error } = await supabase
@@ -135,7 +128,6 @@ export default function ShiftsPage() {
     }
   };
 
-  // Load initial data
   useEffect(() => {
     Promise.all([
       fetchLocations(),
@@ -146,7 +138,6 @@ export default function ShiftsPage() {
     });
   }, []);
 
-  // Load template masters
   const loadTemplateMasters = async () => {
     try {
       const masters = await fetchTemplateMasters();
@@ -161,26 +152,22 @@ export default function ShiftsPage() {
     }
   };
 
-  // Refetch shifts when filters change
   useEffect(() => {
     if (activeTab === "view") {
       fetchShifts();
     }
   }, [selectedDate, selectedLocationId, activeTab]);
 
-  // Handle location change
   const handleLocationChange = (locationId: string) => {
     setSelectedLocationId(locationId);
   };
 
-  // Handle date selection
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
       setSelectedDate(date);
     }
   };
 
-  // Handle add shift completion
   const handleAddShiftComplete = () => {
     fetchShifts();
     setActiveTab("view");
@@ -190,14 +177,21 @@ export default function ShiftsPage() {
     });
   };
 
-  // Handle template version change for AddShiftForm
   const handleVersionChange = async (version: number) => {
+    console.log('handleVersionChange called with version:', version);
+    if (isNaN(version)) {
+      console.error('Invalid version:', version);
+      return;
+    }
+    
     if (selectedLocationId) {
       try {
         const templatesData = await fetchTemplatesForLocationAndVersion(selectedLocationId, version);
+        console.log('Templates loaded for version:', version, 'templates:', templatesData.length);
         setTemplates(templatesData);
       } catch (error) {
         console.error('Error handling version change:', error);
+        setError(error);
         toast({
           title: 'Error',
           description: 'Failed to load templates for the selected version.',
@@ -207,10 +201,8 @@ export default function ShiftsPage() {
     }
   };
 
-  // Mock function for onSubmit until real functionality is implemented
   const handleFormSubmit = (data: AddShiftFormValues) => {
     console.log('Form submitted:', data);
-    // Implementation will depend on how the form should behave
   };
 
   return (

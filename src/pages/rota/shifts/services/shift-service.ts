@@ -1,3 +1,4 @@
+
 import { format, parse, addDays, addWeeks } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { Location, ShiftTemplate, ShiftTemplateMaster, StaffMember } from '../../shift-templates/types';
@@ -52,6 +53,13 @@ export const fetchTemplatesForLocationAndVersion = async (
   locationId: string, 
   version: number
 ): Promise<ShiftTemplate[]> => {
+  console.log(`Fetching templates for location ${locationId} and version ${version}`);
+  
+  if (!locationId || isNaN(version)) {
+    console.error('Invalid parameters:', { locationId, version });
+    throw new Error('Invalid location ID or version');
+  }
+
   const { data, error } = await supabase
     .from('shift_templates')
     .select(`
@@ -62,8 +70,11 @@ export const fetchTemplatesForLocationAndVersion = async (
     .eq('version', version);
 
   if (error) {
+    console.error('Supabase error:', error);
     throw error;
   }
+
+  console.log('Templates fetched:', data);
 
   // Transform the data to ensure it matches the ShiftTemplate type
   const templates = data?.map(template => ({
@@ -123,6 +134,12 @@ export const generateShiftsPreview = (
   startDate: Date, 
   weeks: number
 ): ShiftPreviewItem[] => {
+  console.log('Generating shifts preview with:', {
+    templates: templates.length,
+    startDate: startDate.toISOString(),
+    weeks
+  });
+  
   let shifts: ShiftPreviewItem[] = [];
 
   for (let i = 0; i < weeks; i++) {
@@ -132,6 +149,14 @@ export const generateShiftsPreview = (
       const startDayNo = startDate.getDay();
       const daysToAdd = (templateDayNo - startDayNo + 7) % 7;
       const shiftDate = addDays(addWeeks(startDate, i), daysToAdd);
+      
+      console.log('Creating shift for:', {
+        template: template.day_of_week,
+        templateDayNo,
+        startDayNo,
+        daysToAdd,
+        date: format(shiftDate, 'yyyy-MM-dd')
+      });
 
       shifts.push({
         date: format(shiftDate, 'yyyy-MM-dd'),
@@ -146,7 +171,8 @@ export const generateShiftsPreview = (
       });
     });
   }
-
+  
+  console.log('Generated shifts:', shifts.length);
   return shifts;
 };
 
@@ -155,6 +181,7 @@ export const mapShiftsToPreview = (
   shifts: ShiftPreviewItem[], 
   locations: Location[]
 ) => {
+  console.log('Mapping shifts to preview:', shifts.length);
   return shifts.map(shift => {
     const locationName = locations.find(loc => loc.id === shift.location_id)?.name || '';
     

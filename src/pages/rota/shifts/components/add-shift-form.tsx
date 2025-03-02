@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -175,7 +176,9 @@ export function AddShiftForm({
     onVersionChange(version);
   };
 
-  const onLocalSubmit = (data: AddShiftFormValues) => {
+  const onLocalSubmit = async (data: AddShiftFormValues) => {
+    console.log("onLocalSubmit called with data:", data);
+    
     if (templates.length === 0) {
       toast({
         title: 'No Templates',
@@ -185,11 +188,26 @@ export function AddShiftForm({
       return;
     }
     
-    const startDate = parse(data.start_date, 'yyyy-MM-dd', new Date());
-    
-    const shifts = generateShiftsPreview(templates, startDate, data.weeks);
-    setPreviewShifts(shifts);
-    setShowPreview(true);
+    try {
+      const startDate = parse(data.start_date, 'yyyy-MM-dd', new Date());
+      
+      console.log("Generating shifts with templates:", templates);
+      console.log("Start date:", startDate);
+      console.log("Weeks:", data.weeks);
+      
+      const shifts = generateShiftsPreview(templates, startDate, data.weeks);
+      console.log("Generated shifts:", shifts);
+      
+      setPreviewShifts(shifts);
+      setShowPreview(true);
+    } catch (error) {
+      console.error("Error generating shift preview:", error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate shift preview. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleSaveShifts = async () => {
@@ -232,7 +250,7 @@ export function AddShiftForm({
         <div className="max-w-[250px]">
           <h2 className="text-xl font-semibold mb-4">Add Shifts from Template</h2>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(parentOnSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onLocalSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="location_id"
