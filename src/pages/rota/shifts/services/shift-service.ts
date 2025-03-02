@@ -5,11 +5,14 @@ import { Location, ShiftTemplate, ShiftTemplateMaster, StaffMember } from '../..
 import { DAY_ORDER } from '../utils/date-utils';
 import { ShiftPreviewItem } from '../components/shift-preview';
 
-// Fetch locations from Supabase
-export const fetchLocations = async (): Promise<Location[]> => {
+// Fetch locations from Supabase with company_id filter
+export const fetchLocations = async (companyId: string | null): Promise<Location[]> => {
+  if (!companyId) return [];
+  
   const { data, error } = await supabase
     .from('locations')
     .select('*')
+    .eq('company_id', companyId)
     .order('name');
 
   if (error) {
@@ -19,11 +22,18 @@ export const fetchLocations = async (): Promise<Location[]> => {
   return data || [];
 };
 
-// Fetch template masters from Supabase
-export const fetchTemplateMasters = async (): Promise<ShiftTemplateMaster[]> => {
+// Fetch template masters from Supabase with company_id filter
+export const fetchTemplateMasters = async (companyId: string | null): Promise<ShiftTemplateMaster[]> => {
+  if (!companyId) return [];
+  
   const { data, error } = await supabase
     .from('shift_templates')
-    .select('location_id, version, locations:location_id(name)')
+    .select(`
+      location_id,
+      version,
+      locations:location_id(id, name, company_id)
+    `)
+    .eq('locations.company_id', companyId)
     .order('location_id')
     .order('version', { ascending: false });
 
@@ -34,14 +44,16 @@ export const fetchTemplateMasters = async (): Promise<ShiftTemplateMaster[]> => 
   // Process the data to get unique location_id, version combinations
   const mastersMap = new Map();
   data?.forEach(item => {
-    const key = `${item.location_id}-${item.version}`;
-    if (!mastersMap.has(key)) {
-      mastersMap.set(key, {
-        location_id: item.location_id,
-        version: item.version,
-        location_name: item.locations?.name,
-        created_at: '' // This field might not be available
-      });
+    if (item.locations?.company_id === companyId) {
+      const key = `${item.location_id}-${item.version}`;
+      if (!mastersMap.has(key)) {
+        mastersMap.set(key, {
+          location_id: item.location_id,
+          version: item.version,
+          location_name: item.locations?.name,
+          created_at: '' // This field might not be available
+        });
+      }
     }
   });
   
@@ -138,11 +150,13 @@ export const fetchShiftsWithDateRange = async (
   companyId: string | null
 ) => {
   try {
+    if (!companyId) return [];
+    
     let query = supabase
       .from('shifts')
       .select(`
         *,
-        locations:location_id (id, name),
+        locations:location_id (id, name, company_id),
         employees:employee_id (id, first_name, last_name, role, email)
       `)
       .order('date', { ascending: true });
@@ -164,13 +178,14 @@ export const fetchShiftsWithDateRange = async (
     if (locationId) {
       console.log(`Filtering shifts for location ${locationId}`);
       query = query.eq('location_id', locationId);
+    } else {
+      // If no specific location is selected, filter by company_id
+      query = query.in('location_id', supabase
+        .from('locations')
+        .select('id')
+        .eq('company_id', companyId)
+      );
     }
-    
-    // Filter by company ID - since we don't have company_id in the locations table yet,
-    // we'll temporarily disable this filter for now
-    // if (companyId) {
-    //   // We'll implement this later when the locations table has company_id column
-    // }
     
     const { data, error } = await query;
     
@@ -178,7 +193,10 @@ export const fetchShiftsWithDateRange = async (
       throw error;
     }
     
-    return data || [];
+    // Further filter results to ensure only shifts for the company's locations are included
+    return data?.filter(shift => 
+      shift.locations?.company_id === companyId
+    ) || [];
   } catch (error) {
     console.error('Error fetching shifts with date range:', error);
     throw error;
@@ -338,15 +356,29 @@ export const DAYS_OF_WEEK: Record<string, number> = {
 export function useShiftService() {
   const { currentCompany } = useCompany();
   
-  const fetchShifts = async (startDate: Date | null, endDate: Date | null, locationId: string | null) => {
-    // Temporarily pass null for companyId until we have that column in the database
-    return fetchShiftsWithDateRange(startDate, endDate, locationId, null);
+  const fetchCompanyLocations = async () => {
+    return fetchLocations(currentCompany?.id || null);
   };
   
-  // Wrap other shift service functions similarly
+  const fetchCompanyTemplateMasters = async () => {
+    return fetchTemplateMasters(currentCompany?.id || null);
+  };
+  
+  const fetchShifts = async (startDate: Date | null, endDate: Date | null, locationId: string | null) => {
+    return fetchShiftsWithDateRange(startDate, endDate, locationId, currentCompany?.id || null);
+  };
   
   return {
+    fetchLocations: fetchCompanyLocations,
+    fetchTemplateMasters: fetchCompanyTemplateMasters,
     fetchShifts,
-    // Include other service methods here
+    // Include other service methods as needed
+    fetchTemplatesForLocationAndVersion,
+    fetchStaffMembers,
+    createShifts,
+    getDateRangeForPreset,
+    generateShiftsPreview,
+    mapShiftsToPreview,
+    formatShiftsForCreation
   };
 }

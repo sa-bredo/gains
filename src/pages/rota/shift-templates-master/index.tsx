@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ShiftTemplateMaster, Location } from '../shift-templates/types';
 import { ShiftTemplateMasterTable } from './components/shift-template-master-table';
 import { NewTemplateVersionDialog } from './components/new-template-version-dialog';
+import { useCompany } from "@/contexts/CompanyContext";
 
 export default function ShiftTemplatesMasterPage() {
   const { toast } = useToast();
@@ -18,19 +19,38 @@ export default function ShiftTemplatesMasterPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { currentCompany } = useCompany();
 
   const fetchShiftTemplateVersions = async () => {
+    if (!currentCompany) return;
+    
     try {
       setIsLoading(true);
+      
+      const { data: locationsData, error: locationsError } = await supabase
+        .from('locations')
+        .select('id')
+        .eq('company_id', currentCompany.id);
+        
+      if (locationsError) throw locationsError;
+      
+      if (!locationsData || locationsData.length === 0) {
+        setTemplateMasters([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      const locationIds = locationsData.map(loc => loc.id);
       
       const { data, error } = await supabase
         .from('shift_templates')
         .select(`
           location_id,
-          locations:location_id (id, name),
+          locations:location_id (id, name, company_id),
           version,
           created_at
         `)
+        .in('location_id', locationIds)
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -40,17 +60,19 @@ export default function ShiftTemplatesMasterPage() {
       const uniqueTemplates = new Map<string, ShiftTemplateMaster>();
       
       data?.forEach(template => {
-        const locationId = template.location_id;
-        const version = template.version;
-        const key = `${locationId}-${version}`;
-        
-        if (!uniqueTemplates.has(key)) {
-          uniqueTemplates.set(key, {
-            location_id: locationId,
-            location_name: template.locations?.name || 'Unknown',
-            version: version,
-            created_at: template.created_at,
-          });
+        if (template.locations?.company_id === currentCompany.id) {
+          const locationId = template.location_id;
+          const version = template.version;
+          const key = `${locationId}-${version}`;
+          
+          if (!uniqueTemplates.has(key)) {
+            uniqueTemplates.set(key, {
+              location_id: locationId,
+              location_name: template.locations?.name || 'Unknown',
+              version: version,
+              created_at: template.created_at,
+            });
+          }
         }
       });
       
@@ -75,10 +97,13 @@ export default function ShiftTemplatesMasterPage() {
   };
 
   const fetchLocations = async () => {
+    if (!currentCompany) return;
+    
     try {
       const { data, error } = await supabase
         .from('locations')
         .select('*')
+        .eq('company_id', currentCompany.id)
         .order('name');
       
       if (error) {
@@ -97,9 +122,11 @@ export default function ShiftTemplatesMasterPage() {
   };
 
   useEffect(() => {
-    fetchLocations();
-    fetchShiftTemplateVersions();
-  }, []);
+    if (currentCompany) {
+      fetchLocations();
+      fetchShiftTemplateVersions();
+    }
+  }, [currentCompany]);
 
   const handleViewTemplates = (locationId: string, version: number) => {
     navigate(`/rota/shift-templates?location=${locationId}&version=${version}`);
