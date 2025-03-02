@@ -26,7 +26,7 @@ export default function SelectCompany() {
     if (currentCompany) {
       navigate(from, { replace: true });
     }
-  }, [userCompanies, currentCompany, navigate, from]);
+  }, [userCompanies, currentCompany, navigate, from, switchCompany]);
   
   if (isLoadingCompanies) {
     return (
@@ -73,8 +73,14 @@ export default function SelectCompany() {
           <Card key={company.id} className="overflow-hidden cursor-pointer hover:border-primary transition-colors">
             <CardHeader className="pb-2">
               <CardTitle>{company.name}</CardTitle>
-              {company.address && (
-                <CardDescription>{company.address}</CardDescription>
+              {company.logo_url && (
+                <CardDescription>
+                  <img 
+                    src={company.logo_url} 
+                    alt={`${company.name} logo`} 
+                    className="h-10 object-contain" 
+                  />
+                </CardDescription>
               )}
             </CardHeader>
             <CardFooter className="pt-2">

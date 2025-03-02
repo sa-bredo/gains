@@ -15,26 +15,6 @@ type CompanyContextType = {
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
-// Mock companies data for development until we create the companies table
-const mockCompanies: Company[] = [
-  {
-    id: "1",
-    name: "Acme Inc",
-    logo_url: null,
-    address: "123 Main St, New York, NY",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: "2",
-    name: "TechCorp",
-    logo_url: null,
-    address: "456 Tech Ave, San Francisco, CA",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-];
-
 export function CompanyProvider({ children }: { children: ReactNode }) {
   const { userId, isSignedIn } = useAuth();
   const { toast } = useToast();
@@ -52,18 +32,24 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // TODO: Replace with actual API call once companies table is created
-      // For now, use mock data
-      const companiesData = mockCompanies;
+      // Fetch companies from the database
+      const { data: companiesData, error } = await supabase
+        .from('companies')
+        .select('*')
+        .order('name');
       
-      setUserCompanies(companiesData);
+      if (error) {
+        throw error;
+      }
+      
+      setUserCompanies(companiesData || []);
       
       // If we have companies but no current company selected, select the first one
-      if (companiesData.length > 0 && !currentCompany) {
+      if (companiesData && companiesData.length > 0 && !currentCompany) {
         setCurrentCompany(companiesData[0]);
         // Store the selected company in localStorage
         localStorage.setItem('currentCompanyId', companiesData[0].id);
-      } else if (companiesData.length > 0) {
+      } else if (companiesData && companiesData.length > 0) {
         // Check if the stored company is still valid
         const storedCompanyId = localStorage.getItem('currentCompanyId');
         if (storedCompanyId) {
