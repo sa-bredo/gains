@@ -8,7 +8,7 @@ import { CalendarIcon } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
 import { ShiftsTable } from './components/shifts-table';
-import { Shift, ShiftTemplate, Location, StaffMember } from '../shift-templates/types';
+import { Shift, ShiftTemplate, Location, StaffMember, ShiftTemplateMaster } from '../shift-templates/types';
 import {
   Select,
   SelectContent,
@@ -22,18 +22,21 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddShiftForm } from './components/add-shift-form';
 import { AddShiftFormValues } from './components/add-shift-form-schema';
-import { fetchTemplatesForLocationAndVersion } from './services/shift-service';
+import { fetchTemplatesForLocationAndVersion, fetchTemplateMasters } from './services/shift-service';
 
 export default function ShiftsPage() {
   const { toast } = useToast();
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
+  const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
+  const [templateMasters, setTemplateMasters] = useState<ShiftTemplateMaster[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [activeTab, setActiveTab] = useState<string>("view");
+  const [error, setError] = useState<any>(null);
 
   // Fetch shifts
   const fetchShifts = async () => {
@@ -139,8 +142,24 @@ export default function ShiftsPage() {
       fetchStaffMembers()
     ]).then(() => {
       fetchShifts();
+      loadTemplateMasters();
     });
   }, []);
+
+  // Load template masters
+  const loadTemplateMasters = async () => {
+    try {
+      const masters = await fetchTemplateMasters();
+      setTemplateMasters(masters);
+    } catch (error) {
+      console.error('Error fetching template masters:', error);
+      toast({
+        title: "Failed to load template masters",
+        description: "There was a problem loading the template data.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Refetch shifts when filters change
   useEffect(() => {
@@ -176,7 +195,7 @@ export default function ShiftsPage() {
     if (selectedLocationId) {
       try {
         const templatesData = await fetchTemplatesForLocationAndVersion(selectedLocationId, version);
-        // Do something with templatesData if needed
+        setTemplates(templatesData);
       } catch (error) {
         console.error('Error handling version change:', error);
         toast({
@@ -286,12 +305,12 @@ export default function ShiftsPage() {
                     onAddComplete={handleAddShiftComplete} 
                     defaultLocationId={selectedLocationId || undefined}
                     locations={locations}
-                    templates={[]} // Initialize with empty array
-                    templateMasters={[]} // Initialize with empty array
+                    templates={templates}
+                    templateMasters={templateMasters}
                     onSubmit={handleFormSubmit}
                     onCancel={() => setActiveTab("view")}
                     isLoading={isLoading}
-                    error={null}
+                    error={error}
                     onLocationChange={(locationId) => setSelectedLocationId(locationId)}
                     onVersionChange={handleVersionChange}
                   />

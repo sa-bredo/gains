@@ -1,4 +1,3 @@
-
 import { format, parse, addDays, addWeeks } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { Location, ShiftTemplate, ShiftTemplateMaster, StaffMember } from '../../shift-templates/types';

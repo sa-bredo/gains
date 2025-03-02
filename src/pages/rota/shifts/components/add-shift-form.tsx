@@ -24,9 +24,6 @@ import { AddShiftFormValues, addShiftFormSchema } from './add-shift-form-schema'
 import { ShiftPreview, ShiftPreviewItem } from './shift-preview';
 import { generateWeeksOptions } from '../utils/date-utils';
 import { 
-  fetchLocations, 
-  fetchStaffMembers,
-  fetchTemplateMasters, 
   fetchTemplatesForLocationAndVersion,
   generateShiftsPreview,
   mapShiftsToPreview,
