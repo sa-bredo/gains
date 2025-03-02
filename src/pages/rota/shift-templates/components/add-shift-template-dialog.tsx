@@ -35,7 +35,7 @@ import { toast } from 'sonner';
 // Form schema
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  day_of_week: z.enum(DAYS_OF_WEEK, {
+  day_of_week: z.enum(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], {
     errorMap: () => ({ message: 'Please select a day of the week.' }),
   }),
   start_time: z.string().min(1, { message: 'Please select a start time.' }),
@@ -102,9 +102,13 @@ export function AddShiftTemplateDialog({
       
       // Format the times with seconds
       const formattedData = {
-        ...data,
+        name: data.name,
+        day_of_week: data.day_of_week,
         start_time: data.start_time + ':00',
         end_time: data.end_time + ':00',
+        location_id: data.location_id,
+        employee_id: data.employee_id || null,
+        notes: data.notes || null,
       };
       
       await onAdd(formattedData);
@@ -239,7 +243,7 @@ export function AddShiftTemplateDialog({
                   <FormLabel>Assigned Staff (Optional)</FormLabel>
                   <Select
                     value={field.value || ""}
-                    onValueChange={(value) => field.onChange(value || null)}
+                    onValueChange={(value) => field.onChange(value === "none" ? null : value)}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -247,7 +251,7 @@ export function AddShiftTemplateDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {staffMembers.map((staff) => (
                         <SelectItem key={staff.id} value={staff.id}>
                           {staff.first_name} {staff.last_name}
