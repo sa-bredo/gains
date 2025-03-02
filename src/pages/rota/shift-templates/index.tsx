@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
 import { ShiftTemplatesTable } from './components/shift-templates-table';
 import { AddShiftTemplateDialog } from './components/add-shift-template-dialog';
-import { ShiftTemplate, Location, StaffMember } from './types';
+import { ShiftTemplate, Location, StaffMember, ShiftTemplateFormValues } from './types';
 import {
   Select,
   SelectContent,
@@ -23,7 +23,6 @@ export default function ShiftTemplatesPage() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Parse query parameters
   const queryParams = new URLSearchParams(location.search);
   const locationId = queryParams.get('location');
   const versionParam = queryParams.get('version');
@@ -41,7 +40,6 @@ export default function ShiftTemplatesPage() {
   const [selectedVersion, setSelectedVersion] = useState<number | null>(version);
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
 
-  // Fetch shift templates
   const fetchShiftTemplates = async () => {
     try {
       setIsLoading(true);
@@ -55,12 +53,10 @@ export default function ShiftTemplatesPage() {
         `)
         .order('day_of_week', { ascending: true });
       
-      // Filter by location if selected
       if (selectedLocationId) {
         query = query.eq('location_id', selectedLocationId);
       }
       
-      // Filter by version if selected
       if (selectedVersion) {
         query = query.eq('version', selectedVersion);
       }
@@ -71,7 +67,6 @@ export default function ShiftTemplatesPage() {
         throw error;
       }
       
-      // Ensure the data conforms to our ShiftTemplate type
       setShiftTemplates(data as ShiftTemplate[] || []);
     } catch (error) {
       console.error('Error fetching shift templates:', error);
@@ -85,7 +80,6 @@ export default function ShiftTemplatesPage() {
     }
   };
 
-  // Fetch locations
   const fetchLocations = async () => {
     try {
       const { data, error } = await supabase
@@ -99,13 +93,11 @@ export default function ShiftTemplatesPage() {
       
       setLocations(data || []);
       
-      // Find the current location for display
       if (selectedLocationId) {
         const currentLoc = data?.find(loc => loc.id === selectedLocationId) || null;
         setCurrentLocation(currentLoc);
       }
       
-      // Set the first location as selected if none is selected and there are locations
       if (!selectedLocationId && data && data.length > 0) {
         setSelectedLocationId(data[0].id);
       }
@@ -119,7 +111,6 @@ export default function ShiftTemplatesPage() {
     }
   };
 
-  // Fetch staff members
   const fetchStaffMembers = async () => {
     try {
       const { data, error } = await supabase
@@ -143,7 +134,6 @@ export default function ShiftTemplatesPage() {
     }
   };
 
-  // Load initial data
   useEffect(() => {
     Promise.all([
       fetchLocations(),
@@ -152,27 +142,22 @@ export default function ShiftTemplatesPage() {
       fetchShiftTemplates();
     });
     
-    // Open the add dialog if this is a new template
     if (isNewTemplate) {
       setIsDialogOpen(true);
     }
   }, [selectedLocationId, selectedVersion, isNewTemplate]);
 
-  // Add a new shift template
   const addShiftTemplate = async (templateData: ShiftTemplateFormValues): Promise<void> => {
     try {
       setIsUpdating(true);
       
-      // If no location is selected, use the selected location ID
       const dataToAdd = {
         ...templateData,
         location_id: templateData.location_id || selectedLocationId,
         version: selectedVersion || 1,
-        // Ensure name is not undefined - provide a default
         name: templateData.name || `${templateData.day_of_week} ${templateData.start_time}-${templateData.end_time}`
       };
       
-      // Remove any joined fields before sending to Supabase
       const { locations, employees, ...dataToInsert } = dataToAdd as any;
       
       const { data, error } = await supabase
@@ -203,12 +188,10 @@ export default function ShiftTemplatesPage() {
     }
   };
 
-  // Update a shift template
   const updateShiftTemplate = async (id: string, templateData: Partial<ShiftTemplate>) => {
     try {
       setIsUpdating(true);
       
-      // Remove any joined fields before sending to Supabase
       const { locations, employees, ...dataToUpdate } = templateData;
       
       const { error } = await supabase
@@ -239,7 +222,6 @@ export default function ShiftTemplatesPage() {
     }
   };
 
-  // Delete a shift template
   const deleteShiftTemplate = async (id: string) => {
     try {
       setIsUpdating(true);
@@ -270,12 +252,10 @@ export default function ShiftTemplatesPage() {
     }
   };
 
-  // Clone a shift template
   const cloneShiftTemplate = async (template: ShiftTemplate) => {
     try {
       setIsUpdating(true);
       
-      // Extract only the needed fields and avoid including joined data
       const clonedTemplate = {
         name: `Copy of ${template.name || ''}`.trim() || `Copy of ${template.day_of_week} ${template.start_time}-${template.end_time}`,
         day_of_week: template.day_of_week,
@@ -284,7 +264,7 @@ export default function ShiftTemplatesPage() {
         location_id: template.location_id,
         employee_id: template.employee_id,
         notes: template.notes,
-        version: template.version, // Keep the same version
+        version: template.version,
       };
       
       const { data, error } = await supabase
@@ -314,12 +294,10 @@ export default function ShiftTemplatesPage() {
     }
   };
 
-  // Handle going back to the master page
   const handleBackToMaster = () => {
     navigate('/rota/shift-templates-master');
   };
 
-  // Build page title
   const getPageTitle = () => {
     if (currentLocation && selectedVersion) {
       return `${currentLocation.name} Templates (v${selectedVersion})`;
@@ -386,8 +364,7 @@ export default function ShiftTemplatesPage() {
               onOpenChange={setIsDialogOpen}
               onAdd={addShiftTemplate}
               locations={locations}
-              staffMembers={staffMembers}
-              preselectedLocationId={selectedLocationId}
+              selectedLocationId={selectedLocationId}
             />
           </div>
         </SidebarInset>
