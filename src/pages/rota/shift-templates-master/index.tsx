@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -25,70 +24,55 @@ export default function ShiftTemplatesMasterPage() {
     try {
       setIsLoading(true);
       
-      // Get templates grouped by location with the latest version
-      const { data, error } = await supabase
-        .rpc('get_shift_template_masters');
-      
-      if (error) {
-        throw error;
-      }
-      
-      setTemplateMasters(data || []);
-    } catch (error) {
-      console.error('Error fetching shift template masters:', error);
-      toast({
-        title: "Failed to load shift template masters",
-        description: "There was a problem loading the template data.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Fallback fetch in case the RPC doesn't exist yet
-  const fetchShiftTemplateMastersFallback = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Alternative approach using a complex query
-      // This fetches templates, gets the max version per location, and counts templates
+      // Using raw query instead of RPC to avoid TypeScript issues
       const { data, error } = await supabase
         .from('shift_templates')
         .select(`
           location_id,
           locations:location_id (id, name),
+          version,
           created_at
         `)
-        .order('created_at', { ascending: false });
+        .order('version', { ascending: false });
       
       if (error) {
         throw error;
       }
       
-      // Process the data to group by location
-      const locationMap = new Map();
+      // Process the data to group by location with the latest version
+      const locationMap = new Map<string, ShiftTemplateMaster>();
       
       data?.forEach(template => {
         const locationId = template.location_id;
-        const existingLocation = locationMap.get(locationId);
-        
-        if (!existingLocation) {
+        if (!locationMap.has(locationId)) {
           locationMap.set(locationId, {
             location_id: locationId,
             location_name: template.locations?.name || 'Unknown',
-            latest_version: 1, // Default to 1 for now
-            template_count: 1,
+            latest_version: template.version,
+            template_count: 1, // Will be updated later
             created_at: template.created_at,
           });
-        } else {
-          existingLocation.template_count += 1;
         }
       });
       
+      // Get the count of templates for each location+version combination
+      if (locationMap.size > 0) {
+        for (const [locationId, master] of locationMap.entries()) {
+          const { data: templateCount, error: countError } = await supabase
+            .from('shift_templates')
+            .select('id', { count: 'exact' })
+            .eq('location_id', locationId)
+            .eq('version', master.latest_version);
+          
+          if (!countError && templateCount !== null) {
+            master.template_count = templateCount.length;
+          }
+        }
+      }
+      
       setTemplateMasters(Array.from(locationMap.values()));
     } catch (error) {
-      console.error('Error fetching shift template masters fallback:', error);
+      console.error('Error fetching shift template masters:', error);
       toast({
         title: "Failed to load shift template masters",
         description: "There was a problem loading the template data.",
@@ -125,12 +109,7 @@ export default function ShiftTemplatesMasterPage() {
   // Load initial data
   useEffect(() => {
     fetchLocations();
-    
-    // Try the RPC method first, fallback to the complex query
-    fetchShiftTemplateMasters().catch(() => {
-      console.log('Falling back to manual template master calculation');
-      fetchShiftTemplateMastersFallback();
-    });
+    fetchShiftTemplateMasters();
   }, []);
 
   // Handle going to template details
