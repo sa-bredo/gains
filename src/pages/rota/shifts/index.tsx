@@ -74,12 +74,9 @@ function ShiftsPage() {
       <AddShiftDialog
         open={isAddShiftDialogOpen}
         onOpenChange={setIsAddShiftDialogOpen}
-        onAddComplete={(newShift) => {
-          // If a new shift was created, add it to our shifts state
-          if (newShift) {
-            setShifts([...shifts, newShift]);
-          }
+        onAddComplete={() => {
           // The query will be invalidated and refetched automatically
+          // We don't use the newShift parameter since the type expects a function with no args
         }}
       />
     </div>
