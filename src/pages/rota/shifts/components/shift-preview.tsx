@@ -57,8 +57,11 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting }: ShiftPrev
   const hasConflicts = shifts.some(shift => shift.hasConflict);
 
   // Group shifts by week to apply alternating background colors
-  const getWeekForDate = (date: Date) => {
-    return startOfWeek(date, { weekStartsOn: 1 }).toISOString();
+  const getWeekNumber = (date: Date) => {
+    // Get the ISO week number for consistent week identification
+    const startOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date.getTime() - startOfYear.getTime()) / 86400000;
+    return Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
   };
 
   return (
@@ -115,16 +118,15 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting }: ShiftPrev
                 </TableCell>
               </TableRow>
             ) : (
-              shifts.map((shift, index, allShifts) => {
-                // Determine if current shift is in a different week than the previous one
-                const currentWeek = getWeekForDate(shift.date);
-                const previousShift = index > 0 ? allShifts[index - 1] : null;
-                const previousWeek = previousShift ? getWeekForDate(previousShift.date) : null;
+              shifts.map((shift, index) => {
+                // Get the week number for the current shift
+                const weekNum = getWeekNumber(shift.date);
                 
-                // Apply alternating background colors for weeks
-                const isEvenWeek = previousWeek !== currentWeek && 
-                  allShifts.filter((_, i) => i < index)
-                    .filter(s => getWeekForDate(s.date) !== currentWeek).length % 2 === 0;
+                // Determine background color based on week number
+                // Week 1, 3, 5, etc. (odd weeks) - light blue
+                // Week 2, 4, 6, etc. (even weeks) - white
+                const isOddWeek = weekNum % 2 === 1;
+                const weekBackgroundColor = isOddWeek ? 'bg-sky-50' : ''; // Light blue for odd weeks
                 
                 return (
                   <TableRow 
@@ -132,9 +134,7 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting }: ShiftPrev
                     className={
                       shift.hasConflict 
                         ? 'bg-yellow-50' 
-                        : isEvenWeek 
-                          ? 'bg-sky-50' // Light blue background for even weeks
-                          : undefined
+                        : weekBackgroundColor
                     }
                   >
                     <TableCell className="font-medium text-left">
