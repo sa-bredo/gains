@@ -1,11 +1,17 @@
 
 import {
-  Heart,
-  Search,
-  Lightbulb,
   Activity,
+  BarChart,
   Calendar,
+  DollarSign,
+  FileText,
+  Heart,
+  Lightbulb,
+  ListTodo,
+  Search,
   Settings,
+  Briefcase,
+  Users,
 } from "lucide-react";
 import { NavItem } from "./types";
 
@@ -32,8 +38,53 @@ export const navMain: NavItem[] = [
     ],
   },
   {
+    title: "Tasks",
+    url: "/tasks",
+    icon: ListTodo,
+    items: [
+      {
+        title: "My Tasks",
+        url: "/tasks",
+      },
+      {
+        title: "Assigned Tasks",
+        url: "/tasks/assigned",
+      },
+    ],
+  },
+  {
+    title: "Documents",
+    url: "/document-signing",
+    icon: FileText,
+    items: [
+      {
+        title: "Templates",
+        url: "/document-signing",
+      },
+      {
+        title: "Sent Documents",
+        url: "/document-signing/sent",
+      },
+    ],
+  },
+  {
+    title: "Financials",
+    url: "/financials/transactions",
+    icon: DollarSign,
+    items: [
+      {
+        title: "Transactions",
+        url: "/financials/transactions",
+      },
+      {
+        title: "GoCardless",
+        url: "/financials/transactions-gocardless",
+      },
+    ],
+  },
+  {
     title: "Rota",
-    url: "/rota",
+    url: "/rota/shifts",
     icon: Calendar,
     items: [
       {
@@ -45,6 +96,30 @@ export const navMain: NavItem[] = [
         url: "/rota/shift-templates-master",
       },
     ],
+  },
+  {
+    title: "Payroll",
+    url: "/payroll",
+    icon: DollarSign,
+    items: [],
+  },
+  {
+    title: "Analytics",
+    url: "/analytics",
+    icon: BarChart,
+    items: [],
+  },
+  {
+    title: "Operations",
+    url: "/operations",
+    icon: Briefcase,
+    items: [],
+  },
+  {
+    title: "Team",
+    url: "/team",
+    icon: Users,
+    items: [],
   },
   {
     title: "Settings",
