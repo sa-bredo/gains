@@ -94,6 +94,10 @@ export const navMain: NavItem[] = [
         url: "/rota/schedule",
       },
       {
+        title: "Shifts",
+        url: "/rota/shifts",
+      },
+      {
         title: "Staff",
         url: "/rota/staff",
       },

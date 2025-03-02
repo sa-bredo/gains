@@ -17,7 +17,7 @@ export interface StaffMember {
 
 export interface ShiftTemplate {
   id: string;
-  name: string;
+  name?: string | null;
   day_of_week: string;
   start_time: string;
   end_time: string;
@@ -28,6 +28,23 @@ export interface ShiftTemplate {
   
   // Join fields from the Supabase query - make these optional since they are from joins
   locations?: Location;
+  employees?: StaffMember | null;
+}
+
+export interface Shift {
+  id: string;
+  name: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  location_id: string | null;
+  employee_id: string | null;
+  status: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  
+  // Join fields
+  locations?: Location | null;
   employees?: StaffMember | null;
 }
 

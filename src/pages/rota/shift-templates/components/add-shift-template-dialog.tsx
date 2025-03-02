@@ -34,7 +34,7 @@ import { toast } from 'sonner';
 
 // Form schema
 const formSchema = z.object({
-  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }).optional(),
   day_of_week: z.enum(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], {
     errorMap: () => ({ message: 'Please select a day of the week.' }),
   }),
@@ -70,7 +70,7 @@ export function AddShiftTemplateDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: '',
+      name: `Shift ${new Date().toISOString().slice(0, 10)}`,
       day_of_week: 'Monday',
       start_time: '09:00',
       end_time: '17:00',
@@ -84,7 +84,7 @@ export function AddShiftTemplateDialog({
   React.useEffect(() => {
     if (open) {
       form.reset({
-        name: '',
+        name: `Shift ${new Date().toISOString().slice(0, 10)}`,
         day_of_week: 'Monday',
         start_time: '09:00',
         end_time: '17:00',
@@ -102,7 +102,7 @@ export function AddShiftTemplateDialog({
       
       // Format the times with seconds
       const formattedData = {
-        name: data.name,
+        name: data.name || `${data.day_of_week} ${data.start_time}-${data.end_time}`,
         day_of_week: data.day_of_week,
         start_time: data.start_time + ':00',
         end_time: data.end_time + ':00',
@@ -133,19 +133,22 @@ export function AddShiftTemplateDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Morning Shift" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Name field is hidden but still in the form for data purposes */}
+            <div className="hidden">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Morning Shift" {...field} value={field.value || ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
