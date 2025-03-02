@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from '@/components/ui/button';
-import { PlusIcon, Calendar } from 'lucide-react';
+import { PlusIcon } from 'lucide-react';
+import { CalendarIcon } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
 import { ShiftsTable } from './components/shifts-table';
@@ -222,7 +222,7 @@ export default function ShiftsPage() {
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="ml-2 gap-2">
-                      <Calendar className="h-4 w-4" />
+                      <CalendarIcon className="h-4 w-4" />
                       {selectedDate ? format(selectedDate, 'MMM dd, yyyy') : 'Select date'}
                     </Button>
                   </PopoverTrigger>

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ShiftTemplate, Location, StaffMember, DAYS_OF_WEEK } from '../types';
+import { ShiftTemplate, Location, StaffMember, DAYS_OF_WEEK, DayOfWeek } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Copy, Trash2, Clock, CalendarIcon, User, Save, X, MoreVertical, Edit, Check } from 'lucide-react';
@@ -68,7 +68,7 @@ export function ShiftTemplatesTable({
     setEditingRow(template.id);
     setEditData({
       name: template.name,
-      day_of_week: template.day_of_week,
+      day_of_week: template.day_of_week as DayOfWeek,
       start_time: template.start_time,
       end_time: template.end_time,
       location_id: template.location_id,
@@ -157,8 +157,8 @@ export function ShiftTemplatesTable({
 
   // Sort templates by day of week
   const sortedTemplates = [...filteredTemplates].sort((a, b) => {
-    const dayA = DAYS_OF_WEEK.indexOf(a.day_of_week);
-    const dayB = DAYS_OF_WEEK.indexOf(b.day_of_week);
+    const dayA = DAYS_OF_WEEK.indexOf(a.day_of_week as DayOfWeek);
+    const dayB = DAYS_OF_WEEK.indexOf(b.day_of_week as DayOfWeek);
     return dayA - dayB;
   });
 
