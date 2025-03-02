@@ -48,14 +48,14 @@ export function AddShiftDialog({
 
   useEffect(() => {
     if (open) {
-      fetchLocations(currentCompany?.id || null);
+      fetchLocations();
       fetchStaffMembers();
     }
   }, [open, fetchLocations, fetchStaffMembers, currentCompany]);
 
   useEffect(() => {
     const loadLocations = async () => {
-      const locationsData = await fetchLocations(currentCompany?.id || null);
+      const locationsData = await fetchLocations();
       setLocations(locationsData);
     };
 
