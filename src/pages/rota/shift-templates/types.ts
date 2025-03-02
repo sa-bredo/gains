@@ -1,4 +1,3 @@
-
 export interface Location {
   id: string;
   name: string;
@@ -36,7 +35,6 @@ export interface ShiftTemplateMaster {
   location_id: string;
   location_name: string;
   latest_version: number;
-  template_count: number;
   created_at: string;
 }
 

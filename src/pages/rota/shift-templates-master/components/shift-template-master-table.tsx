@@ -48,7 +48,6 @@ export function ShiftTemplateMasterTable({
             <TableRow>
               <TableHead className="text-left">Location</TableHead>
               <TableHead className="text-left">Latest Version</TableHead>
-              <TableHead className="text-left">Templates</TableHead>
               <TableHead className="text-left">Created</TableHead>
               <TableHead className="w-[100px]"></TableHead>
             </TableRow>
@@ -56,14 +55,14 @@ export function ShiftTemplateMasterTable({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={4} className="h-24 text-center">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : templateMasters.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  No shift template sets found. Create a new template set to get started.
+                <TableCell colSpan={4} className="h-24 text-center">
+                  No shift templates found. Create a new template to get started.
                 </TableCell>
               </TableRow>
             ) : (
@@ -71,7 +70,6 @@ export function ShiftTemplateMasterTable({
                 <TableRow key={`${master.location_id}-${master.latest_version}`}>
                   <TableCell className="font-medium">{master.location_name}</TableCell>
                   <TableCell>v{master.latest_version}</TableCell>
-                  <TableCell>{master.template_count} templates</TableCell>
                   <TableCell>{formatDate(master.created_at)}</TableCell>
                   <TableCell>
                     <TooltipProvider>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -49,32 +50,16 @@ export default function ShiftTemplatesMasterPage() {
             location_id: locationId,
             location_name: template.locations?.name || 'Unknown',
             latest_version: template.version,
-            template_count: 1, // Will be updated later
             created_at: template.created_at,
           });
         }
       });
       
-      // Get the count of templates for each location+version combination
-      if (locationMap.size > 0) {
-        for (const [locationId, master] of locationMap.entries()) {
-          const { data: templateCount, error: countError } = await supabase
-            .from('shift_templates')
-            .select('id', { count: 'exact' })
-            .eq('location_id', locationId)
-            .eq('version', master.latest_version);
-          
-          if (!countError && templateCount !== null) {
-            master.template_count = templateCount.length;
-          }
-        }
-      }
-      
       setTemplateMasters(Array.from(locationMap.values()));
     } catch (error) {
       console.error('Error fetching shift template masters:', error);
       toast({
-        title: "Failed to load shift template masters",
+        title: "Failed to load shift templates",
         description: "There was a problem loading the template data.",
         variant: "destructive",
       });
@@ -136,14 +121,14 @@ export default function ShiftTemplatesMasterPage() {
           </header>
           <div className="container mx-auto p-6">
             <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold">Shift Template Sets</h1>
+              <h1 className="text-3xl font-bold">Shift Templates</h1>
               <Button 
                 onClick={() => setIsDialogOpen(true)}
                 className="flex items-center gap-2"
                 disabled={locations.length === 0}
               >
                 <PlusIcon className="h-4 w-4" />
-                New Shift Template Set
+                New Shift Template
               </Button>
             </div>
 
