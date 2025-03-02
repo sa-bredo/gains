@@ -71,7 +71,7 @@ export const fetchTemplatesForLocationAndVersion = async (
     ...template,
     employees: template.employees ? {
       ...template.employees,
-      // Add required fields with default values if missing
+      // Ensure all required fields are present, using defaults if needed
       role: template.employees.role || '',
       email: template.employees.email || ''
     } : null

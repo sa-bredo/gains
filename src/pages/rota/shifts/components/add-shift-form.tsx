@@ -86,19 +86,9 @@ export function AddShiftForm({
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        setIsLoading(true);
-        
-        const [locationsData, mastersData] = await Promise.all([
-          fetchLocations(),
-          fetchTemplateMasters(),
-        ]);
-        
-        setLocations(locationsData);
-        setTemplateMasters(mastersData);
-        
         if (defaultLocationId) {
           form.setValue('location_id', defaultLocationId);
-          const filteredMasters = mastersData.filter(master => master.location_id === defaultLocationId);
+          const filteredMasters = templateMasters.filter(master => master.location_id === defaultLocationId);
           setFilteredMasters(filteredMasters);
           
           if (filteredMasters.length > 0) {
@@ -113,21 +103,18 @@ export function AddShiftForm({
           description: 'Failed to load form data. Please try again.',
           variant: 'destructive',
         });
-      } finally {
-        setIsLoading(false);
       }
     };
     
     loadInitialData();
-  }, [defaultLocationId]);
+  }, [defaultLocationId, templateMasters, form]);
 
   const loadTemplatesAndDates = async (locationId: string, version: number) => {
     try {
-      const templates = await fetchTemplatesForLocationAndVersion(locationId, version);
-      setTemplates(templates);
+      const templatesData = await fetchTemplatesForLocationAndVersion(locationId, version);
       
-      if (templates.length > 0) {
-        const sortedTemplates = [...templates].sort((a, b) => {
+      if (templatesData.length > 0) {
+        const sortedTemplates = [...templatesData].sort((a, b) => {
           const dayOrder = { 
             'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 
             'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 7 
@@ -191,7 +178,7 @@ export function AddShiftForm({
     onVersionChange(version);
   };
 
-  const onSubmit = (data: AddShiftFormValues) => {
+  const onLocalSubmit = (data: AddShiftFormValues) => {
     if (templates.length === 0) {
       toast({
         title: 'No Templates',

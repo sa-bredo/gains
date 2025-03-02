@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -22,6 +21,8 @@ import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddShiftForm } from './components/add-shift-form';
+import { AddShiftFormValues } from './components/add-shift-form-schema';
+import { fetchTemplatesForLocationAndVersion } from './services/shift-service';
 
 export default function ShiftsPage() {
   const { toast } = useToast();
@@ -170,6 +171,29 @@ export default function ShiftsPage() {
     });
   };
 
+  // Handle template version change for AddShiftForm
+  const handleVersionChange = async (version: number) => {
+    if (selectedLocationId) {
+      try {
+        const templatesData = await fetchTemplatesForLocationAndVersion(selectedLocationId, version);
+        // Do something with templatesData if needed
+      } catch (error) {
+        console.error('Error handling version change:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load templates for the selected version.',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+
+  // Mock function for onSubmit until real functionality is implemented
+  const handleFormSubmit = (data: AddShiftFormValues) => {
+    console.log('Form submitted:', data);
+    // Implementation will depend on how the form should behave
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -261,6 +285,15 @@ export default function ShiftsPage() {
                   <AddShiftForm 
                     onAddComplete={handleAddShiftComplete} 
                     defaultLocationId={selectedLocationId || undefined}
+                    locations={locations}
+                    templates={[]} // Initialize with empty array
+                    templateMasters={[]} // Initialize with empty array
+                    onSubmit={handleFormSubmit}
+                    onCancel={() => setActiveTab("view")}
+                    isLoading={isLoading}
+                    error={null}
+                    onLocationChange={(locationId) => setSelectedLocationId(locationId)}
+                    onVersionChange={handleVersionChange}
                   />
                 )}
               </TabsContent>
