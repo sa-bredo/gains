@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { LocationsTable } from "./components/locations-table";
 import { AddLocationDialog } from "./components/add-location-dialog";
 import { Location } from "./types";
@@ -123,6 +124,9 @@ export default function LocationsPage() {
           <div className="container mx-auto p-6">
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-3xl font-bold">Locations</h1>
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                Add Location
+              </Button>
               <AddLocationDialog 
                 open={isAddDialogOpen}
                 onOpenChange={setIsAddDialogOpen}
