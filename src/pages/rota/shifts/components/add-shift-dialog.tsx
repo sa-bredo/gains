@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Location, ShiftTemplate, ShiftTemplateMaster, StaffMember } from '../../shift-templates/types';
 import { Button } from '@/components/ui/button';
@@ -42,6 +41,17 @@ const DAY_NAME_TO_NUMBER: Record<string, number> = {
   Thursday: 4,
   Friday: 5,
   Saturday: 6
+};
+
+// Day order for sorting
+const DAY_ORDER = {
+  'Monday': 1,
+  'Tuesday': 2,
+  'Wednesday': 3,
+  'Thursday': 4,
+  'Friday': 5,
+  'Saturday': 6,
+  'Sunday': 7
 };
 
 // Form schema
@@ -275,7 +285,7 @@ export function AddShiftDialog({
     return addDays(fromDate, daysToAdd);
   };
 
-  // Generate start date options for the next 8 weeks based on template days
+  // Generate start date options only for the first day of the week from templates
   const generateStartDateOptions = () => {
     if (selectedLocationTemplates.length === 0) return [];
     
@@ -283,32 +293,28 @@ export function AddShiftDialog({
     const daysOfWeek = [...new Set(selectedLocationTemplates.map(t => t.day_of_week))];
     if (daysOfWeek.length === 0) return [];
     
+    // Sort days of week by DAY_ORDER
+    daysOfWeek.sort((a, b) => DAY_ORDER[a] - DAY_ORDER[b]);
+    
+    // Get only the first day of the week from the templates
+    const firstDay = daysOfWeek[0];
+    
     const today = new Date();
     const options: {value: string, label: string}[] = [];
     
-    // For each day of the week in templates
-    for (const day of daysOfWeek) {
-      // Find the next occurrence from today
-      let currentDate = findNextDayOccurrence(today, day);
-      
-      // Add the next 8 occurrences
-      for (let i = 0; i < 8; i++) {
-        options.push({
-          value: format(currentDate, 'yyyy-MM-dd'),
-          label: `${day}, ${format(currentDate, 'dd MMM yyyy')}`
-        });
-        
-        // Add 7 days to get to the next occurrence of this day
-        currentDate = addDays(currentDate, 7);
-      }
-    }
+    // Find the next occurrence of the first day from today
+    let currentDate = findNextDayOccurrence(today, firstDay);
     
-    // Sort by date
-    options.sort((a, b) => {
-      const dateA = parse(a.value, 'yyyy-MM-dd', new Date());
-      const dateB = parse(b.value, 'yyyy-MM-dd', new Date());
-      return dateA.getTime() - dateB.getTime();
-    });
+    // Add the next 8 occurrences of this first day
+    for (let i = 0; i < 8; i++) {
+      options.push({
+        value: format(currentDate, 'yyyy-MM-dd'),
+        label: `${firstDay}, ${format(currentDate, 'dd MMM yyyy')}`
+      });
+      
+      // Add 7 days to get to the next occurrence of this day
+      currentDate = addDays(currentDate, 7);
+    }
     
     return options;
   };
@@ -460,7 +466,7 @@ export function AddShiftDialog({
         <DialogHeader>
           <DialogTitle>Add Shifts</DialogTitle>
           <DialogDescription>
-            Create shifts based on templates. Select a location, version and dates to apply.
+            Create shifts based on templates. Select a location and version to apply shifts starting from the first day of the template.
           </DialogDescription>
         </DialogHeader>
 
