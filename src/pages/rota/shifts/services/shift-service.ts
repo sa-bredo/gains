@@ -1,3 +1,4 @@
+
 import { format, parse, addDays, addWeeks, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { Location, ShiftTemplate, ShiftTemplateMaster, StaffMember } from '../../shift-templates/types';
@@ -309,7 +310,7 @@ export const formatShiftsForCreation = (shifts: ShiftPreviewItem[]) => {
     start_time: shift.start_time,
     end_time: shift.end_time,
     location_id: shift.location_id,
-    employee_id: shift.employee_id,
+    employee_id: shift.employee_id, // Ensure employee_id is included
     name: `${shift.day_of_week} Shift`, // We still use day_of_week for the name
     status: 'scheduled' // Adding a default status
   }));

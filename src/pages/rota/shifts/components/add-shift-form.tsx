@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -89,8 +90,10 @@ export function AddShiftForm({
           setFilteredMasters(filteredMasters);
           
           if (filteredMasters.length > 0) {
-            form.setValue('version', filteredMasters[0].version);
-            await loadTemplatesAndDates(defaultLocationId, filteredMasters[0].version);
+            // Set version to the latest one (assuming they're sorted with most recent first)
+            const latestVersion = filteredMasters[0].version;
+            form.setValue('version', latestVersion);
+            await loadTemplatesAndDates(defaultLocationId, latestVersion);
           }
         }
       } catch (error) {
@@ -165,7 +168,13 @@ export function AddShiftForm({
     const filtered = templateMasters.filter(master => master.location_id === locationId);
     setFilteredMasters(filtered);
     
-    form.setValue('version', filtered.length > 0 ? filtered[0].version : 0);
+    // Set version to the latest one if available
+    if (filtered.length > 0) {
+      form.setValue('version', filtered[0].version);
+    } else {
+      form.setValue('version', 0);
+    }
+    
     form.setValue('start_date', '');
     
     onLocationChange(locationId);

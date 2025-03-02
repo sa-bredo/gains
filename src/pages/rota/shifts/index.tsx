@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -36,6 +35,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+
+interface DateRange {
+  from: Date;
+  to?: Date;
+}
 
 export default function ShiftsPage() {
   const { toast } = useToast();
@@ -190,7 +194,7 @@ export default function ShiftsPage() {
     setEndDate(newEndDate);
   };
 
-  const handleDateRangeSelect = (range: { from: Date; to: Date | undefined }) => {
+  const handleDateRangeSelect = (range: DateRange) => {
     if (range.from) {
       setStartDate(range.from);
       if (range.to) {

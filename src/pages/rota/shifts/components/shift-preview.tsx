@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
+import { format, addDays, startOfWeek, isSameWeek } from 'date-fns';
 import { AlertTriangle, Save, ArrowLeft } from 'lucide-react';
 
 export interface ShiftPreviewItem {
@@ -55,6 +55,11 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting }: ShiftPrev
   
   // Check if any shifts have conflicts
   const hasConflicts = shifts.some(shift => shift.hasConflict);
+
+  // Group shifts by week to apply alternating background colors
+  const getWeekForDate = (date: Date) => {
+    return startOfWeek(date, { weekStartsOn: 1 }).toISOString();
+  };
 
   return (
     <div className="space-y-4">
@@ -110,35 +115,53 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting }: ShiftPrev
                 </TableCell>
               </TableRow>
             ) : (
-              shifts.map((shift, index) => (
-                <TableRow 
-                  key={index}
-                  className={shift.hasConflict ? 'bg-yellow-50' : undefined}
-                >
-                  <TableCell className="font-medium">
-                    {format(shift.date, 'EEE, MMM d, yyyy')}
-                  </TableCell>
-                  <TableCell>{shift.day_of_week}</TableCell>
-                  <TableCell>{formatTime(shift.start_time)}</TableCell>
-                  <TableCell>{formatTime(shift.end_time)}</TableCell>
-                  <TableCell>
-                    {shift.employee_name || 'Unassigned'}
-                  </TableCell>
-                  <TableCell>{shift.location_name}</TableCell>
-                  <TableCell>
-                    {shift.hasConflict ? (
-                      <div className="flex items-center gap-1 text-yellow-600">
-                        <AlertTriangle className="h-4 w-4" />
-                        <span>Conflict</span>
-                      </div>
-                    ) : (
-                      <span className="inline-flex items-center justify-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-                        New
-                      </span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
+              shifts.map((shift, index, allShifts) => {
+                // Determine if current shift is in a different week than the previous one
+                const currentWeek = getWeekForDate(shift.date);
+                const previousShift = index > 0 ? allShifts[index - 1] : null;
+                const previousWeek = previousShift ? getWeekForDate(previousShift.date) : null;
+                
+                // Apply alternating background colors for weeks
+                const isEvenWeek = previousWeek !== currentWeek && 
+                  allShifts.filter((_, i) => i < index)
+                    .filter(s => getWeekForDate(s.date) !== currentWeek).length % 2 === 0;
+                
+                return (
+                  <TableRow 
+                    key={index}
+                    className={
+                      shift.hasConflict 
+                        ? 'bg-yellow-50' 
+                        : isEvenWeek 
+                          ? 'bg-sky-50' // Light blue background for even weeks
+                          : undefined
+                    }
+                  >
+                    <TableCell className="font-medium text-left">
+                      {format(shift.date, 'EEE, MMM d, yyyy')}
+                    </TableCell>
+                    <TableCell className="text-left">{shift.day_of_week}</TableCell>
+                    <TableCell className="text-left">{formatTime(shift.start_time)}</TableCell>
+                    <TableCell className="text-left">{formatTime(shift.end_time)}</TableCell>
+                    <TableCell className="text-left">
+                      {shift.employee_name || 'Unassigned'}
+                    </TableCell>
+                    <TableCell className="text-left">{shift.location_name}</TableCell>
+                    <TableCell className="text-left">
+                      {shift.hasConflict ? (
+                        <div className="flex items-center gap-1 text-yellow-600">
+                          <AlertTriangle className="h-4 w-4" />
+                          <span>Conflict</span>
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center justify-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                          New
+                        </span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
