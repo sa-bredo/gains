@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { ShiftTemplate, Location, StaffMember, DAYS_OF_WEEK } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Copy, Trash2, Clock, CalendarIcon, MapPin, User, Save, X } from 'lucide-react';
+import { Copy, Trash2, Clock, CalendarIcon, MapPin, User, Save, X, MoreVertical, Edit, Check } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -26,6 +26,12 @@ import {
   DropdownMenuTrigger, 
   DropdownMenuItem 
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 
 interface ShiftTemplatesTableProps {
@@ -154,7 +160,7 @@ export function ShiftTemplatesTable({
               <TableHead>Location</TableHead>
               <TableHead>Staff</TableHead>
               <TableHead>Notes</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -182,7 +188,12 @@ export function ShiftTemplatesTable({
                         onChange={(e) => handleChange('name', e.target.value)} 
                       />
                     ) : (
-                      <span className="font-medium">{template.name}</span>
+                      <div 
+                        className="cursor-pointer hover:bg-muted/20 p-2 rounded flex items-center" 
+                        onClick={() => startEditing(template)}
+                      >
+                        <span className="font-medium">{template.name}</span>
+                      </div>
                     )}
                   </TableCell>
                   
@@ -203,7 +214,10 @@ export function ShiftTemplatesTable({
                         </SelectContent>
                       </Select>
                     ) : (
-                      <div className="flex items-center gap-2">
+                      <div 
+                        className="cursor-pointer hover:bg-muted/20 p-2 rounded flex items-center gap-2" 
+                        onClick={() => startEditing(template)}
+                      >
                         <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                         {template.day_of_week}
                       </div>
@@ -220,7 +234,10 @@ export function ShiftTemplatesTable({
                         onChange={(e) => handleChange('start_time', e.target.value + ':00')} 
                       />
                     ) : (
-                      <div className="flex items-center gap-2">
+                      <div 
+                        className="cursor-pointer hover:bg-muted/20 p-2 rounded flex items-center gap-2" 
+                        onClick={() => startEditing(template)}
+                      >
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         {formatTime(template.start_time)}
                       </div>
@@ -237,7 +254,10 @@ export function ShiftTemplatesTable({
                         onChange={(e) => handleChange('end_time', e.target.value + ':00')} 
                       />
                     ) : (
-                      <div className="flex items-center gap-2">
+                      <div 
+                        className="cursor-pointer hover:bg-muted/20 p-2 rounded flex items-center gap-2" 
+                        onClick={() => startEditing(template)}
+                      >
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         {formatTime(template.end_time)}
                       </div>
@@ -261,7 +281,10 @@ export function ShiftTemplatesTable({
                         </SelectContent>
                       </Select>
                     ) : (
-                      <div className="flex items-center gap-2">
+                      <div 
+                        className="cursor-pointer hover:bg-muted/20 p-2 rounded flex items-center gap-2" 
+                        onClick={() => startEditing(template)}
+                      >
                         <MapPin className="h-4 w-4 text-muted-foreground" />
                         {template.locations?.name || '—'}
                       </div>
@@ -288,7 +311,10 @@ export function ShiftTemplatesTable({
                         </SelectContent>
                       </Select>
                     ) : (
-                      <div className="flex items-center gap-2">
+                      <div 
+                        className="cursor-pointer hover:bg-muted/20 p-2 rounded flex items-center gap-2" 
+                        onClick={() => startEditing(template)}
+                      >
                         <User className="h-4 w-4 text-muted-foreground" />
                         {getStaffName(template)}
                       </div>
@@ -305,60 +331,79 @@ export function ShiftTemplatesTable({
                         placeholder="Add notes (optional)"
                       />
                     ) : (
-                      <span className="text-sm">{template.notes || '—'}</span>
+                      <div 
+                        className="cursor-pointer hover:bg-muted/20 p-2 rounded flex items-center" 
+                        onClick={() => startEditing(template)}
+                      >
+                        <span className="text-sm">{template.notes || '—'}</span>
+                      </div>
                     )}
                   </TableCell>
                   
                   {/* Actions */}
-                  <TableCell className="text-right">
+                  <TableCell>
                     {editingRow === template.id ? (
                       <div className="flex justify-end gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => saveEdits(template.id)}
-                          title="Save changes"
-                        >
-                          <Save className="h-4 w-4" />
-                          <span className="sr-only">Save</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={cancelEdits}
-                          title="Cancel edits"
-                        >
-                          <X className="h-4 w-4" />
-                          <span className="sr-only">Cancel</span>
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => saveEdits(template.id)}
+                              >
+                                <Check className="h-4 w-4 text-green-500" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Save changes</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={cancelEdits}
+                              >
+                                <X className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Cancel</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     ) : (
-                      <div className="flex justify-end">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                            >
-                              Actions
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => startEditing(template)}>
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleClone(template)}>
-                              Clone
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => handleDelete(template)}
-                            >
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                            <span className="sr-only">Open menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => startEditing(template)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleClone(template)}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Clone
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => handleDelete(template)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </TableCell>
                 </TableRow>
