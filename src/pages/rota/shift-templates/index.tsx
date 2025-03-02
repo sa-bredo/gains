@@ -1,0 +1,306 @@
+
+import React, { useState, useEffect } from 'react';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/sidebar";
+import { Separator } from "@/components/ui/separator";
+import { Button } from '@/components/ui/button';
+import { PlusIcon } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from "@/integrations/supabase/client";
+import { ShiftTemplatesTable } from './components/shift-templates-table';
+import { AddShiftTemplateDialog } from './components/add-shift-template-dialog';
+import { ShiftTemplate, Location, StaffMember } from './types';
+
+export default function ShiftTemplatesPage() {
+  const { toast } = useToast();
+  const [shiftTemplates, setShiftTemplates] = useState<ShiftTemplate[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Fetch shift templates
+  const fetchShiftTemplates = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('shift_templates')
+        .select(`
+          *,
+          locations:location_id (id, name),
+          employees:employee_id (id, first_name, last_name, role)
+        `)
+        .order('day_of_week', { ascending: true });
+      
+      if (error) {
+        throw error;
+      }
+      
+      setShiftTemplates(data || []);
+    } catch (error) {
+      console.error('Error fetching shift templates:', error);
+      toast({
+        title: "Failed to load shift templates",
+        description: "There was a problem loading the shift templates data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch locations
+  const fetchLocations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('locations')
+        .select('*')
+        .order('name');
+      
+      if (error) {
+        throw error;
+      }
+      
+      setLocations(data || []);
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      toast({
+        title: "Failed to load locations",
+        description: "There was a problem loading the locations data.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Fetch staff members
+  const fetchStaffMembers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .in('role', ['Manager', 'Front Of House', 'Instructor'])
+        .order('first_name');
+      
+      if (error) {
+        throw error;
+      }
+      
+      setStaffMembers(data || []);
+    } catch (error) {
+      console.error('Error fetching staff members:', error);
+      toast({
+        title: "Failed to load staff members",
+        description: "There was a problem loading the staff members data.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Load initial data
+  useEffect(() => {
+    Promise.all([
+      fetchShiftTemplates(),
+      fetchLocations(),
+      fetchStaffMembers()
+    ]);
+  }, []);
+
+  // Add a new shift template
+  const addShiftTemplate = async (templateData: Omit<ShiftTemplate, 'id' | 'created_at'>) => {
+    try {
+      setIsUpdating(true);
+      const { data, error } = await supabase
+        .from('shift_templates')
+        .insert({
+          name: templateData.name,
+          day_of_week: templateData.day_of_week,
+          start_time: templateData.start_time,
+          end_time: templateData.end_time,
+          location_id: templateData.location_id,
+          employee_id: templateData.employee_id,
+          notes: templateData.notes
+        })
+        .select();
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Shift template added",
+        description: "The shift template has been successfully added.",
+      });
+      
+      await fetchShiftTemplates();
+      return data?.[0];
+    } catch (error) {
+      console.error('Error adding shift template:', error);
+      toast({
+        title: "Failed to add shift template",
+        description: "There was a problem adding the shift template.",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Update a shift template
+  const updateShiftTemplate = async (id: string, templateData: Partial<ShiftTemplate>) => {
+    try {
+      setIsUpdating(true);
+      const { error } = await supabase
+        .from('shift_templates')
+        .update(templateData)
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Shift template updated",
+        description: "The shift template has been successfully updated.",
+      });
+      
+      await fetchShiftTemplates();
+    } catch (error) {
+      console.error('Error updating shift template:', error);
+      toast({
+        title: "Failed to update shift template",
+        description: "There was a problem updating the shift template.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Delete a shift template
+  const deleteShiftTemplate = async (id: string) => {
+    try {
+      setIsUpdating(true);
+      const { error } = await supabase
+        .from('shift_templates')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Shift template deleted",
+        description: "The shift template has been successfully deleted.",
+      });
+      
+      await fetchShiftTemplates();
+    } catch (error) {
+      console.error('Error deleting shift template:', error);
+      toast({
+        title: "Failed to delete shift template",
+        description: "There was a problem deleting the shift template.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Clone a shift template
+  const cloneShiftTemplate = async (template: ShiftTemplate) => {
+    try {
+      setIsUpdating(true);
+      const { id, created_at, ...templateData } = template;
+      
+      // Add "Copy of" to the name
+      const clonedTemplate = {
+        ...templateData,
+        name: `Copy of ${template.name}`
+      };
+      
+      const { data, error } = await supabase
+        .from('shift_templates')
+        .insert(clonedTemplate)
+        .select();
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Shift template cloned",
+        description: "The shift template has been successfully cloned.",
+      });
+      
+      await fetchShiftTemplates();
+    } catch (error) {
+      console.error('Error cloning shift template:', error);
+      toast({
+        title: "Failed to clone shift template",
+        description: "There was a problem cloning the shift template.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <AppSidebar />
+        <SidebarInset className="bg-background">
+          <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="mr-2" />
+              <Separator orientation="vertical" className="h-4" />
+              <span className="font-medium">Rota / Shift Templates</span>
+            </div>
+          </header>
+          <div className="container mx-auto p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-3xl font-bold">Shift Templates</h1>
+              <Button 
+                onClick={() => setIsDialogOpen(true)}
+                className="flex items-center gap-2"
+                disabled={isUpdating || locations.length === 0}
+              >
+                <PlusIcon className="h-4 w-4" />
+                Add Shift Template
+              </Button>
+            </div>
+
+            {locations.length === 0 && !isLoading && (
+              <div className="bg-muted/50 p-4 rounded-md mb-6">
+                <p className="text-sm">
+                  You need to add locations before creating shift templates. Go to Settings &gt; Locations to add them.
+                </p>
+              </div>
+            )}
+            
+            <ShiftTemplatesTable 
+              templates={shiftTemplates}
+              locations={locations}
+              staffMembers={staffMembers}
+              isLoading={isLoading || isUpdating}
+              onUpdate={updateShiftTemplate}
+              onDelete={deleteShiftTemplate}
+              onClone={cloneShiftTemplate}
+            />
+            
+            <AddShiftTemplateDialog 
+              open={isDialogOpen}
+              onOpenChange={setIsDialogOpen}
+              onAdd={addShiftTemplate}
+              locations={locations}
+              staffMembers={staffMembers}
+            />
+          </div>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
+  );
+}

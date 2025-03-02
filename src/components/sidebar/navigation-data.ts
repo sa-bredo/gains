@@ -15,7 +15,9 @@ import {
   Briefcase,
   ListCheck,
   BanknoteIcon,
-  FileSignature
+  FileSignature,
+  MapPin,
+  Clock
 } from "lucide-react";
 import { NavItem } from "./types";
 
@@ -98,6 +100,10 @@ export const navMain: NavItem[] = [
       {
         title: "Leave",
         url: "/rota/leave",
+      },
+      {
+        title: "Shift Templates",
+        url: "/rota/shift-templates",
       },
     ],
   },
@@ -185,6 +191,10 @@ export const navMain: NavItem[] = [
       {
         title: "Notifications",
         url: "/settings/notifications",
+      },
+      {
+        title: "Locations",
+        url: "/settings/locations",
       },
     ],
   },
