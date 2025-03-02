@@ -31,8 +31,8 @@ export function LocationsTable({ locations, isLoading, onUpdate, onDelete }: Loc
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Address</TableHead>
+              <TableHead className="text-left">Name</TableHead>
+              <TableHead className="text-left">Address</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -52,8 +52,8 @@ export function LocationsTable({ locations, isLoading, onUpdate, onDelete }: Loc
             ) : (
               locations.map((location) => (
                 <TableRow key={location.id}>
-                  <TableCell className="font-medium">{location.name}</TableCell>
-                  <TableCell>{location.address || '—'}</TableCell>
+                  <TableCell className="font-medium text-left">{location.name}</TableCell>
+                  <TableCell className="text-left">{location.address || '—'}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"
