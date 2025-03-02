@@ -1,24 +1,47 @@
 
-import React from 'react';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import React, { useState } from 'react';
+import { DAYS_OF_WEEK, Location, ShiftTemplate, StaffMember } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShiftTemplate, Location, StaffMember, DAYS_OF_WEEK } from '../types';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { toast } from 'sonner';
 
-// Define the form schema
+// Form schema
 const formSchema = z.object({
-  name: z.string().min(1, { message: 'Shift template name is required' }),
-  day_of_week: z.string().min(1, { message: 'Day of week is required' }),
-  start_time: z.string().min(1, { message: 'Start time is required' }),
-  end_time: z.string().min(1, { message: 'End time is required' }),
-  location_id: z.string().min(1, { message: 'Location is required' }),
-  employee_id: z.string().optional(),
+  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  day_of_week: z.enum(DAYS_OF_WEEK, {
+    errorMap: () => ({ message: 'Please select a day of the week.' }),
+  }),
+  start_time: z.string().min(1, { message: 'Please select a start time.' }),
+  end_time: z.string().min(1, { message: 'Please select an end time.' }),
+  location_id: z.string().uuid({ message: 'Please select a location.' }),
+  employee_id: z.string().uuid().optional().nullable(),
   notes: z.string().optional(),
 });
 
@@ -27,51 +50,70 @@ type FormValues = z.infer<typeof formSchema>;
 interface AddShiftTemplateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (data: Omit<ShiftTemplate, 'id' | 'created_at'>) => Promise<ShiftTemplate | undefined>;
+  onAdd: (data: Omit<ShiftTemplate, 'id' | 'created_at'>) => Promise<any>;
   locations: Location[];
   staffMembers: StaffMember[];
+  preselectedLocationId?: string | null;
 }
 
-export function AddShiftTemplateDialog({ 
-  open, 
-  onOpenChange, 
-  onAdd, 
-  locations, 
-  staffMembers 
+export function AddShiftTemplateDialog({
+  open,
+  onOpenChange,
+  onAdd,
+  locations,
+  staffMembers,
+  preselectedLocationId
 }: AddShiftTemplateDialogProps) {
-  // Initialize the form
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Setup form
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
-      day_of_week: '',
-      start_time: '',
-      end_time: '',
-      location_id: '',
-      employee_id: '',
+      day_of_week: 'Monday',
+      start_time: '09:00',
+      end_time: '17:00',
+      location_id: preselectedLocationId || '',
+      employee_id: undefined,
       notes: '',
     },
   });
 
-  // Form submission handler
-  const onSubmit = async (values: FormValues) => {
+  // Reset form when dialog opens
+  React.useEffect(() => {
+    if (open) {
+      form.reset({
+        name: '',
+        day_of_week: 'Monday',
+        start_time: '09:00',
+        end_time: '17:00',
+        location_id: preselectedLocationId || '',
+        employee_id: undefined,
+        notes: '',
+      });
+    }
+  }, [open, form, preselectedLocationId]);
+
+  // Handle form submission
+  const onSubmit = async (data: FormValues) => {
     try {
-      // Make sure location_id is required, and handle the empty employee_id case
-      const templateData: Omit<ShiftTemplate, 'id' | 'created_at'> = {
-        name: values.name,
-        day_of_week: values.day_of_week,
-        start_time: values.start_time,
-        end_time: values.end_time,
-        location_id: values.location_id,
-        employee_id: values.employee_id || null,
-        notes: values.notes || null
+      setIsSubmitting(true);
+      
+      // Format the times with seconds
+      const formattedData = {
+        ...data,
+        start_time: data.start_time + ':00',
+        end_time: data.end_time + ':00',
       };
       
-      await onAdd(templateData);
-      form.reset();
+      await onAdd(formattedData);
       onOpenChange(false);
     } catch (error) {
-      console.error('Failed to add shift template:', error);
+      console.error('Error adding shift template:', error);
+      toast.error('Failed to add shift template');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -80,7 +122,11 @@ export function AddShiftTemplateDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Add New Shift Template</DialogTitle>
+          <DialogDescription>
+            Create a new shift template that can be used to generate shifts on the schedule.
+          </DialogDescription>
         </DialogHeader>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -88,15 +134,15 @@ export function AddShiftTemplateDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Template Name</FormLabel>
+                  <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Shift template name" {...field} />
+                    <Input placeholder="e.g., Morning Shift" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -104,9 +150,9 @@ export function AddShiftTemplateDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Day of Week</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -125,16 +171,16 @@ export function AddShiftTemplateDialog({
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="location_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Location</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -154,7 +200,7 @@ export function AddShiftTemplateDialog({
                 )}
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -169,7 +215,7 @@ export function AddShiftTemplateDialog({
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="end_time"
@@ -184,27 +230,27 @@ export function AddShiftTemplateDialog({
                 )}
               />
             </div>
-            
+
             <FormField
               control={form.control}
               name="employee_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Staff Member (Optional)</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
+                  <FormLabel>Assigned Staff (Optional)</FormLabel>
+                  <Select
+                    value={field.value || ""}
+                    onValueChange={(value) => field.onChange(value || null)}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select staff member" />
+                        <SelectValue placeholder="Select staff member (optional)" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="">None</SelectItem>
                       {staffMembers.map((staff) => (
                         <SelectItem key={staff.id} value={staff.id}>
-                          {staff.first_name} {staff.last_name} ({staff.role})
+                          {staff.first_name} {staff.last_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -213,7 +259,7 @@ export function AddShiftTemplateDialog({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="notes"
@@ -221,23 +267,28 @@ export function AddShiftTemplateDialog({
                 <FormItem>
                   <FormLabel>Notes (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Any additional notes"
+                    <Textarea
+                      placeholder="Add any additional information about this shift template"
+                      className="resize-none"
                       {...field}
-                      value={field.value || ''}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                Add Shift Template
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Adding...' : 'Add Template'}
               </Button>
             </DialogFooter>
           </form>

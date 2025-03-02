@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { ShiftTemplate, Location, StaffMember, DAYS_OF_WEEK } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Copy, Trash2, Clock, CalendarIcon, MapPin, User, Save, X, MoreVertical, Edit, Check } from 'lucide-react';
+import { Copy, Trash2, Clock, CalendarIcon, User, Save, X, MoreVertical, Edit, Check } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -42,6 +42,7 @@ interface ShiftTemplatesTableProps {
   onUpdate: (id: string, data: Partial<ShiftTemplate>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onClone: (template: ShiftTemplate) => Promise<void>;
+  selectedLocationId: string | null;
 }
 
 export function ShiftTemplatesTable({ 
@@ -51,10 +52,16 @@ export function ShiftTemplatesTable({
   isLoading, 
   onUpdate, 
   onDelete, 
-  onClone 
+  onClone,
+  selectedLocationId
 }: ShiftTemplatesTableProps) {
   const [editingRow, setEditingRow] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<ShiftTemplate>>({});
+  
+  // Filter templates by selected location
+  const filteredTemplates = selectedLocationId 
+    ? templates.filter(template => template.location_id === selectedLocationId)
+    : templates;
   
   // Handle starting to edit a template
   const startEditing = (template: ShiftTemplate) => {
@@ -75,6 +82,12 @@ export function ShiftTemplatesTable({
     try {
       // Make a copy of editData to avoid reference issues
       const dataToUpdate = { ...editData };
+      
+      // If employee_id is "none", set it to null
+      if (dataToUpdate.employee_id === "none") {
+        dataToUpdate.employee_id = null;
+      }
+      
       await onUpdate(id, dataToUpdate);
       setEditingRow(null);
       setEditData({});
@@ -143,7 +156,7 @@ export function ShiftTemplatesTable({
   };
 
   // Sort templates by day of week
-  const sortedTemplates = [...templates].sort((a, b) => {
+  const sortedTemplates = [...filteredTemplates].sort((a, b) => {
     const dayA = DAYS_OF_WEEK.indexOf(a.day_of_week);
     const dayB = DAYS_OF_WEEK.indexOf(b.day_of_week);
     return dayA - dayB;
@@ -155,26 +168,24 @@ export function ShiftTemplatesTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Day</TableHead>
-              <TableHead>Start Time</TableHead>
-              <TableHead>End Time</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Staff</TableHead>
-              <TableHead>Notes</TableHead>
+              <TableHead className="text-left">Name</TableHead>
+              <TableHead className="text-left">Day</TableHead>
+              <TableHead className="text-left">Start Time</TableHead>
+              <TableHead className="text-left">End Time</TableHead>
+              <TableHead className="text-left">Staff</TableHead>
               <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : sortedTemplates.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   No shift templates found. Add a template to get started.
                 </TableCell>
               </TableRow>
@@ -266,39 +277,12 @@ export function ShiftTemplatesTable({
                     )}
                   </TableCell>
                   
-                  {/* Location */}
-                  <TableCell>
-                    {editingRow === template.id ? (
-                      <Select 
-                        value={editData.location_id} 
-                        onValueChange={(value) => handleChange('location_id', value)}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {locations.map((location) => (
-                            <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <div 
-                        className="cursor-pointer hover:bg-muted/20 p-2 rounded flex items-center gap-2" 
-                        onClick={() => startEditing(template)}
-                      >
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        {template.locations?.name || '—'}
-                      </div>
-                    )}
-                  </TableCell>
-                  
                   {/* Staff */}
                   <TableCell>
                     {editingRow === template.id ? (
                       <Select 
-                        value={editData.employee_id || ""} 
-                        onValueChange={(value) => handleChange('employee_id', value || null)}
+                        value={editData.employee_id || "none"} 
+                        onValueChange={(value) => handleChange('employee_id', value === "none" ? null : value)}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select staff (optional)" />
@@ -319,25 +303,6 @@ export function ShiftTemplatesTable({
                       >
                         <User className="h-4 w-4 text-muted-foreground" />
                         {getStaffName(template)}
-                      </div>
-                    )}
-                  </TableCell>
-                  
-                  {/* Notes */}
-                  <TableCell>
-                    {editingRow === template.id ? (
-                      <Textarea 
-                        className="w-full"
-                        value={editData.notes || ''} 
-                        onChange={(e) => handleChange('notes', e.target.value)} 
-                        placeholder="Add notes (optional)"
-                      />
-                    ) : (
-                      <div 
-                        className="cursor-pointer hover:bg-muted/20 p-2 rounded flex items-center" 
-                        onClick={() => startEditing(template)}
-                      >
-                        <span className="text-sm">{template.notes || '—'}</span>
                       </div>
                     )}
                   </TableCell>

@@ -4,12 +4,19 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from '@/components/ui/button';
-import { PlusIcon } from 'lucide-react';
+import { PlusIcon, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
 import { ShiftTemplatesTable } from './components/shift-templates-table';
 import { AddShiftTemplateDialog } from './components/add-shift-template-dialog';
 import { ShiftTemplate, Location, StaffMember } from './types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function ShiftTemplatesPage() {
   const { toast } = useToast();
@@ -19,6 +26,7 @@ export default function ShiftTemplatesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
 
   // Fetch shift templates
   const fetchShiftTemplates = async () => {
@@ -64,6 +72,11 @@ export default function ShiftTemplatesPage() {
       }
       
       setLocations(data || []);
+      
+      // Set the first location as selected if none is selected and there are locations
+      if (!selectedLocationId && data && data.length > 0) {
+        setSelectedLocationId(data[0].id);
+      }
     } catch (error) {
       console.error('Error fetching locations:', error);
       toast({
@@ -111,17 +124,16 @@ export default function ShiftTemplatesPage() {
   const addShiftTemplate = async (templateData: Omit<ShiftTemplate, 'id' | 'created_at'>) => {
     try {
       setIsUpdating(true);
+      
+      // If no location is selected, use the selected location ID
+      const dataToAdd = {
+        ...templateData,
+        location_id: templateData.location_id || selectedLocationId,
+      };
+      
       const { data, error } = await supabase
         .from('shift_templates')
-        .insert({
-          name: templateData.name,
-          day_of_week: templateData.day_of_week,
-          start_time: templateData.start_time,
-          end_time: templateData.end_time,
-          location_id: templateData.location_id,
-          employee_id: templateData.employee_id,
-          notes: templateData.notes
-        })
+        .insert(dataToAdd)
         .select();
       
       if (error) {
@@ -258,6 +270,11 @@ export default function ShiftTemplatesPage() {
     }
   };
 
+  // Handle location change
+  const handleLocationChange = (locationId: string) => {
+    setSelectedLocationId(locationId);
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -272,11 +289,30 @@ export default function ShiftTemplatesPage() {
           </header>
           <div className="container mx-auto p-6">
             <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold">Shift Templates</h1>
+              <div className="flex items-center gap-4">
+                <h1 className="text-3xl font-bold">Shift Templates</h1>
+                {locations.length > 0 && (
+                  <Select 
+                    value={selectedLocationId || ''} 
+                    onValueChange={handleLocationChange}
+                  >
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locations.map(location => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
               <Button 
                 onClick={() => setIsDialogOpen(true)}
                 className="flex items-center gap-2"
-                disabled={isUpdating || locations.length === 0}
+                disabled={isUpdating || locations.length === 0 || !selectedLocationId}
               >
                 <PlusIcon className="h-4 w-4" />
                 Add Shift Template
@@ -299,6 +335,7 @@ export default function ShiftTemplatesPage() {
               onUpdate={updateShiftTemplate}
               onDelete={deleteShiftTemplate}
               onClone={cloneShiftTemplate}
+              selectedLocationId={selectedLocationId}
             />
             
             <AddShiftTemplateDialog 
@@ -307,6 +344,7 @@ export default function ShiftTemplatesPage() {
               onAdd={addShiftTemplate}
               locations={locations}
               staffMembers={staffMembers}
+              preselectedLocationId={selectedLocationId}
             />
           </div>
         </SidebarInset>
