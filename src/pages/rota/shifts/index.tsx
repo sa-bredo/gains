@@ -3,7 +3,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from '@/components/ui/button';
-import { PlusIcon, CalendarIcon, ChevronDownIcon, FilterIcon } from 'lucide-react';
+import { PlusIcon, CalendarIcon, ChevronDownIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
 import { ShiftsTable } from './components/shifts-table';
@@ -274,11 +274,6 @@ export default function ShiftsPage() {
                   <Card className="mb-6">
                     <CardContent className="p-4">
                       <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-2">
-                          <FilterIcon className="h-4 w-4 text-muted-foreground" />
-                          <h3 className="text-sm font-medium">Filters</h3>
-                        </div>
-                        
                         <div className="flex flex-wrap items-center gap-4">
                           <Select 
                             value={selectedLocationId || ''} 
