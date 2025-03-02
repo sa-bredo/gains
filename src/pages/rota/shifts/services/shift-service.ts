@@ -55,7 +55,10 @@ export const fetchTemplatesForLocationAndVersion = async (
 ): Promise<ShiftTemplate[]> => {
   const { data, error } = await supabase
     .from('shift_templates')
-    .select('*')
+    .select(`
+      *,
+      employees:employee_id (id, first_name, last_name)
+    `)
     .eq('location_id', locationId)
     .eq('version', version);
 
@@ -65,6 +68,21 @@ export const fetchTemplatesForLocationAndVersion = async (
 
   // Sort templates by day of week
   return data?.sort((a, b) => DAY_ORDER[a.day_of_week] - DAY_ORDER[b.day_of_week]) || [];
+};
+
+// Fetch staff members
+export const fetchStaffMembers = async (): Promise<StaffMember[]> => {
+  const { data, error } = await supabase
+    .from('employees')
+    .select('*')
+    .in('role', ['Manager', 'Front Of House', 'Instructor'])
+    .order('first_name');
+  
+  if (error) {
+    throw error;
+  }
+  
+  return data || [];
 };
 
 // Create shifts in Supabase
@@ -112,6 +130,8 @@ export const generateShiftsPreview = (
         end_time: template.end_time,
         location_id: template.location_id,
         employee_id: template.employee_id,
+        employee_name: template.employees ? 
+          `${template.employees.first_name} ${template.employees.last_name}` : '',
         version: template.version,
       });
     });
@@ -138,7 +158,7 @@ export const mapShiftsToPreview = (
       location_id: shift.location_id,
       location_name: locationName,
       employee_id: shift.employee_id,
-      employee_name: '', // We don't have this information in the preview
+      employee_name: shift.employee_name || 'Unassigned',
       status: 'new',
       hasConflict: false
     };

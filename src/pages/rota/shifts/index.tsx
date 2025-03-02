@@ -9,7 +9,6 @@ import { CalendarIcon } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
 import { ShiftsTable } from './components/shifts-table';
-import { AddShiftDialog } from './components/add-shift-dialog';
 import { Shift, ShiftTemplate, Location, StaffMember } from '../shift-templates/types';
 import {
   Select,
@@ -21,6 +20,8 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AddShiftForm } from './components/add-shift-form';
 
 export default function ShiftsPage() {
   const { toast } = useToast();
@@ -28,10 +29,10 @@ export default function ShiftsPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [activeTab, setActiveTab] = useState<string>("view");
 
   // Fetch shifts
   const fetchShifts = async () => {
@@ -142,8 +143,10 @@ export default function ShiftsPage() {
 
   // Refetch shifts when filters change
   useEffect(() => {
-    fetchShifts();
-  }, [selectedDate, selectedLocationId]);
+    if (activeTab === "view") {
+      fetchShifts();
+    }
+  }, [selectedDate, selectedLocationId, activeTab]);
 
   // Handle location change
   const handleLocationChange = (locationId: string) => {
@@ -155,6 +158,16 @@ export default function ShiftsPage() {
     if (date) {
       setSelectedDate(date);
     }
+  };
+
+  // Handle add shift completion
+  const handleAddShiftComplete = () => {
+    fetchShifts();
+    setActiveTab("view");
+    toast({
+      title: "Success",
+      description: "Shifts have been created successfully.",
+    });
   };
 
   return (
@@ -170,76 +183,88 @@ export default function ShiftsPage() {
             </div>
           </header>
           <div className="container mx-auto p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-4">
-                <h1 className="text-3xl font-bold">Shifts</h1>
-                {locations.length > 0 && (
-                  <Select 
-                    value={selectedLocationId || ''} 
-                    onValueChange={handleLocationChange}
-                  >
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder="Select location" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations.map(location => (
-                        <SelectItem key={location.id} value={location.id}>
-                          {location.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-4">
+                  <h1 className="text-3xl font-bold">Shifts</h1>
+                  <TabsList>
+                    <TabsTrigger value="view">View Shifts</TabsTrigger>
+                    <TabsTrigger value="add">Add Shifts</TabsTrigger>
+                  </TabsList>
+                </div>
+                
+                {activeTab === "view" && (
+                  <div className="flex items-center gap-2">
+                    {locations.length > 0 && (
+                      <Select 
+                        value={selectedLocationId || ''} 
+                        onValueChange={handleLocationChange}
+                      >
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Select location" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {locations.map(location => (
+                            <SelectItem key={location.id} value={location.id}>
+                              {location.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="ml-2 gap-2">
+                          <CalendarIcon className="h-4 w-4" />
+                          {selectedDate ? format(selectedDate, 'MMM dd, yyyy') : 'Select date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={handleDateSelect}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+              </div>
+
+              <TabsContent value="view" className="mt-0">
+                {locations.length === 0 && !isLoading && (
+                  <div className="bg-muted/50 p-4 rounded-md mb-6">
+                    <p className="text-sm">
+                      You need to add locations before creating shifts. Go to Settings &gt; Locations to add them.
+                    </p>
+                  </div>
                 )}
                 
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="ml-2 gap-2">
-                      <CalendarIcon className="h-4 w-4" />
-                      {selectedDate ? format(selectedDate, 'MMM dd, yyyy') : 'Select date'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={handleDateSelect}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+                <ShiftsTable 
+                  shifts={shifts}
+                  isLoading={isLoading || isUpdating}
+                  locations={locations}
+                  staffMembers={staffMembers}
+                />
+              </TabsContent>
               
-              <Button 
-                onClick={() => setIsDialogOpen(true)}
-                className="flex items-center gap-2"
-                disabled={isUpdating || locations.length === 0 || !selectedLocationId}
-              >
-                <PlusIcon className="h-4 w-4" />
-                Add Shift
-              </Button>
-            </div>
-
-            {locations.length === 0 && !isLoading && (
-              <div className="bg-muted/50 p-4 rounded-md mb-6">
-                <p className="text-sm">
-                  You need to add locations before creating shifts. Go to Settings &gt; Locations to add them.
-                </p>
-              </div>
-            )}
-            
-            <ShiftsTable 
-              shifts={shifts}
-              isLoading={isLoading || isUpdating}
-              locations={locations}
-              staffMembers={staffMembers}
-            />
-            
-            <AddShiftDialog 
-              open={isDialogOpen}
-              onOpenChange={setIsDialogOpen}
-              onAddComplete={() => fetchShifts()}
-              defaultLocationId={selectedLocationId || undefined}
-            />
+              <TabsContent value="add" className="mt-0">
+                {locations.length === 0 ? (
+                  <div className="bg-muted/50 p-4 rounded-md">
+                    <p className="text-sm">
+                      You need to add locations before creating shifts. Go to Settings &gt; Locations to add them.
+                    </p>
+                  </div>
+                ) : (
+                  <AddShiftForm 
+                    onAddComplete={handleAddShiftComplete} 
+                    defaultLocationId={selectedLocationId || undefined}
+                  />
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         </SidebarInset>
       </div>

@@ -92,14 +92,14 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting }: ShiftPrev
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="text-left">Date</TableHead>
-              <TableHead className="text-left">Day</TableHead>
-              <TableHead className="text-left">Start</TableHead>
-              <TableHead className="text-left">End</TableHead>
-              <TableHead className="text-left">Staff</TableHead>
-              <TableHead className="text-left">Location</TableHead>
-              <TableHead className="text-left">Status</TableHead>
+            <TableRow className="bg-muted/50">
+              <TableHead className="font-medium text-left">Date</TableHead>
+              <TableHead className="font-medium text-left">Day</TableHead>
+              <TableHead className="font-medium text-left">Start</TableHead>
+              <TableHead className="font-medium text-left">End</TableHead>
+              <TableHead className="font-medium text-left">Staff</TableHead>
+              <TableHead className="font-medium text-left">Location</TableHead>
+              <TableHead className="font-medium text-left w-24">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -115,23 +115,24 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting }: ShiftPrev
                   key={index}
                   className={shift.hasConflict ? 'bg-yellow-50' : undefined}
                 >
-                  <TableCell className="text-left">
+                  <TableCell className="font-medium">
                     {format(shift.date, 'EEE, MMM d, yyyy')}
                   </TableCell>
-                  <TableCell className="text-left">{shift.day_of_week}</TableCell>
-                  <TableCell className="text-left">{formatTime(shift.start_time)}</TableCell>
-                  <TableCell className="text-left">{formatTime(shift.end_time)}</TableCell>
-                  <TableCell className="text-left">{shift.employee_name || 'Unassigned'}</TableCell>
-                  <TableCell className="text-left">{shift.location_name}</TableCell>
-                  <TableCell className="text-left">
-                    {shift.hasConflict && (
+                  <TableCell>{shift.day_of_week}</TableCell>
+                  <TableCell>{formatTime(shift.start_time)}</TableCell>
+                  <TableCell>{formatTime(shift.end_time)}</TableCell>
+                  <TableCell>
+                    {shift.employee_name || 'Unassigned'}
+                  </TableCell>
+                  <TableCell>{shift.location_name}</TableCell>
+                  <TableCell>
+                    {shift.hasConflict ? (
                       <div className="flex items-center gap-1 text-yellow-600">
                         <AlertTriangle className="h-4 w-4" />
                         <span>Conflict</span>
                       </div>
-                    )}
-                    {!shift.hasConflict && (
-                      <span className="inline-block px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-medium">
+                    ) : (
+                      <span className="inline-flex items-center justify-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
                         New
                       </span>
                     )}
