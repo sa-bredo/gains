@@ -6,6 +6,8 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { ConfigTable } from "./components/config-table";
 import { AddConfigDialog } from "./components/add-config-dialog";
+import { EditConfigDialog } from "./components/edit-config-dialog";
+import { DeleteConfigDialog } from "./components/delete-config-dialog";
 import { ConfigItem } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -42,17 +44,25 @@ export default function ConfigPage() {
 
   const handleEdit = (config: ConfigItem) => {
     setEditingConfig(config);
-    // You would show an edit dialog here
   };
 
   const handleDelete = (config: ConfigItem) => {
     setDeletingConfig(config);
-    // You would show a delete confirmation here
   };
 
   const handleAddSuccess = () => {
     fetchConfigItems();
     setIsAddDialogOpen(false);
+  };
+
+  const handleEditSuccess = async () => {
+    await fetchConfigItems();
+    setEditingConfig(null);
+  };
+
+  const handleDeleteSuccess = async () => {
+    await fetchConfigItems();
+    setDeletingConfig(null);
   };
 
   return (
@@ -86,6 +96,22 @@ export default function ConfigPage() {
               onOpenChange={setIsAddDialogOpen}
               onSuccess={handleAddSuccess}
             />
+            {editingConfig && (
+              <EditConfigDialog
+                open={!!editingConfig}
+                onOpenChange={(open) => !open && setEditingConfig(null)}
+                onSuccess={handleEditSuccess}
+                config={editingConfig}
+              />
+            )}
+            {deletingConfig && (
+              <DeleteConfigDialog
+                open={!!deletingConfig}
+                onOpenChange={(open) => !open && setDeletingConfig(null)}
+                onSuccess={handleDeleteSuccess}
+                config={deletingConfig}
+              />
+            )}
           </div>
         </SidebarInset>
       </div>
