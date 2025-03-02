@@ -57,7 +57,7 @@ export const fetchTemplatesForLocationAndVersion = async (
     .from('shift_templates')
     .select(`
       *,
-      employees:employee_id (id, first_name, last_name)
+      employees:employee_id (id, first_name, last_name, role, email)
     `)
     .eq('location_id', locationId)
     .eq('version', version);
