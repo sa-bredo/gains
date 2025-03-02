@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from '@/components/ui/button';
-import { PlusIcon, CalendarIcon, ChevronDownIcon } from 'lucide-react';
+import { PlusIcon, CalendarIcon, ChevronDownIcon, FilterIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
 import { ShiftsTable } from './components/shifts-table';
@@ -17,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
+import { format, isAfter, isBefore, isEqual } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddShiftForm } from './components/add-shift-form';
@@ -35,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function ShiftsPage() {
   const { toast } = useToast();
@@ -189,6 +189,17 @@ export default function ShiftsPage() {
     setEndDate(newEndDate);
   };
 
+  const handleDateRangeSelect = (range: { from: Date; to: Date | undefined }) => {
+    if (range.from) {
+      setStartDate(range.from);
+      if (range.to) {
+        setEndDate(range.to);
+      } else {
+        setEndDate(range.from);
+      }
+    }
+  };
+
   const handleAddShiftComplete = () => {
     fetchShifts();
     setActiveTab("view");
@@ -248,85 +259,6 @@ export default function ShiftsPage() {
                     <TabsTrigger value="add">Add Shifts</TabsTrigger>
                   </TabsList>
                 </div>
-                
-                {activeTab === "view" && (
-                  <div className="flex items-center gap-2">
-                    {locations.length > 0 && (
-                      <Select 
-                        value={selectedLocationId || ''} 
-                        onValueChange={handleLocationChange}
-                      >
-                        <SelectTrigger className="w-[200px]">
-                          <SelectValue placeholder="Select location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {locations.map(location => (
-                            <SelectItem key={location.id} value={location.id}>
-                              {location.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    
-                    <div className="flex items-center gap-2">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className="gap-2">
-                            <CalendarIcon className="h-4 w-4" />
-                            {startDate ? format(startDate, 'MMM dd, yyyy') : 'Start date'}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={startDate || undefined}
-                            onSelect={handleStartDateSelect}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      
-                      <span className="text-sm">to</span>
-                      
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className="gap-2">
-                            <CalendarIcon className="h-4 w-4" />
-                            {endDate ? format(endDate, 'MMM dd, yyyy') : 'End date'}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={endDate || undefined}
-                            onSelect={handleEndDateSelect}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" className="gap-2">
-                            <span>Presets</span>
-                            <ChevronDownIcon className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {datePresets.map((preset) => (
-                            <DropdownMenuItem 
-                              key={preset.value}
-                              onClick={() => handleDatePresetSelect(preset.value)}
-                            >
-                              {preset.label}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                )}
               </div>
 
               <TabsContent value="view" className="mt-0">
@@ -336,6 +268,89 @@ export default function ShiftsPage() {
                       You need to add locations before creating shifts. Go to Settings &gt; Locations to add them.
                     </p>
                   </div>
+                )}
+                
+                {locations.length > 0 && (
+                  <Card className="mb-6">
+                    <CardContent className="p-4">
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-2">
+                          <FilterIcon className="h-4 w-4 text-muted-foreground" />
+                          <h3 className="text-sm font-medium">Filters</h3>
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center gap-4">
+                          <Select 
+                            value={selectedLocationId || ''} 
+                            onValueChange={handleLocationChange}
+                          >
+                            <SelectTrigger className="w-[200px]">
+                              <SelectValue placeholder="Select location" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {locations.map(location => (
+                                <SelectItem key={location.id} value={location.id}>
+                                  {location.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {startDate && endDate ? (
+                                  <>
+                                    {format(startDate, 'MMM dd, yyyy')} - {format(endDate, 'MMM dd, yyyy')}
+                                  </>
+                                ) : (
+                                  <span>Select date range</span>
+                                )}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={startDate}
+                                selected={{
+                                  from: startDate || undefined,
+                                  to: endDate || undefined,
+                                }}
+                                onSelect={(range) => {
+                                  if (range) {
+                                    handleDateRangeSelect(range);
+                                  }
+                                }}
+                                numberOfMonths={2}
+                                className="p-0"
+                              />
+                            </PopoverContent>
+                          </Popover>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" className="gap-2">
+                                <span>Presets</span>
+                                <ChevronDownIcon className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {datePresets.map((preset) => (
+                                <DropdownMenuItem 
+                                  key={preset.value}
+                                  onClick={() => handleDatePresetSelect(preset.value)}
+                                >
+                                  {preset.label}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
                 
                 <ShiftsTable 
