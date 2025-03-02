@@ -24,6 +24,7 @@ import LocationsPage from "./pages/settings/locations";
 import ShiftTemplatesPage from "./pages/rota/shift-templates";
 import ShiftTemplatesMasterPage from "./pages/rota/shift-templates-master";
 import ShiftsPage from "./pages/rota/shifts";
+import ConfigPage from "./pages/settings/config";
 
 import "./App.css";
 
@@ -122,12 +123,20 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              {/* Add the new route for shifts */}
               <Route
                 path="/rota/shifts"
                 element={
                   <ProtectedRoute>
                     <ShiftsPage />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Add the new route for config */}
+              <Route
+                path="/settings/config"
+                element={
+                  <ProtectedRoute>
+                    <ConfigPage />
                   </ProtectedRoute>
                 }
               />

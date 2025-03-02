@@ -25,14 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format, addWeeks, isSameDay, getDay, addDays, isBefore } from 'date-fns';
+import { format, addWeeks, isSameDay, getDay, addDays, isBefore, parse } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { CalendarIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ShiftPreview } from './shift-preview';
 import { supabase } from "@/integrations/supabase/client";
@@ -52,7 +48,7 @@ const DAY_NAME_TO_NUMBER: Record<string, number> = {
 const formSchema = z.object({
   location_id: z.string().uuid({ message: 'Please select a location.' }),
   version: z.number().min(1, { message: 'Please select a version.' }),
-  start_date: z.date({ required_error: 'Please select a start date.' }),
+  start_date: z.string({ required_error: 'Please select a start date.' }),
   num_weeks: z.number().min(1).max(8),
 });
 
@@ -100,6 +96,7 @@ export function AddShiftDialog({
   const [existingShifts, setExistingShifts] = useState<any[]>([]);
   const [templateMasters, setTemplateMasters] = useState<ShiftTemplateMaster[]>([]);
   const [selectedLocationTemplates, setSelectedLocationTemplates] = useState<ShiftTemplate[]>([]);
+  const [availableStartDates, setAvailableStartDates] = useState<{value: string, label: string}[]>([]);
 
   // Setup form
   const form = useForm<FormValues>({
@@ -107,7 +104,7 @@ export function AddShiftDialog({
     defaultValues: {
       location_id: selectedLocationId || '',
       version: 1,
-      start_date: selectedDate,
+      start_date: '',
       num_weeks: 1,
     },
   });
@@ -125,12 +122,13 @@ export function AddShiftDialog({
       form.reset({
         location_id: selectedLocationId || '',
         version: 1,
-        start_date: selectedDate,
+        start_date: '',
         num_weeks: 1,
       });
       setShowPreview(false);
       setPreviewShifts([]);
       setSelectedLocationTemplates([]);
+      setAvailableStartDates([]);
     }
   }, [open, form, selectedDate, selectedLocationId]);
 
@@ -203,6 +201,18 @@ export function AddShiftDialog({
     }
   }, [form.watch('location_id'), form.watch('version')]);
 
+  // Generate available start dates when templates change
+  useEffect(() => {
+    if (selectedLocationTemplates.length > 0) {
+      const dates = generateStartDateOptions();
+      setAvailableStartDates(dates);
+      
+      if (dates.length > 0) {
+        form.setValue('start_date', dates[0].value);
+      }
+    }
+  }, [selectedLocationTemplates]);
+
   // Fetch templates for selected location and version
   const fetchLocationTemplates = async (locationId: string, version: number) => {
     try {
@@ -265,6 +275,44 @@ export function AddShiftDialog({
     return addDays(fromDate, daysToAdd);
   };
 
+  // Generate start date options for the next 8 weeks based on template days
+  const generateStartDateOptions = () => {
+    if (selectedLocationTemplates.length === 0) return [];
+    
+    // Get unique days of week from templates
+    const daysOfWeek = [...new Set(selectedLocationTemplates.map(t => t.day_of_week))];
+    if (daysOfWeek.length === 0) return [];
+    
+    const today = new Date();
+    const options: {value: string, label: string}[] = [];
+    
+    // For each day of the week in templates
+    for (const day of daysOfWeek) {
+      // Find the next occurrence from today
+      let currentDate = findNextDayOccurrence(today, day);
+      
+      // Add the next 8 occurrences
+      for (let i = 0; i < 8; i++) {
+        options.push({
+          value: format(currentDate, 'yyyy-MM-dd'),
+          label: `${day}, ${format(currentDate, 'dd MMM yyyy')}`
+        });
+        
+        // Add 7 days to get to the next occurrence of this day
+        currentDate = addDays(currentDate, 7);
+      }
+    }
+    
+    // Sort by date
+    options.sort((a, b) => {
+      const dateA = parse(a.value, 'yyyy-MM-dd', new Date());
+      const dateB = parse(b.value, 'yyyy-MM-dd', new Date());
+      return dateA.getTime() - dateB.getTime();
+    });
+    
+    return options;
+  };
+
   // Check for conflicts with existing shifts
   const fetchExistingShifts = async (startDate: Date, numWeeks: number) => {
     const endDate = addWeeks(startDate, numWeeks);
@@ -290,13 +338,13 @@ export function AddShiftDialog({
   // Generate preview shifts
   const generatePreview = async () => {
     const values = form.getValues();
-    if (!values.location_id || !values.version) return;
+    if (!values.location_id || !values.version || !values.start_date) return;
     
     setIsSubmitting(true);
     
     try {
-      // Get start date and calculate end date
-      const startDate = values.start_date;
+      // Parse start date
+      const startDate = parse(values.start_date, 'yyyy-MM-dd', new Date());
       const numWeeks = values.num_weeks;
       
       // Fetch existing shifts for the date range
@@ -395,30 +443,6 @@ export function AddShiftDialog({
     }
   };
 
-  // Calculate available start dates (based on the days of week from selected templates)
-  const getAvailableStartDates = () => {
-    if (selectedLocationTemplates.length === 0) return [selectedDate];
-    
-    // Get unique days of week from templates
-    const daysOfWeek = [...new Set(selectedLocationTemplates.map(t => t.day_of_week))];
-    if (daysOfWeek.length === 0) return [selectedDate];
-    
-    // Generate next occurrences of each day
-    const dates: Date[] = [];
-    
-    for (const day of daysOfWeek) {
-      const nextOccurrence = findNextDayOccurrence(selectedDate, day);
-      dates.push(nextOccurrence);
-    }
-    
-    // Sort dates
-    dates.sort((a, b) => a.getTime() - b.getTime());
-    
-    return dates;
-  };
-  
-  const availableStartDates = getAvailableStartDates();
-
   // Set default version when location changes
   useEffect(() => {
     const locationId = form.watch('location_id');
@@ -432,7 +456,7 @@ export function AddShiftDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("sm:max-w-[600px]", showPreview && "sm:max-w-[1000px]")}>
+      <DialogContent className={showPreview ? "sm:max-w-[1000px]" : "sm:max-w-[600px]"}>
         <DialogHeader>
           <DialogTitle>Add Shifts</DialogTitle>
           <DialogDescription>
@@ -516,39 +540,32 @@ export function AddShiftDialog({
                 control={form.control}
                 name="start_date"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
+                  <FormItem>
                     <FormLabel>Start Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={(date) => {
-                            if (date) field.onChange(date);
-                          }}
-                          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={availableStartDates.length === 0}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select start date" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableStartDates.length === 0 ? (
+                          <div className="p-2 text-sm text-muted-foreground">
+                            Select a location and version first
+                          </div>
+                        ) : (
+                          availableStartDates.map((date) => (
+                            <SelectItem key={date.value} value={date.value}>
+                              {date.label}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -593,7 +610,7 @@ export function AddShiftDialog({
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={isSubmitting || selectedLocationTemplates.length === 0}
+                  disabled={isSubmitting || !form.watch('location_id') || !form.watch('version') || !form.watch('start_date')}
                 >
                   {isSubmitting ? 'Loading...' : 'Preview Shifts'}
                 </Button>

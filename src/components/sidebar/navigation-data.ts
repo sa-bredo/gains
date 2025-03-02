@@ -1,3 +1,4 @@
+
 import {
   Heart,
   Brain,
@@ -43,138 +44,17 @@ export const navMain: NavItem[] = [
     ],
   },
   {
-    title: "Tasks",
-    url: "/table-example",
-    icon: ListCheck,
-    items: [
-      {
-        title: "All Tasks",
-        url: "/table-example",
-      },
-      {
-        title: "My Tasks",
-        url: "/table-example?filter=my",
-      },
-      {
-        title: "Assigned",
-        url: "/table-example?filter=assigned",
-      },
-    ],
-  },
-  {
-    title: "Documents",
-    url: "/document-signing",
-    icon: FileSignature,
-    items: [
-      {
-        title: "Sign Documents",
-        url: "/document-signing",
-      },
-    ],
-  },
-  {
-    title: "Financials",
-    url: "/financials",
-    icon: DollarSign,
-    items: [
-      {
-        title: "Transactions",
-        url: "/financials/transactions",
-      }
-    ],
-  },
-  {
     title: "Rota",
     url: "/rota",
     icon: Calendar,
     items: [
       {
-        title: "Schedule",
-        url: "/rota/schedule",
-      },
-      {
         title: "Shifts",
         url: "/rota/shifts",
       },
       {
-        title: "Staff",
-        url: "/rota/staff",
-      },
-      {
-        title: "Leave",
-        url: "/rota/leave",
-      },
-      {
         title: "Shift Templates",
         url: "/rota/shift-templates-master",
-      },
-    ],
-  },
-  {
-    title: "Payroll",
-    url: "/payroll",
-    icon: DollarSign,
-    items: [
-      {
-        title: "Salaries",
-        url: "/payroll/salaries",
-      },
-      {
-        title: "Expenses",
-        url: "/payroll/expenses",
-      },
-      {
-        title: "Reports",
-        url: "/payroll/reports",
-      },
-    ],
-  },
-  {
-    title: "Analytics",
-    url: "/analytics",
-    icon: BarChart,
-    items: [
-      {
-        title: "Performance",
-        url: "/analytics/performance",
-      },
-      {
-        title: "Trends",
-        url: "/analytics/trends",
-      },
-      {
-        title: "Forecasts",
-        url: "/analytics/forecasts",
-      },
-    ],
-  },
-  {
-    title: "Operations",
-    url: "/operations",
-    icon: Briefcase,
-    items: [
-      {
-        title: "Processes",
-        url: "/operations/processes",
-      },
-      {
-        title: "Resources",
-        url: "/operations/resources",
-      },
-      {
-        title: "Management",
-        url: "/operations/management",
-      },
-    ],
-  },
-  {
-    title: "Team",
-    url: "/team",
-    icon: Users,
-    items: [
-      {
-        title: "All Team",
-        url: "/team",
       },
     ],
   },
@@ -188,16 +68,12 @@ export const navMain: NavItem[] = [
         url: "/settings/account",
       },
       {
-        title: "Preferences",
-        url: "/settings/preferences",
-      },
-      {
-        title: "Notifications",
-        url: "/settings/notifications",
-      },
-      {
         title: "Locations",
         url: "/settings/locations",
+      },
+      {
+        title: "Config",
+        url: "/settings/config",
       },
     ],
   },
