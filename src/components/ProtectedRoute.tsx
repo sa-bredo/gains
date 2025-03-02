@@ -13,11 +13,12 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { currentCompany, isLoadingCompanies } = useCompany();
   const location = useLocation();
 
-  // Show loading state while Clerk is initializing
+  // Show loading state while Clerk is initializing or companies are loading
   if (!isLoaded || isLoadingCompanies) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading...</span>
       </div>
     );
   }
@@ -28,7 +29,6 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   // Redirect to company selection if authenticated but no company selected
-  // Except for the company selection page itself
   if (!currentCompany && !location.pathname.includes('/select-company')) {
     return <Navigate to="/select-company" state={{ from: location }} replace />;
   }

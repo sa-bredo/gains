@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Company } from "@/types/company";
 import { useToast } from "@/hooks/use-toast";
@@ -16,7 +16,8 @@ type CompanyContextType = {
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
-  const { userId, isSignedIn } = useAuth();
+  const { userId, isSignedIn, isLoaded } = useAuth();
+  const { user } = useUser();
   const { toast } = useToast();
   const [currentCompany, setCurrentCompany] = useState<Company | null>(null);
   const [userCompanies, setUserCompanies] = useState<Company[]>([]);
@@ -26,11 +27,18 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoadingCompanies(true);
       
+      if (!isLoaded) {
+        return; // Wait until Clerk is fully loaded
+      }
+      
       if (!isSignedIn || !userId) {
         setUserCompanies([]);
         setCurrentCompany(null);
+        setIsLoadingCompanies(false);
         return;
       }
+
+      console.log("Fetching companies for user:", userId);
 
       // Fetch companies from the database
       const { data: companiesData, error } = await supabase
@@ -42,6 +50,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         throw error;
       }
       
+      console.log("Companies data:", companiesData);
       setUserCompanies(companiesData || []);
       
       // If we have companies but no current company selected, select the first one
@@ -75,14 +84,17 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (isSignedIn) {
-      fetchUserCompanies();
-    } else {
-      setUserCompanies([]);
-      setCurrentCompany(null);
-      setIsLoadingCompanies(false);
+    // Only try to fetch companies when Clerk is fully loaded and user is signed in
+    if (isLoaded) {
+      if (isSignedIn) {
+        fetchUserCompanies();
+      } else {
+        setUserCompanies([]);
+        setCurrentCompany(null);
+        setIsLoadingCompanies(false);
+      }
     }
-  }, [isSignedIn, userId]);
+  }, [isLoaded, isSignedIn, userId]);
 
   const switchCompany = (companyId: string) => {
     const company = userCompanies.find(c => c.id === companyId);
