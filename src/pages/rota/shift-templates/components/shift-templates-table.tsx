@@ -297,14 +297,14 @@ export function ShiftTemplatesTable({
                   <TableCell>
                     {editingRow === template.id ? (
                       <Select 
-                        value={editData.employee_id || ''} 
+                        value={editData.employee_id || ""} 
                         onValueChange={(value) => handleChange('employee_id', value || null)}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select staff (optional)" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {staffMembers.map((staff) => (
                             <SelectItem key={staff.id} value={staff.id}>
                               {staff.first_name} {staff.last_name}
