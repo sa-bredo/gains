@@ -1,4 +1,4 @@
-import { format, parse, addDays, addWeeks } from 'date-fns';
+import { format, parse, addDays, addWeeks, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { Location, ShiftTemplate, ShiftTemplateMaster, StaffMember } from '../../shift-templates/types';
 import { DAY_ORDER } from '../utils/date-utils';
@@ -127,6 +127,104 @@ export const createShifts = async (shiftsToCreate: {
 
   console.log('Shifts created successfully:', data);
   return { success: true };
+};
+
+// Fetch shifts with date range filter
+export const fetchShiftsWithDateRange = async (
+  startDate: Date | null,
+  endDate: Date | null,
+  locationId: string | null
+) => {
+  try {
+    let query = supabase
+      .from('shifts')
+      .select(`
+        *,
+        locations:location_id (id, name),
+        employees:employee_id (id, first_name, last_name, role, email)
+      `)
+      .order('date', { ascending: true });
+    
+    if (startDate && endDate) {
+      const formattedStartDate = format(startDate, 'yyyy-MM-dd');
+      const formattedEndDate = format(endDate, 'yyyy-MM-dd');
+      console.log(`Filtering shifts between ${formattedStartDate} and ${formattedEndDate}`);
+      
+      query = query
+        .gte('date', formattedStartDate)
+        .lte('date', formattedEndDate);
+    } else if (startDate) {
+      const formattedDate = format(startDate, 'yyyy-MM-dd');
+      console.log(`Filtering shifts for date ${formattedDate}`);
+      query = query.eq('date', formattedDate);
+    }
+    
+    if (locationId) {
+      console.log(`Filtering shifts for location ${locationId}`);
+      query = query.eq('location_id', locationId);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching shifts with date range:', error);
+    throw error;
+  }
+};
+
+// Get date range for preset
+export const getDateRangeForPreset = (preset: string): { startDate: Date, endDate: Date } => {
+  const today = new Date();
+  
+  switch (preset) {
+    case 'today':
+      return { startDate: today, endDate: today };
+    
+    case 'tomorrow':
+      const tomorrow = addDays(today, 1);
+      return { startDate: tomorrow, endDate: tomorrow };
+    
+    case 'thisWeek':
+      return {
+        startDate: startOfWeek(today, { weekStartsOn: 1 }),
+        endDate: endOfWeek(today, { weekStartsOn: 1 })
+      };
+    
+    case 'nextWeek':
+      const nextWeek = addWeeks(today, 1);
+      return {
+        startDate: startOfWeek(nextWeek, { weekStartsOn: 1 }),
+        endDate: endOfWeek(nextWeek, { weekStartsOn: 1 })
+      };
+    
+    case 'lastWeek':
+      const lastWeek = subWeeks(today, 1);
+      return {
+        startDate: startOfWeek(lastWeek, { weekStartsOn: 1 }),
+        endDate: endOfWeek(lastWeek, { weekStartsOn: 1 })
+      };
+    
+    case 'thisMonth':
+      return {
+        startDate: startOfMonth(today),
+        endDate: endOfMonth(today)
+      };
+    
+    case 'lastMonth':
+      const lastMonth = subMonths(today, 1);
+      return {
+        startDate: startOfMonth(lastMonth),
+        endDate: endOfMonth(lastMonth)
+      };
+    
+    default:
+      return { startDate: today, endDate: today };
+  }
 };
 
 // Generate shifts preview based on templates and date range

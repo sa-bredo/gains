@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from '@/components/ui/button';
-import { PlusIcon } from 'lucide-react';
-import { CalendarIcon } from "lucide-react";
+import { PlusIcon, CalendarIcon, ChevronDownIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
 import { ShiftsTable } from './components/shifts-table';
@@ -22,7 +22,19 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddShiftForm } from './components/add-shift-form';
 import { AddShiftFormValues } from './components/add-shift-form-schema';
-import { fetchTemplatesForLocationAndVersion, fetchTemplateMasters } from './services/shift-service';
+import { 
+  fetchTemplatesForLocationAndVersion, 
+  fetchTemplateMasters, 
+  fetchShiftsWithDateRange, 
+  getDateRangeForPreset 
+} from './services/shift-service';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from '@/components/ui/input';
 
 export default function ShiftsPage() {
   const { toast } = useToast();
@@ -34,39 +46,26 @@ export default function ShiftsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [startDate, setStartDate] = useState<Date | null>(new Date());
+  const [endDate, setEndDate] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<string>("view");
   const [error, setError] = useState<any>(null);
+
+  const datePresets = [
+    { value: 'today', label: 'Today' },
+    { value: 'tomorrow', label: 'Tomorrow' },
+    { value: 'thisWeek', label: 'This Week' },
+    { value: 'nextWeek', label: 'Next Week' },
+    { value: 'lastWeek', label: 'Last Week' },
+    { value: 'thisMonth', label: 'This Month' },
+    { value: 'lastMonth', label: 'Last Month' },
+  ];
 
   const fetchShifts = async () => {
     try {
       setIsLoading(true);
-      
-      let query = supabase
-        .from('shifts')
-        .select(`
-          *,
-          locations:location_id (id, name),
-          employees:employee_id (id, first_name, last_name, role, email)
-        `)
-        .order('date', { ascending: true });
-      
-      if (selectedDate) {
-        const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-        query = query.eq('date', formattedDate);
-      }
-      
-      if (selectedLocationId) {
-        query = query.eq('location_id', selectedLocationId);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        throw error;
-      }
-      
-      setShifts(data as Shift[] || []);
+      const shiftsData = await fetchShiftsWithDateRange(startDate, endDate, selectedLocationId);
+      setShifts(shiftsData as Shift[]);
     } catch (error) {
       console.error('Error fetching shifts:', error);
       toast({
@@ -156,16 +155,38 @@ export default function ShiftsPage() {
     if (activeTab === "view") {
       fetchShifts();
     }
-  }, [selectedDate, selectedLocationId, activeTab]);
+  }, [startDate, endDate, selectedLocationId, activeTab]);
 
   const handleLocationChange = (locationId: string) => {
     setSelectedLocationId(locationId);
   };
 
-  const handleDateSelect = (date: Date | undefined) => {
+  const handleStartDateSelect = (date: Date | undefined) => {
     if (date) {
-      setSelectedDate(date);
+      setStartDate(date);
+      
+      // If end date is before start date, reset it
+      if (endDate && date > endDate) {
+        setEndDate(date);
+      }
     }
+  };
+
+  const handleEndDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setEndDate(date);
+      
+      // If start date is after end date, reset it
+      if (startDate && date < startDate) {
+        setStartDate(date);
+      }
+    }
+  };
+
+  const handleDatePresetSelect = (preset: string) => {
+    const { startDate: newStartDate, endDate: newEndDate } = getDateRangeForPreset(preset);
+    setStartDate(newStartDate);
+    setEndDate(newEndDate);
   };
 
   const handleAddShiftComplete = () => {
@@ -248,22 +269,62 @@ export default function ShiftsPage() {
                       </Select>
                     )}
                     
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="ml-2 gap-2">
-                          <CalendarIcon className="h-4 w-4" />
-                          {selectedDate ? format(selectedDate, 'MMM dd, yyyy') : 'Select date'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={selectedDate}
-                          onSelect={handleDateSelect}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <div className="flex items-center gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="gap-2">
+                            <CalendarIcon className="h-4 w-4" />
+                            {startDate ? format(startDate, 'MMM dd, yyyy') : 'Start date'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={startDate || undefined}
+                            onSelect={handleStartDateSelect}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      
+                      <span className="text-sm">to</span>
+                      
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="gap-2">
+                            <CalendarIcon className="h-4 w-4" />
+                            {endDate ? format(endDate, 'MMM dd, yyyy') : 'End date'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={endDate || undefined}
+                            onSelect={handleEndDateSelect}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" className="gap-2">
+                            <span>Presets</span>
+                            <ChevronDownIcon className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {datePresets.map((preset) => (
+                            <DropdownMenuItem 
+                              key={preset.value}
+                              onClick={() => handleDatePresetSelect(preset.value)}
+                            >
+                              {preset.label}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 )}
               </div>
