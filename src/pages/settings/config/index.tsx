@@ -1,13 +1,55 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { ConfigTable } from "./components/config-table";
 import { AddConfigDialog } from "./components/add-config-dialog";
+import { ConfigItem } from "./types";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ConfigPage() {
+  const [configItems, setConfigItems] = useState<ConfigItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingConfig, setEditingConfig] = useState<ConfigItem | null>(null);
+  const [deletingConfig, setDeletingConfig] = useState<ConfigItem | null>(null);
+
+  const fetchConfigItems = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('config')
+        .select('*')
+        .order('key', { ascending: true });
+
+      if (error) throw error;
+      setConfigItems(data || []);
+    } catch (error) {
+      console.error('Error fetching config items:', error);
+      toast.error('Failed to load configuration items');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchConfigItems();
+  }, []);
+
+  const handleEdit = (config: ConfigItem) => {
+    setEditingConfig(config);
+  };
+
+  const handleDelete = (config: ConfigItem) => {
+    setDeletingConfig(config);
+  };
+
+  const handleAddSuccess = () => {
+    fetchConfigItems();
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -23,9 +65,18 @@ export default function ConfigPage() {
           <div className="container mx-auto p-6">
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-3xl font-bold">Configuration</h1>
-              <AddConfigDialog />
+              <AddConfigDialog 
+                open={isAddDialogOpen}
+                onOpenChange={setIsAddDialogOpen}
+                onSuccess={handleAddSuccess}
+              />
             </div>
-            <ConfigTable />
+            <ConfigTable 
+              configItems={configItems}
+              isLoading={isLoading}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
           </div>
         </SidebarInset>
       </div>
