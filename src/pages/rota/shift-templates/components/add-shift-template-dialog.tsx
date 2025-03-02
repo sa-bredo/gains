@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { DAYS_OF_WEEK, Location, ShiftTemplate, StaffMember } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,10 +31,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 // Form schema
 const formSchema = z.object({
-  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }).optional(),
   day_of_week: z.enum(DAYS_OF_WEEK, {
     errorMap: () => ({ message: 'Please select a day of the week.' }),
   }),
@@ -64,12 +65,36 @@ export function AddShiftTemplateDialog({
   preselectedLocationId
 }: AddShiftTemplateDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeStaffMembers, setActiveStaffMembers] = useState<StaffMember[]>([]);
+
+  // Fetch active staff members (Front of House or Manager with no end_job_date)
+  useEffect(() => {
+    const fetchActiveStaff = async () => {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name, role, email')
+        .is('end_job_date', null)
+        .in('role', ['Front Of House', 'Manager'])
+        .order('last_name', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching staff:', error);
+        toast.error('Failed to load staff members');
+        return;
+      }
+      
+      setActiveStaffMembers(data || []);
+    };
+
+    if (open) {
+      fetchActiveStaff();
+    }
+  }, [open]);
 
   // Setup form
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: `Shift ${new Date().toISOString().slice(0, 10)}`,
       day_of_week: 'Monday',
       start_time: '09:00',
       end_time: '17:00',
@@ -83,7 +108,6 @@ export function AddShiftTemplateDialog({
   React.useEffect(() => {
     if (open) {
       form.reset({
-        name: `Shift ${new Date().toISOString().slice(0, 10)}`,
         day_of_week: 'Monday',
         start_time: '09:00',
         end_time: '17:00',
@@ -99,9 +123,12 @@ export function AddShiftTemplateDialog({
     try {
       setIsSubmitting(true);
       
+      // Generate a default name based on day and time
+      const defaultName = `${data.day_of_week} ${data.start_time}-${data.end_time}`;
+      
       // Format the times with seconds
       const formattedData: Omit<ShiftTemplate, 'id' | 'created_at'> = {
-        name: data.name || `${data.day_of_week} ${data.start_time}-${data.end_time}`,
+        name: defaultName, // Use generated name
         day_of_week: data.day_of_week,
         start_time: data.start_time + ':00',
         end_time: data.end_time + ':00',
@@ -133,23 +160,6 @@ export function AddShiftTemplateDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Name field is hidden but still in the form for data purposes */}
-            <div className="hidden">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Morning Shift" {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -255,11 +265,15 @@ export function AddShiftTemplateDialog({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
-                      {staffMembers.map((staff) => (
-                        <SelectItem key={staff.id} value={staff.id}>
-                          {staff.first_name} {staff.last_name}
-                        </SelectItem>
-                      ))}
+                      {activeStaffMembers.length === 0 ? (
+                        <SelectItem value="none" disabled>No active staff available</SelectItem>
+                      ) : (
+                        activeStaffMembers.map((staff) => (
+                          <SelectItem key={staff.id} value={staff.id}>
+                            {staff.first_name} {staff.last_name} ({staff.role})
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

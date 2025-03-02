@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShiftTemplate, Location, StaffMember, DAYS_OF_WEEK, DayOfWeek } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ShiftTemplatesTableProps {
   templates: ShiftTemplate[];
@@ -57,17 +58,38 @@ export function ShiftTemplatesTable({
 }: ShiftTemplatesTableProps) {
   const [editingRow, setEditingRow] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<ShiftTemplate>>({});
+  const [activeStaffMembers, setActiveStaffMembers] = useState<StaffMember[]>([]);
   
   // Filter templates by selected location
   const filteredTemplates = selectedLocationId 
     ? templates.filter(template => template.location_id === selectedLocationId)
     : templates;
+
+  // Fetch active staff members
+  useEffect(() => {
+    const fetchActiveStaff = async () => {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name, role, email')
+        .is('end_job_date', null)
+        .in('role', ['Front Of House', 'Manager'])
+        .order('last_name', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching staff:', error);
+        return;
+      }
+      
+      setActiveStaffMembers(data || []);
+    };
+
+    fetchActiveStaff();
+  }, []);
   
   // Handle starting to edit a template
   const startEditing = (template: ShiftTemplate) => {
     setEditingRow(template.id);
     setEditData({
-      name: template.name,
       day_of_week: template.day_of_week as DayOfWeek,
       start_time: template.start_time,
       end_time: template.end_time,
@@ -86,6 +108,11 @@ export function ShiftTemplatesTable({
       // If employee_id is "none", set it to null
       if (dataToUpdate.employee_id === "none") {
         dataToUpdate.employee_id = null;
+      }
+      
+      // Generate a name based on day and time if not provided
+      if (!dataToUpdate.name) {
+        dataToUpdate.name = `${dataToUpdate.day_of_week} ${dataToUpdate.start_time?.substring(0, 5)}-${dataToUpdate.end_time?.substring(0, 5)}`;
       }
       
       await onUpdate(id, dataToUpdate);
@@ -127,7 +154,7 @@ export function ShiftTemplatesTable({
 
   // Handle delete confirmation
   const handleDelete = async (template: ShiftTemplate) => {
-    if (window.confirm(`Are you sure you want to delete ${template.name}?`)) {
+    if (window.confirm(`Are you sure you want to delete this template?`)) {
       try {
         await onDelete(template.id);
         toast.success('Shift template deleted');
@@ -162,13 +189,17 @@ export function ShiftTemplatesTable({
     return dayA - dayB;
   });
 
+  // Generate template name based on day and time
+  const getTemplateName = (template: ShiftTemplate) => {
+    return template.name || `${template.day_of_week} ${template.start_time.substring(0, 5)}-${template.end_time.substring(0, 5)}`;
+  };
+
   return (
     <div className="space-y-4">
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-left">Name</TableHead>
               <TableHead className="text-left">Day</TableHead>
               <TableHead className="text-left">Start Time</TableHead>
               <TableHead className="text-left">End Time</TableHead>
@@ -179,37 +210,19 @@ export function ShiftTemplatesTable({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={5} className="h-24 text-center">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : sortedTemplates.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={5} className="h-24 text-center">
                   No shift templates found. Add a template to get started.
                 </TableCell>
               </TableRow>
             ) : (
               sortedTemplates.map((template) => (
                 <TableRow key={template.id}>
-                  {/* Name */}
-                  <TableCell>
-                    {editingRow === template.id ? (
-                      <Input 
-                        className="w-full"
-                        value={editData.name || ''} 
-                        onChange={(e) => handleChange('name', e.target.value)} 
-                      />
-                    ) : (
-                      <div 
-                        className="cursor-pointer hover:bg-muted/20 p-2 rounded flex items-center" 
-                        onClick={() => startEditing(template)}
-                      >
-                        <span className="font-medium">{template.name}</span>
-                      </div>
-                    )}
-                  </TableCell>
-                  
                   {/* Day of Week */}
                   <TableCell>
                     {editingRow === template.id ? (
@@ -289,11 +302,15 @@ export function ShiftTemplatesTable({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">None</SelectItem>
-                          {staffMembers.map((staff) => (
-                            <SelectItem key={staff.id} value={staff.id}>
-                              {staff.first_name} {staff.last_name}
-                            </SelectItem>
-                          ))}
+                          {activeStaffMembers.length === 0 ? (
+                            <SelectItem value="none" disabled>No active staff available</SelectItem>
+                          ) : (
+                            activeStaffMembers.map((staff) => (
+                              <SelectItem key={staff.id} value={staff.id}>
+                                {staff.first_name} {staff.last_name} ({staff.role})
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     ) : (
