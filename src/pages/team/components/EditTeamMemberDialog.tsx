@@ -30,7 +30,7 @@ interface EditTeamMemberDialogProps {
   teamMember: TeamMember;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdate: (id: string, updates: Partial<TeamMemberFormValues>) => Promise<TeamMember>;
+  onUpdate: (id: string, updates: Partial<TeamMember>) => Promise<void>;
   onSuccess: () => void;
 }
 
@@ -53,7 +53,14 @@ export function EditTeamMemberDialog({
   onSuccess 
 }: EditTeamMemberDialogProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(open);
   
+  // Sync internal state with external open prop
+  React.useEffect(() => {
+    setInternalOpen(open);
+  }, [open]);
+  
+  // Create the form with proper default values
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -68,35 +75,79 @@ export function EditTeamMemberDialog({
     },
   });
 
-  // Update form values when teamMember changes
+  // Reset form when team member changes or dialog opens
   React.useEffect(() => {
-    form.reset({
-      first_name: teamMember.first_name,
-      last_name: teamMember.last_name,
-      email: teamMember.email,
-      role: teamMember.role,
-      mobile_number: teamMember.mobile_number || '',
-      address: teamMember.address || '',
-      date_of_birth: teamMember.date_of_birth || '',
-      hourly_rate: teamMember.hourly_rate || undefined,
-    });
-  }, [teamMember, form]);
+    if (open) {
+      form.reset({
+        first_name: teamMember.first_name,
+        last_name: teamMember.last_name,
+        email: teamMember.email,
+        role: teamMember.role,
+        mobile_number: teamMember.mobile_number || '',
+        address: teamMember.address || '',
+        date_of_birth: teamMember.date_of_birth || '',
+        hourly_rate: teamMember.hourly_rate || undefined,
+      });
+    }
+  }, [teamMember, open, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      await onUpdate(teamMember.id, values);
-      onOpenChange(false);
+      console.log("Submitting update for member:", teamMember.id, values);
+      
+      // Make sure all fields are properly typed
+      const updates: Partial<TeamMember> = {
+        first_name: values.first_name,
+        last_name: values.last_name,
+        email: values.email,
+        role: values.role,
+        mobile_number: values.mobile_number || null,
+        address: values.address || null,
+        date_of_birth: values.date_of_birth || null,
+        hourly_rate: values.hourly_rate || null,
+      };
+      
+      await onUpdate(teamMember.id, updates);
+      
+      // Call onSuccess callback after the update is done
       onSuccess();
+      
+      // First update internal state
+      setInternalOpen(false);
+      
+      // Then notify parent about the change after a small delay
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 300);
+      
     } catch (error) {
       console.error('Error updating team member:', error);
     } finally {
-      setIsSubmitting(false);
+      // Delay resetting the submit state to ensure the dialog has time to close
+      setTimeout(() => {
+        setIsSubmitting(false);
+      }, 500);
     }
   };
 
+  // This handles the close button click and ESC key
+  const handleCloseDialog = () => {
+    if (isSubmitting) return;
+    
+    // Update internal state first
+    setInternalOpen(false);
+    
+    // Then notify parent
+    setTimeout(() => {
+      onOpenChange(false);
+    }, 100);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={internalOpen} onOpenChange={handleCloseDialog}>
       <DialogContent className="sm:max-w-[485px]">
         <DialogHeader>
           <DialogTitle>Edit Team Member</DialogTitle>
@@ -149,7 +200,6 @@ export function EditTeamMemberDialog({
               )}
             />
             
-            {/* Role and Hourly Rate row */}
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -214,7 +264,12 @@ export function EditTeamMemberDialog({
             <DateOfBirthField form={form} />
             
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleCloseDialog}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>

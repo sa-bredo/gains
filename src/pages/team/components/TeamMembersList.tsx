@@ -1,217 +1,327 @@
 
-import React, { useState } from 'react';
-import { Card } from '@/components/ui/card';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, UserPlus, MoreHorizontal } from 'lucide-react';
-import { TeamMember, formatDate } from '../types';
-import { Separator } from '@/components/ui/separator';
-import { TeamMemberAvatar } from './TeamMemberAvatar';
-import { EditTeamMemberDialog } from './EditTeamMemberDialog';
-import { DeleteTeamMemberDialog } from './DeleteTeamMemberDialog';
-import { TerminateEmployeeDialog } from './TerminateEmployeeDialog';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/dropdown-menu';
+import { EditTeamMemberDialog } from './EditTeamMemberDialog';
+import { DeleteTeamMemberDialog } from './DeleteTeamMemberDialog';
+import { TerminateEmployeeDialog } from './TerminateEmployeeDialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { TeamMember, TeamMemberFormValues } from '../types';
+import { TeamMemberAvatar } from './TeamMemberAvatar';
+import { MoreHorizontal, Edit, Trash2, UserX, Check, FileText } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface TeamMembersListProps {
-  teamMembers: TeamMember[];
+  teamMembers: (TeamMember & { isTerminated?: boolean })[];
   isLoading: boolean;
-  onUpdate: (id: string, data: Partial<TeamMember>) => Promise<void>;
+  onUpdate: (id: string, data: Partial<TeamMemberFormValues>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onTerminate: (id: string, endDate: string) => Promise<void>;
   refetchTeamMembers: () => void;
 }
 
-export const TeamMembersList = ({ 
-  teamMembers, 
-  isLoading, 
+const formatRole = (role: string): string => {
+  if (role === 'front_of_house') return 'Front Of House';
+  if (role === 'admin') return 'Admin';
+  if (role === 'manager') return 'Manager';
+  if (role === 'founder') return 'Founder';
+  if (role === 'instructor') return 'Instructor';
+  
+  return role
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+export function TeamMembersList({
+  teamMembers,
+  isLoading,
   onUpdate,
   onDelete,
   onTerminate,
   refetchTeamMembers
-}: TeamMembersListProps) => {
+}: TeamMembersListProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [terminateDialogOpen, setTerminateDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleEdit = (member: TeamMember) => {
+  const clearProcessingTimeout = () => {
+    if (processingTimeoutRef.current) {
+      clearTimeout(processingTimeoutRef.current);
+      processingTimeoutRef.current = null;
+    }
+  };
+
+  const startProcessing = () => {
+    clearProcessingTimeout();
+    setIsProcessing(true);
+  };
+
+  const stopProcessing = (delay = 800) => {
+    clearProcessingTimeout();
+    processingTimeoutRef.current = setTimeout(() => {
+      setIsProcessing(false);
+    }, delay);
+  };
+
+  // Clean up timeout on unmount
+  React.useEffect(() => {
+    return () => clearProcessingTimeout();
+  }, []);
+
+  const handleEditMember = (member: TeamMember) => {
+    if (isProcessing) return;
     setSelectedMember(member);
     setEditDialogOpen(true);
   };
 
-  const handleDelete = (member: TeamMember) => {
+  const handleDeleteMember = (member: TeamMember) => {
+    if (isProcessing) return;
     setSelectedMember(member);
     setDeleteDialogOpen(true);
   };
 
-  const handleTerminate = (member: TeamMember) => {
+  const handleTerminateMember = (member: TeamMember) => {
+    if (isProcessing) return;
     setSelectedMember(member);
     setTerminateDialogOpen(true);
   };
 
+  const handleAvatarUpdate = (url: string, memberId: string) => {
+    if (selectedMember && selectedMember.id === memberId) {
+      setSelectedMember({...selectedMember, avatar_url: url});
+    }
+    refetchTeamMembers();
+  };
+
+  const handleRefetchWithDebounce = async () => {
+    startProcessing();
+    try {
+      await refetchTeamMembers();
+    } finally {
+      stopProcessing();
+    }
+  };
+
+  // Handle dialog closures
+  const handleEditDialogOpenChange = (open: boolean) => {
+    if (isProcessing && open) return;
+    
+    setEditDialogOpen(open);
+    if (!open) {
+      setTimeout(() => setSelectedMember(null), 500);
+    }
+  };
+
+  const handleDeleteDialogOpenChange = (open: boolean) => {
+    if (isProcessing && open) return;
+    
+    setDeleteDialogOpen(open);
+    if (!open) {
+      setTimeout(() => setSelectedMember(null), 500);
+    }
+  };
+
+  const handleTerminateDialogOpenChange = (open: boolean) => {
+    if (isProcessing && open) return;
+    
+    setTerminateDialogOpen(open);
+    if (!open) {
+      setTimeout(() => setSelectedMember(null), 500);
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="p-4 animate-pulse">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-muted"></div>
-              <div className="flex-1 space-y-2">
-                <div className="h-4 bg-muted rounded w-1/4"></div>
-                <div className="h-3 bg-muted rounded w-1/3"></div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {Array(6).fill(0).map((_, i) => (
+          <Card key={i} className="overflow-hidden">
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div>
+                    <Skeleton className="h-4 w-32 mb-2" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </div>
               </div>
-            </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-3/4" />
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Skeleton className="h-9 w-full" />
+            </CardFooter>
           </Card>
         ))}
       </div>
     );
   }
 
-  if (!teamMembers.length) {
+  if (teamMembers.length === 0) {
     return (
-      <Card className="p-8 flex flex-col items-center justify-center text-center">
-        <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium">No team members found</h3>
-        <p className="text-muted-foreground mb-6">
-          You haven't added any team members yet.
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium">No team members yet</h3>
+        <p className="text-muted-foreground mt-1">
+          Add your first team member to get started.
         </p>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {teamMembers.map((member) => (
-        <Card key={member.id} className="p-6">
-          <div className="flex flex-col md:flex-row gap-6">
-            <div className="flex-shrink-0">
-              <TeamMemberAvatar
-                src={member.avatar_url}
-                name={`${member.first_name} ${member.last_name}`}
-                size="lg"
-              />
-            </div>
-
-            <div className="flex-1 space-y-4">
-              <div>
-                <h3 className="text-xl font-semibold flex items-center gap-2">
-                  {member.first_name} {member.last_name}
-                  {member.isTerminated && (
-                    <span className="text-sm font-normal text-destructive bg-destructive/10 px-2 py-0.5 rounded">
-                      Ended {member.end_job_date && formatDate(member.end_job_date)}
-                    </span>
-                  )}
-                </h3>
-                <p className="text-muted-foreground">{member.role}</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Contact Information</h4>
-                  <p className="text-sm">{member.email}</p>
-                  {member.phone && <p className="text-sm">{member.phone}</p>}
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {teamMembers.map((member) => (
+          <Card key={member.id} className={`overflow-hidden ${member.isTerminated ? 'border-destructive/40 bg-destructive/5' : ''}`}>
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <TeamMemberAvatar
+                    src={member.avatar_url}
+                    name={`${member.first_name} ${member.last_name}`}
+                    employeeId={member.id}
+                    onAvatarUpdate={(url) => handleAvatarUpdate(url, member.id)}
+                    editable={true}
+                  />
+                  <div>
+                    <CardTitle className="text-base">
+                      {member.first_name} {member.last_name}
+                    </CardTitle>
+                    <CardDescription>{formatRole(member.role)}</CardDescription>
+                  </div>
                 </div>
-
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Employment Details</h4>
-                  <p className="text-sm">Started: {formatDate(member.start_job_date)}</p>
-                  {member.isTerminated ? (
-                    <p className="text-sm text-destructive">Ended: {formatDate(member.end_job_date || '')}</p>
-                  ) : member.end_job_date ? (
-                    <p className="text-sm">Notice Period until: {formatDate(member.end_job_date)}</p>
-                  ) : null}
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-end gap-2">
-                {!member.isTerminated && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEdit(member)}>
-                        <Pencil className="h-4 w-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleTerminate(member)}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isProcessing}>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleEditMember(member)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit
+                    </DropdownMenuItem>
+                    {!member.isTerminated && (
+                      <DropdownMenuItem onClick={() => handleTerminateMember(member)}>
+                        <UserX className="mr-2 h-4 w-4" />
                         Terminate
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleDelete(member)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    )}
+                    <DropdownMenuItem onClick={() => handleDeleteMember(member)}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-start gap-2">
+                  <span className="text-muted-foreground w-24">Email:</span>
+                  <span className="font-medium truncate">{member.email}</span>
+                </div>
+                {member.mobile_number && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-muted-foreground w-24">Phone:</span>
+                    <span className="font-medium">{member.mobile_number}</span>
+                  </div>
                 )}
-                {member.isTerminated && (
-                  <Button 
-                    variant="destructive" 
-                    size="sm" 
-                    onClick={() => handleDelete(member)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
+                {member.start_job_date && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-muted-foreground w-24">Started:</span>
+                    <span className="font-medium">{new Date(member.start_job_date).toLocaleDateString()}</span>
+                  </div>
+                )}
+                {member.end_job_date && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-muted-foreground w-24">End date:</span>
+                    <span className="font-medium text-destructive">{new Date(member.end_job_date).toLocaleDateString()}</span>
+                  </div>
                 )}
               </div>
-            </div>
-          </div>
-        </Card>
-      ))}
+            </CardContent>
+            <CardFooter className="flex justify-between border-t p-3">
+              <div className="flex gap-1 text-xs">
+                {member.isTerminated ? (
+                  <Badge variant="destructive">Terminated</Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50">
+                    <Check className="mr-1 h-3 w-3" /> Active
+                  </Badge>
+                )}
+                {member.contract_signed && (
+                  <Badge variant="secondary" className="gap-1">
+                    <FileText className="h-3 w-3" />
+                    Contract
+                  </Badge>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleEditMember(member)}
+                disabled={isProcessing}
+              >
+                Edit
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
 
       {selectedMember && (
         <>
-          <EditTeamMemberDialog 
-            open={editDialogOpen} 
-            onOpenChange={setEditDialogOpen} 
+          <EditTeamMemberDialog
             teamMember={selectedMember}
-            onUpdate={(data) => {
-              onUpdate(selectedMember.id, data as Partial<TeamMember>);
-              return Promise.resolve(selectedMember);
-            }}
-            onSuccess={refetchTeamMembers}
+            open={editDialogOpen}
+            onOpenChange={handleEditDialogOpenChange}
+            onUpdate={onUpdate}
+            onSuccess={handleRefetchWithDebounce}
           />
-          
-          <DeleteTeamMemberDialog 
+
+          <DeleteTeamMemberDialog
+            teamMember={selectedMember}
             open={deleteDialogOpen}
-            onOpenChange={setDeleteDialogOpen}
-            teamMember={selectedMember}
-            onDelete={() => {
-              onDelete(selectedMember.id);
-              return Promise.resolve(true);
-            }}
-            onSuccess={refetchTeamMembers}
+            onOpenChange={handleDeleteDialogOpenChange}
+            onDelete={onDelete}
+            onSuccess={handleRefetchWithDebounce}
           />
-          
+
           <TerminateEmployeeDialog
-            open={terminateDialogOpen}
-            onOpenChange={setTerminateDialogOpen}
             teamMember={selectedMember}
-            onTerminate={(endDate) => onTerminate(selectedMember.id, endDate)}
-            onSuccess={refetchTeamMembers}
+            open={terminateDialogOpen}
+            onOpenChange={handleTerminateDialogOpenChange}
+            onTerminate={onTerminate}
+            onSuccess={handleRefetchWithDebounce}
           />
         </>
       )}
-    </div>
+    </>
   );
-};
+}

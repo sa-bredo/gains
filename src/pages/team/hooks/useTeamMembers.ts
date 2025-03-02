@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TeamMember, TeamMemberFormValues } from '../types';
 import { useToast } from '@/hooks/use-toast';
@@ -10,7 +10,7 @@ export function useTeamMembers() {
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
-  async function fetchTeamMembers() {
+  const fetchTeamMembers = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -24,13 +24,42 @@ export function useTeamMembers() {
       
       console.log("Fetched team members:", data);
       setTeamMembers(data || []);
+      return data;
     } catch (err) {
       console.error('Error fetching team members:', err);
-      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+      const errorObj = err instanceof Error ? err : new Error('Unknown error occurred');
+      setError(errorObj);
+      throw errorObj;
     } finally {
       setIsLoading(false);
     }
-  }
+  }, []);
+
+  const fetchActiveStaff = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .is('end_job_date', null)
+        .in('role', ['front_of_house', 'manager'])
+        .order('last_name', { ascending: true });
+      
+      if (error) throw new Error(error.message);
+      
+      console.log("Fetched active staff:", data);
+      return data || [];
+    } catch (err) {
+      console.error('Error fetching active staff:', err);
+      const errorObj = err instanceof Error ? err : new Error('Unknown error occurred');
+      setError(errorObj);
+      throw errorObj;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   async function addTeamMember(newMember: TeamMemberFormValues) {
     try {
@@ -75,14 +104,28 @@ export function useTeamMembers() {
 
   async function updateTeamMember(id: string, updates: Partial<TeamMemberFormValues>) {
     try {
+      console.log("Updating team member:", id, updates);
+      
+      // Strip any undefined values to avoid Supabase errors
+      const cleanUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([_, value]) => value !== undefined)
+      ) as Partial<TeamMemberFormValues>;
+      
+      console.log("Cleaned update data:", cleanUpdates);
+      
       const { data, error } = await supabase
         .from('employees')
-        .update(updates)
+        .update(cleanUpdates)
         .eq('id', id)
         .select()
         .single();
       
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error("Update error:", error);
+        throw new Error(error.message);
+      }
+      
+      console.log("Updated team member successfully:", data);
       
       toast({
         title: "Team member updated",
@@ -157,13 +200,14 @@ export function useTeamMembers() {
 
   useEffect(() => {
     fetchTeamMembers();
-  }, []);
+  }, [fetchTeamMembers]);
 
   return {
     teamMembers,
     isLoading,
     error,
     refetchTeamMembers: fetchTeamMembers,
+    fetchActiveStaff,
     addTeamMember,
     updateTeamMember,
     deleteTeamMember,

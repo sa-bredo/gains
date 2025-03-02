@@ -1,21 +1,17 @@
 
 import {
-  Heart,
-  Brain,
-  ScrollText,
-  Layers,
-  Users,
-  Settings,
   Activity,
-  Search,
-  Lightbulb,
+  BarChart,
   Calendar,
   DollarSign,
-  BarChart,
+  FileText,
+  Heart,
+  Lightbulb,
+  ListTodo,
+  Search,
+  Settings,
   Briefcase,
-  ListCheck,
-  BanknoteIcon,
-  FileSignature
+  Users,
 } from "lucide-react";
 import { NavItem } from "./types";
 
@@ -43,61 +39,61 @@ export const navMain: NavItem[] = [
   },
   {
     title: "Tasks",
-    url: "/table-example",
-    icon: ListCheck,
+    url: "/tasks",
+    icon: ListTodo,
     items: [
       {
-        title: "All Tasks",
-        url: "/table-example",
-      },
-      {
         title: "My Tasks",
-        url: "/table-example?filter=my",
+        url: "/tasks",
       },
       {
-        title: "Assigned",
-        url: "/table-example?filter=assigned",
+        title: "Assigned Tasks",
+        url: "/tasks/assigned",
       },
     ],
   },
   {
     title: "Documents",
     url: "/document-signing",
-    icon: FileSignature,
+    icon: FileText,
     items: [
       {
-        title: "Sign Documents",
+        title: "Templates",
         url: "/document-signing",
+      },
+      {
+        title: "Sent Documents",
+        url: "/document-signing/sent",
       },
     ],
   },
   {
     title: "Financials",
-    url: "/financials",
+    url: "/financials/transactions",
     icon: DollarSign,
     items: [
       {
         title: "Transactions",
         url: "/financials/transactions",
-      }
+      },
+      {
+        title: "GoCardless",
+        url: "/financials/transactions-gocardless",
+      },
     ],
   },
   {
     title: "Rota",
-    url: "/rota",
+    url: "/rota/shifts",
     icon: Calendar,
     items: [
       {
-        title: "Schedule",
-        url: "/rota/schedule",
+        title: "Shifts",
+        url: "/rota/shifts",
       },
       {
-        title: "Staff",
-        url: "/rota/staff",
-      },
-      {
-        title: "Leave",
-        url: "/rota/leave",
+        title: "Shift Templates",
+        url: "/rota/shift-templates-master",
       },
     ],
   },
@@ -105,58 +101,19 @@ export const navMain: NavItem[] = [
     title: "Payroll",
     url: "/payroll",
     icon: DollarSign,
-    items: [
-      {
-        title: "Salaries",
-        url: "/payroll/salaries",
-      },
-      {
-        title: "Expenses",
-        url: "/payroll/expenses",
-      },
-      {
-        title: "Reports",
-        url: "/payroll/reports",
-      },
-    ],
+    items: [],
   },
   {
     title: "Analytics",
     url: "/analytics",
     icon: BarChart,
-    items: [
-      {
-        title: "Performance",
-        url: "/analytics/performance",
-      },
-      {
-        title: "Trends",
-        url: "/analytics/trends",
-      },
-      {
-        title: "Forecasts",
-        url: "/analytics/forecasts",
-      },
-    ],
+    items: [],
   },
   {
     title: "Operations",
     url: "/operations",
     icon: Briefcase,
-    items: [
-      {
-        title: "Processes",
-        url: "/operations/processes",
-      },
-      {
-        title: "Resources",
-        url: "/operations/resources",
-      },
-      {
-        title: "Management",
-        url: "/operations/management",
-      },
-    ],
+    items: [],
   },
   {
     title: "Team",
@@ -179,13 +136,29 @@ export const navMain: NavItem[] = [
         url: "/settings/account",
       },
       {
-        title: "Preferences",
-        url: "/settings/preferences",
+        title: "Locations",
+        url: "/settings/locations",
       },
       {
-        title: "Notifications",
-        url: "/settings/notifications",
+        title: "Config",
+        url: "/settings/config",
       },
     ],
+  },
+];
+
+// Add the Discovery section items
+export const navDiscover: NavItem[] = [
+  {
+    title: "Knowledge",
+    url: "/knowledge",
+    icon: Search,
+    items: [],
+  },
+  {
+    title: "Learn About Us",
+    url: "/about",
+    icon: Lightbulb,
+    items: [],
   },
 ];

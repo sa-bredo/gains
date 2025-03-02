@@ -40,6 +40,7 @@ const UploadPDF = ({ onFileUploaded }: UploadPDFProps) => {
       const droppedFile = files[0];
       if (droppedFile.type === 'application/pdf') {
         setFile(droppedFile);
+        toast.success("PDF uploaded successfully");
       } else {
         toast.error('Please upload a PDF file');
       }
@@ -48,7 +49,13 @@ const UploadPDF = ({ onFileUploaded }: UploadPDFProps) => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      if (selectedFile.type === 'application/pdf') {
+        setFile(selectedFile);
+        toast.success("PDF uploaded successfully");
+      } else {
+        toast.error('Please upload a PDF file');
+      }
     }
   };
 

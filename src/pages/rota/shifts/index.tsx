@@ -1,0 +1,87 @@
+
+import React, { memo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchShiftsWithDateRange } from './services/shift-service';
+import { AddShiftDialog } from './components/add-shift-dialog';
+import { ShiftsTable } from './components/shifts-table';
+import { useToast } from '@/hooks/use-toast';
+
+// Create a memoized component to break potential recursive render cycles
+export const MemoizedShiftComponent = memo(function MemoizedShiftComponent(props: any) {
+  return props.children;
+});
+
+// Main component
+function ShiftsPage() {
+  const { toast } = useToast();
+  const [shifts, setShifts] = useState([]);
+  const [isAddShiftDialogOpen, setIsAddShiftDialogOpen] = useState(false);
+  const [locations, setLocations] = useState([]);
+  const [staffMembers, setStaffMembers] = useState([]);
+
+  // Using fetchShiftsWithDateRange with no parameters will fetch all shifts
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['shifts'],
+    queryFn: () => fetchShiftsWithDateRange(null, null, null, null)
+  });
+
+  // Update the shifts state when data is fetched
+  React.useEffect(() => {
+    if (data) {
+      setShifts(data);
+    }
+  }, [data]);
+
+  // Handle error with useEffect
+  React.useEffect(() => {
+    if (error) {
+      console.error('Error fetching shifts:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load shifts. Please try again later.',
+        variant: 'destructive',
+      });
+    }
+  }, [error, toast]);
+
+  return (
+    <div className="container mx-auto py-10">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Shifts</h1>
+        <button
+          onClick={() => setIsAddShiftDialogOpen(true)}
+          className="bg-primary text-primary-foreground shadow hover:bg-primary/90 px-4 py-2 rounded-md"
+        >
+          Add Shift
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <p>Loading shifts...</p>
+        </div>
+      ) : (
+        <MemoizedShiftComponent>
+          <ShiftsTable 
+            shifts={shifts} 
+            isLoading={isLoading} 
+            locations={locations} 
+            staffMembers={staffMembers} 
+          />
+        </MemoizedShiftComponent>
+      )}
+
+      <AddShiftDialog
+        open={isAddShiftDialogOpen}
+        onOpenChange={setIsAddShiftDialogOpen}
+        onAddComplete={() => {
+          // The query will be invalidated and refetched automatically
+          // We don't use the newShift parameter since the type expects a function with no args
+        }}
+      />
+    </div>
+  );
+}
+
+// Add the default export
+export default ShiftsPage;

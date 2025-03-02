@@ -45,6 +45,122 @@ export type Database = {
         }
         Relationships: []
       }
+      companies: {
+        Row: {
+          created_at: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      config: {
+        Row: {
+          created_at: string | null
+          display_name: string
+          id: string
+          key: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_name: string
+          id?: string
+          key: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
+      document_instances: {
+        Row: {
+          created_at: string | null
+          fields: Json
+          id: string
+          name: string
+          status: string
+          template_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          fields?: Json
+          id?: string
+          name: string
+          status?: string
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          fields?: Json
+          id?: string
+          name?: string
+          status?: string
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_instances_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_templates: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          fields: Json
+          id: string
+          name: string
+          pdf_data: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          fields?: Json
+          id?: string
+          name: string
+          pdf_data: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          fields?: Json
+          id?: string
+          name?: string
+          pdf_data?: string
+        }
+        Relationships: []
+      }
       employee_invites: {
         Row: {
           created_at: string | null
@@ -256,9 +372,10 @@ export type Database = {
           end_time: string
           id: string
           location_id: string
-          name: string
+          name: string | null
           notes: string | null
           start_time: string
+          version: number
         }
         Insert: {
           created_at?: string | null
@@ -267,9 +384,10 @@ export type Database = {
           end_time: string
           id?: string
           location_id: string
-          name: string
+          name?: string | null
           notes?: string | null
           start_time: string
+          version?: number
         }
         Update: {
           created_at?: string | null
@@ -278,9 +396,10 @@ export type Database = {
           end_time?: string
           id?: string
           location_id?: string
-          name?: string
+          name?: string | null
           notes?: string | null
           start_time?: string
+          version?: number
         }
         Relationships: [
           {
@@ -499,6 +618,38 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_companies: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]

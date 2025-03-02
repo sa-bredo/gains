@@ -42,13 +42,13 @@ export interface ApiError {
   details?: any;
 }
 
-// Add the missing ROLE_OPTIONS export
+// Updated ROLE_OPTIONS to match the new roles
 export const ROLE_OPTIONS = [
-  { value: 'admin', label: 'Administrator' },
+  { value: 'admin', label: 'Admin' },
   { value: 'manager', label: 'Manager' },
-  { value: 'employee', label: 'Employee' },
-  { value: 'contractor', label: 'Contractor' },
-  { value: 'intern', label: 'Intern' }
+  { value: 'front_of_house', label: 'Front of House' },
+  { value: 'founder', label: 'Founder' },
+  { value: 'instructor', label: 'Instructor' }
 ];
 
 // Helper function for formatting dates

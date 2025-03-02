@@ -1,18 +1,12 @@
-
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
-import { Canvas, IEvent, Rect, Textbox } from "fabric";
 import { toast } from "sonner";
-import { Signature, Type, Users } from "lucide-react";
+import { Signature, Type, Users, Trash2 } from 'lucide-react';
 import PDFViewer from "./PDFViewer";
+import { Stage, Layer, Rect, Text, Transformer, Group } from "react-konva";
 
-interface PDFEditorProps {
-  file: File;
-  onFieldsAdded: (fields: any[]) => void;
-}
-
-interface Field {
+export interface Field {
   id: string;
   type: "signature" | "text";
   x: number;
@@ -21,191 +15,131 @@ interface Field {
   height: number;
   page: number;
   assignedTo: string | null;
+  assignedToFirstName?: string;
+  assignedToLastName?: string;
+  assignedToEmail?: string;
+  assignedToRole?: string;
+  assignedToAvatar?: string | null;
 }
 
-const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
-  const canvasRef = useRef<Canvas | null>(null);
-  const canvasContainerRef = useRef<HTMLDivElement | null>(null);
-  const [fields, setFields] = useState<Field[]>([]);
+export interface PDFEditorProps {
+  file: File;
+  initialFields: Field[];
+  onFieldsAdded: (field: Field) => void;
+  onUpdateField: (updatedField: Field) => void;
+  onDeleteField: (fieldId: string) => void;
+  onContinue?: () => void;
+}
+
+const PDFEditor = ({ 
+  file, 
+  initialFields, 
+  onFieldsAdded, 
+  onUpdateField, 
+  onDeleteField,
+  onContinue 
+}: PDFEditorProps) => {
+  const pdfContainerRef = useRef<HTMLDivElement | null>(null);
+  const stageRef = useRef<any>(null);
+  const layerRef = useRef<any>(null);
+  const transformerRef = useRef<any>(null);
+  
+  const [fields, setFields] = useState<Field[]>(initialFields || []);
   const [currentTool, setCurrentTool] = useState<"select" | "signature" | "text">("select");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   
   useEffect(() => {
-    if (!canvasContainerRef.current) return;
-    
-    // Initialize fabric canvas with container width
-    const containerWidth = canvasContainerRef.current.clientWidth;
-    const canvas = new Canvas("fabric-canvas", {
-      width: containerWidth,
-      height: 800,
-      backgroundColor: "rgba(0,0,0,0.05)",
-      selection: true,
-    });
-    
-    canvasRef.current = canvas;
-    
-    canvas.on("object:added", (e: IEvent) => {
-      if (!e.target) return;
+    if (pdfContainerRef.current) {
+      const updateSize = () => {
+        const { offsetWidth, offsetHeight } = pdfContainerRef.current || { offsetWidth: 0, offsetHeight: 0 };
+        setStageSize({
+          width: offsetWidth - 16, // Accounting for padding
+          height: offsetHeight - 16
+        });
+      };
       
-      const obj = e.target;
-      const id = obj.data?.id || uuidv4();
-      obj.set("data", { ...obj.data, id });
+      updateSize();
+      window.addEventListener('resize', updateSize);
       
-      // Add field to state when manually added (not during load)
-      if (!obj.data?.loaded) {
-        const newField: Field = {
-          id,
-          type: obj.data?.type || "text",
-          x: obj.left || 0,
-          y: obj.top || 0,
-          width: obj.width || 0,
-          height: obj.height || 0,
-          page: 1, // Default to first page
-          assignedTo: null,
-        };
-        
-        setFields(prev => [...prev, newField]);
-      }
-    });
-    
-    canvas.on("object:modified", (e: IEvent) => {
-      if (!e.target) return;
-      
-      const obj = e.target;
-      const id = obj.data?.id;
-      
-      if (id) {
-        setFields(prev => 
-          prev.map(field => 
-            field.id === id 
-              ? { 
-                  ...field, 
-                  x: obj.left || 0, 
-                  y: obj.top || 0,
-                  width: obj.width || 0,
-                  height: obj.height || 0 
-                } 
-              : field
-          )
-        );
-      }
-    });
-    
-    // Cleanup
-    return () => {
-      canvas.dispose();
-    };
+      return () => {
+        window.removeEventListener('resize', updateSize);
+      };
+    }
   }, []);
   
-  // Handle window resize
   useEffect(() => {
-    const handleResize = () => {
-      if (!canvasRef.current || !canvasContainerRef.current) return;
+    if (selectedId && transformerRef.current) {
+      const selectedNode = stageRef.current?.findOne(`#${selectedId}`);
       
-      const containerWidth = canvasContainerRef.current.clientWidth;
-      canvasRef.current.setWidth(containerWidth);
-      canvasRef.current.renderAll();
-    };
-    
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+      if (selectedNode) {
+        transformerRef.current.nodes([selectedNode]);
+        transformerRef.current.getLayer().batchDraw();
+      }
+    } else if (transformerRef.current) {
+      transformerRef.current.nodes([]);
+      transformerRef.current.getLayer().batchDraw();
+    }
+  }, [selectedId]);
   
   const addSignatureField = () => {
-    if (!canvasRef.current) return;
-    
-    const rect = new Rect({
-      left: 100,
-      top: 100,
+    const newField: Field = {
+      id: uuidv4(),
+      type: "signature",
+      x: 100,
+      y: 100,
       width: 200,
       height: 80,
-      fill: "rgba(200, 230, 255, 0.2)",
-      stroke: "#2563eb",
-      strokeWidth: 2,
-      rx: 5,
-      ry: 5,
-      data: { type: "signature" },
-    });
+      page: currentPage,
+      assignedTo: null,
+    };
     
-    // Add a label
-    const text = new Textbox("Signature", {
-      left: 100,
-      top: 70,
-      fontSize: 14,
-      fill: "#2563eb",
-      fontWeight: "bold",
-      selectable: false,
-      evented: false,
-    });
-    
-    canvasRef.current.add(rect);
-    canvasRef.current.add(text);
-    canvasRef.current.setActiveObject(rect);
-    
-    toast.success("Signature field added");
+    setFields(prev => [...prev, newField]);
+    onFieldsAdded(newField);
+    toast.success("Signature field added - drag to position");
   };
   
   const addTextField = () => {
-    if (!canvasRef.current) return;
-    
-    const rect = new Rect({
-      left: 100,
-      top: 200,
+    const newField: Field = {
+      id: uuidv4(),
+      type: "text",
+      x: 100,
+      y: 200,
       width: 300,
       height: 40,
-      fill: "rgba(230, 255, 230, 0.2)",
-      stroke: "#16a34a",
-      strokeWidth: 2,
-      rx: 5,
-      ry: 5,
-      data: { type: "text" },
-    });
+      page: currentPage,
+      assignedTo: null,
+    };
     
-    // Add a label
-    const text = new Textbox("Text Field", {
-      left: 100,
-      top: 170,
-      fontSize: 14,
-      fill: "#16a34a",
-      fontWeight: "bold",
-      selectable: false,
-      evented: false,
-    });
+    setFields(prev => [...prev, newField]);
+    onFieldsAdded(newField);
+    toast.success("Text field added - drag to position");
+  };
+
+  const handleDeleteField = (fieldId: string) => {
+    setFields(prev => prev.filter(field => field.id !== fieldId));
+    toast.success("Field removed");
     
-    canvasRef.current.add(rect);
-    canvasRef.current.add(text);
-    canvasRef.current.setActiveObject(rect);
-    
-    toast.success("Text field added");
+    if (selectedId === fieldId) {
+      setSelectedId(null);
+    }
   };
 
   const handleToolChange = (tool: typeof currentTool) => {
     setCurrentTool(tool);
     
-    if (!canvasRef.current) return;
-    
-    if (tool === "select") {
-      canvasRef.current.selection = true;
-      canvasRef.current.getObjects().forEach(obj => {
-        obj.selectable = true;
-      });
-    } else {
-      // When in drawing mode, disable selection temporarily
-      canvasRef.current.selection = false;
-      canvasRef.current.getObjects().forEach(obj => {
-        obj.selectable = false;
-      });
-      
-      // Add the appropriate field
-      if (tool === "signature") {
-        addSignatureField();
-        // Reset to select after adding
-        setCurrentTool("select");
-      } else if (tool === "text") {
-        addTextField();
-        // Reset to select after adding
-        setCurrentTool("select");
-      }
+    if (tool === "signature") {
+      addSignatureField();
+      setTimeout(() => setCurrentTool("select"), 100);
+    } else if (tool === "text") {
+      addTextField();
+      setTimeout(() => setCurrentTool("select"), 100);
     }
+  };
+  
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
   };
   
   const handleContinue = () => {
@@ -214,7 +148,100 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
       return;
     }
     
-    onFieldsAdded(fields);
+    if (onContinue) {
+      onContinue();
+    } else {
+      toast.success(`${fields.length} fields added to document`);
+    }
+  };
+  
+  const handleSelectShape = (id: string) => {
+    setSelectedId(id);
+  };
+  
+  const handleTransformEnd = (fieldId: string, newAttrs: any) => {
+    setFields(prev => 
+      prev.map(field => 
+        field.id === fieldId 
+          ? { 
+              ...field, 
+              x: newAttrs.x,
+              y: newAttrs.y,
+              width: newAttrs.width,
+              height: newAttrs.height
+            } 
+          : field
+      )
+    );
+  };
+  
+  const renderKonvaFields = () => {
+    return fields
+      .filter(field => field.page === currentPage)
+      .map(field => (
+        <Group 
+          key={field.id}
+          id={field.id}
+          x={field.x}
+          y={field.y}
+          width={field.width}
+          height={field.height}
+          draggable
+          onClick={() => handleSelectShape(field.id)}
+          onTap={() => handleSelectShape(field.id)}
+          onDragEnd={(e) => {
+            setFields(prev =>
+              prev.map(f =>
+                f.id === field.id
+                  ? { ...f, x: e.target.x(), y: e.target.y() }
+                  : f
+              )
+            );
+          }}
+          onTransformEnd={(e) => {
+            const node = e.target;
+            const scaleX = node.scaleX();
+            const scaleY = node.scaleY();
+            
+            node.scaleX(1);
+            node.scaleY(1);
+            
+            const newAttrs = {
+              x: node.x(),
+              y: node.y(),
+              width: node.width() * scaleX,
+              height: node.height() * scaleY
+            };
+            
+            handleTransformEnd(field.id, newAttrs);
+          }}
+        >
+          <Rect
+            width={field.width}
+            height={field.height}
+            fill={field.type === "signature" ? "rgba(59, 130, 246, 0.1)" : "rgba(34, 197, 94, 0.1)"}
+            stroke={field.type === "signature" ? "#3b82f6" : "#22c55e"}
+            strokeWidth={2}
+            cornerRadius={4}
+          />
+          <Text
+            text={field.type === "signature" ? "Sign Here" : "Enter Text"}
+            width={field.width}
+            height={field.height}
+            align="center"
+            verticalAlign="middle"
+            fill="#6b7280"
+            fontSize={14}
+          />
+          <Text
+            y={-20}
+            text={field.type === "signature" ? "Signature" : "Text Field"}
+            fill="#000"
+            fontSize={12}
+            fontStyle="bold"
+          />
+        </Group>
+      ));
   };
   
   return (
@@ -251,47 +278,95 @@ const PDFEditor = ({ file, onFieldsAdded }: PDFEditorProps) => {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="border rounded-lg p-4 bg-background">
-          <PDFViewer file={file} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div 
+          className="lg:col-span-2 border rounded-lg overflow-hidden bg-background relative"
+          ref={pdfContainerRef}
+        >
+          <div className="p-4 relative">
+            <PDFViewer 
+              file={file} 
+              onPageChange={handlePageChange}
+            />
+            <div 
+              className="absolute top-0 left-0 w-full h-full pointer-events-auto"
+              style={{ zIndex: 10 }}
+            >
+              <Stage 
+                width={stageSize.width} 
+                height={stageSize.height}
+                ref={stageRef}
+              >
+                <Layer ref={layerRef}>
+                  {renderKonvaFields()}
+                  <Transformer
+                    ref={transformerRef}
+                    boundBoxFunc={(oldBox, newBox) => {
+                      if (newBox.width < 50 || newBox.height < 30) {
+                        return oldBox;
+                      }
+                      return newBox;
+                    }}
+                  />
+                </Layer>
+              </Stage>
+            </div>
+          </div>
         </div>
         
-        <div className="border rounded-lg p-4" ref={canvasContainerRef}>
-          <h3 className="text-lg font-medium mb-2">Design Document Fields</h3>
+        <div className="border rounded-lg p-4">
+          <h3 className="text-lg font-medium mb-2">Document Fields</h3>
           <p className="text-sm text-muted-foreground mb-4">
             Add and position signature and text fields on the document
           </p>
-          <canvas id="fabric-canvas" className="border rounded bg-white" />
           
           <div className="mt-4">
             <h4 className="text-sm font-medium mb-2">Fields ({fields.length})</h4>
-            <ul className="space-y-2">
-              {fields.map((field) => (
-                <li 
-                  key={field.id} 
-                  className="text-sm p-2 border rounded flex justify-between items-center"
-                >
-                  <span className="flex items-center gap-2">
-                    {field.type === "signature" ? (
-                      <Signature className="h-4 w-4 text-blue-500" />
-                    ) : (
-                      <Type className="h-4 w-4 text-green-500" />
-                    )}
-                    {field.type === "signature" ? "Signature Field" : "Text Field"}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    Not assigned
-                  </span>
-                </li>
-              ))}
-            </ul>
+            {fields.length === 0 ? (
+              <div className="text-sm text-muted-foreground p-4 border border-dashed rounded-md text-center">
+                No fields added yet. Use the buttons above to add fields to the document.
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {fields.map((field) => (
+                  <li 
+                    key={field.id} 
+                    className={`text-sm p-2 border rounded flex justify-between items-center ${selectedId === field.id ? 'bg-muted' : ''}`}
+                    onClick={() => handleSelectShape(field.id)}
+                  >
+                    <span className="flex items-center gap-2">
+                      {field.type === "signature" ? (
+                        <Signature className="h-4 w-4 text-blue-500" />
+                      ) : (
+                        <Type className="h-4 w-4 text-green-500" />
+                      )}
+                      {field.type === "signature" ? "Signature Field" : "Text Field"}
+                      <span className="text-xs text-muted-foreground bg-muted px-1 rounded">
+                        Page {field.page}
+                      </span>
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteField(field.id);
+                      }}
+                      className="h-6 w-6"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </div>
       
       <div className="flex justify-end">
         <Button onClick={handleContinue}>
-          Continue to Assign People
+          Continue to Save Template
         </Button>
       </div>
     </div>

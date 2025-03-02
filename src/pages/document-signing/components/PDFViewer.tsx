@@ -11,9 +11,10 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 
 interface PDFViewerProps {
   file: File | null;
+  onPageChange?: (pageNumber: number) => void;
 }
 
-const PDFViewer = ({ file }: PDFViewerProps) => {
+const PDFViewer = ({ file, onPageChange }: PDFViewerProps) => {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [scale, setScale] = useState<number>(1.0);
@@ -21,12 +22,21 @@ const PDFViewer = ({ file }: PDFViewerProps) => {
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
     setPageNumber(1);
+    if (onPageChange) {
+      onPageChange(1);
+    }
   };
 
   const changePage = (offset: number) => {
     setPageNumber((prevPageNumber) => {
       const newPage = prevPageNumber + offset;
-      return newPage >= 1 && newPage <= numPages ? newPage : prevPageNumber;
+      if (newPage >= 1 && newPage <= numPages) {
+        if (onPageChange) {
+          onPageChange(newPage);
+        }
+        return newPage;
+      }
+      return prevPageNumber;
     });
   };
 
