@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { DAYS_OF_WEEK, Location, ShiftTemplate, StaffMember } from '../types';
 import { Button } from '@/components/ui/button';
@@ -109,6 +108,7 @@ export function AddShiftTemplateDialog({
         location_id: data.location_id,
         employee_id: data.employee_id || null,
         notes: data.notes || null,
+        version: 1 // Add default version
       };
       
       await onAdd(formattedData);
