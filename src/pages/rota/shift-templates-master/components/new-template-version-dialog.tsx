@@ -128,53 +128,55 @@ export function NewTemplateVersionDialog({
           </DialogDescription>
         </DialogHeader>
         
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="locationId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Location</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                    disabled={isLoading}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a location" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>
-                          {location.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
+        <div className="max-w-[250px]">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="locationId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-bold text-left block">Location</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                      disabled={isLoading}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a location" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {locations.map((location) => (
+                          <SelectItem key={location.id} value={location.id}>
+                            {location.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {selectedLocationId && (
+                <div className="flex items-center justify-between border p-3 rounded-md bg-muted/30">
+                  <span className="text-sm font-medium">New Version</span>
+                  <span className="font-mono bg-primary-foreground px-2 py-1 rounded text-sm">
+                    v{getNextVersion()}
+                  </span>
+                </div>
               )}
-            />
-            
-            {selectedLocationId && (
-              <div className="flex items-center justify-between border p-3 rounded-md bg-muted/30">
-                <span className="text-sm font-medium">New Version</span>
-                <span className="font-mono bg-primary-foreground px-2 py-1 rounded text-sm">
-                  v{getNextVersion()}
-                </span>
-              </div>
-            )}
-            
-            <DialogFooter>
-              <Button type="submit" disabled={isLoading || !selectedLocationId}>
-                Create Template Set
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+              
+              <DialogFooter>
+                <Button type="submit" disabled={isLoading || !selectedLocationId}>
+                  Create Template Set
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );

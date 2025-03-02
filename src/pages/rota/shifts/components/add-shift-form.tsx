@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -22,7 +21,6 @@ import { useToast } from '@/hooks/use-toast';
 import { format, parse } from 'date-fns';
 import { Location, ShiftTemplate, ShiftTemplateMaster } from '../../shift-templates/types';
 import { AddShiftFormValues, addShiftFormSchema } from './add-shift-form-schema';
-import { generateWeeksOptions } from '../utils/date-utils';
 import { ShiftPreview, ShiftPreviewItem } from './shift-preview';
 import { 
   fetchLocations, 
@@ -55,7 +53,6 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
 
   const weeksOptions = generateWeeksOptions();
 
-  // Setup form with default values
   const form = useForm<AddShiftFormValues>({
     resolver: zodResolver(addShiftFormSchema),
     defaultValues: {
@@ -66,13 +63,11 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
     },
   });
 
-  // Initial data loading
   useEffect(() => {
     const loadInitialData = async () => {
       try {
         setIsLoading(true);
         
-        // Load locations and template masters
         const [locationsData, mastersData] = await Promise.all([
           fetchLocations(),
           fetchTemplateMasters(),
@@ -81,13 +76,11 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
         setLocations(locationsData);
         setTemplateMasters(mastersData);
         
-        // Set default location if provided
         if (defaultLocationId) {
           form.setValue('location_id', defaultLocationId);
           const filteredMasters = mastersData.filter(master => master.location_id === defaultLocationId);
           setFilteredMasters(filteredMasters);
           
-          // Set default version if available
           if (filteredMasters.length > 0) {
             form.setValue('version', filteredMasters[0].version);
             await loadTemplatesAndDates(defaultLocationId, filteredMasters[0].version);
@@ -108,13 +101,11 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
     loadInitialData();
   }, [defaultLocationId]);
 
-  // Load templates and generate date options when location or version changes
   const loadTemplatesAndDates = async (locationId: string, version: number) => {
     try {
       const templates = await fetchTemplatesForLocationAndVersion(locationId, version);
       setTemplates(templates);
       
-      // Find the earliest day of the week
       if (templates.length > 0) {
         const sortedTemplates = [...templates].sort((a, b) => {
           const dayOrder = { 
@@ -127,11 +118,9 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
         const firstDay = sortedTemplates[0].day_of_week;
         setFirstDayOfWeek(firstDay);
         
-        // Generate 4 start date options beginning with the first day of the template
         const today = new Date();
         const dateOptions = [];
         
-        // Loop to find the next 4 occurrences of the first day
         let currentDate = new Date(today);
         for (let i = 0; i < 4; i++) {
           while (true) {
@@ -151,7 +140,6 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
         
         setStartDateOptions(dateOptions);
         
-        // Set the first option as the default start date
         if (dateOptions.length > 0) {
           form.setValue('start_date', dateOptions[0].value);
         }
@@ -169,16 +157,13 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
     }
   };
 
-  // Handle location change
   const handleLocationChange = (locationId: string) => {
     const filtered = templateMasters.filter(master => master.location_id === locationId);
     setFilteredMasters(filtered);
     
-    // Reset version and start_date when location changes
     form.setValue('version', filtered.length > 0 ? filtered[0].version : 0);
     form.setValue('start_date', '');
     
-    // Load templates for the new location and version
     if (filtered.length > 0) {
       loadTemplatesAndDates(locationId, filtered[0].version);
     } else {
@@ -188,13 +173,11 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
     }
   };
 
-  // Handle version change
   const handleVersionChange = (version: number) => {
     const locationId = form.getValues('location_id');
     loadTemplatesAndDates(locationId, version);
   };
 
-  // Handle form submission to preview shifts
   const onSubmit = (data: AddShiftFormValues) => {
     if (templates.length === 0) {
       toast({
@@ -205,38 +188,30 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
       return;
     }
     
-    // Parse start date
     const startDate = parse(data.start_date, 'yyyy-MM-dd', new Date());
     
-    // Generate shifts preview
     const shifts = generateShiftsPreview(templates, startDate, data.weeks);
     setPreviewShifts(shifts);
     setShowPreview(true);
   };
 
-  // Handle saving shifts
   const handleSaveShifts = async () => {
     try {
       setIsSubmitting(true);
       
-      // Format shifts for database insertion
       const shiftsToCreate = formatShiftsForCreation(previewShifts);
       
-      // Create shifts in database
       await createShifts(shiftsToCreate);
       
-      // Show success message
       toast({
         title: 'Success',
         description: `${previewShifts.length} shifts have been created.`,
       });
       
-      // Reset form and state
       form.reset();
       setShowPreview(false);
       setPreviewShifts([]);
       
-      // Notify parent component
       onAddComplete();
     } catch (error) {
       console.error('Error creating shifts:', error);
@@ -250,7 +225,6 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
     }
   };
 
-  // Handle back button click in preview
   const handleBackFromPreview = () => {
     setShowPreview(false);
   };
@@ -258,7 +232,7 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
   return (
     <div className="space-y-6">
       {!showPreview ? (
-        <div className="max-w-2xl">
+        <div className="max-w-[250px]">
           <h2 className="text-xl font-semibold mb-4">Add Shifts from Template</h2>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -267,7 +241,7 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
                 name="location_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Location</FormLabel>
+                    <FormLabel className="font-bold text-left block">Location</FormLabel>
                     <Select
                       disabled={isLoading}
                       onValueChange={(value) => {
@@ -299,7 +273,7 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
                 name="version"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Template Version</FormLabel>
+                    <FormLabel className="font-bold text-left block">Template Version</FormLabel>
                     <Select
                       disabled={isLoading || filteredMasters.length === 0}
                       onValueChange={(value) => {
@@ -332,7 +306,7 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
                 name="start_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Start Date</FormLabel>
+                    <FormLabel className="font-bold text-left block">Start Date</FormLabel>
                     <Select
                       disabled={isLoading || startDateOptions.length === 0}
                       onValueChange={field.onChange}
@@ -361,7 +335,7 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
                 name="weeks"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Number of Weeks</FormLabel>
+                    <FormLabel className="font-bold text-left block">Number of Weeks</FormLabel>
                     <Select
                       disabled={isLoading}
                       onValueChange={(value) => field.onChange(parseInt(value, 10))}
