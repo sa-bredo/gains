@@ -4,4 +4,5 @@ export interface Location {
   name: string;
   address?: string | null;
   created_at?: string | null;
+  company_id?: string | null;
 }

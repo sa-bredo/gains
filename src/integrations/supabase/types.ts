@@ -346,23 +346,34 @@ export type Database = {
       locations: {
         Row: {
           address: string | null
+          company_id: string | null
           created_at: string | null
           id: string
           name: string
         }
         Insert: {
           address?: string | null
+          company_id?: string | null
           created_at?: string | null
           id?: string
           name: string
         }
         Update: {
           address?: string | null
+          company_id?: string | null
           created_at?: string | null
           id?: string
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "locations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shift_templates: {
         Row: {

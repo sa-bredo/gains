@@ -8,18 +8,23 @@ import { AddLocationDialog } from "./components/add-location-dialog";
 import { Location } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useCompany } from "@/contexts/CompanyContext";
 
 export default function LocationsPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const { currentCompany } = useCompany();
 
   const fetchLocations = async () => {
+    if (!currentCompany) return;
+    
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('locations')
         .select('*')
+        .eq('company_id', currentCompany.id)
         .order('name', { ascending: true });
 
       if (error) throw error;
@@ -33,14 +38,27 @@ export default function LocationsPage() {
   };
 
   useEffect(() => {
-    fetchLocations();
-  }, []);
+    if (currentCompany) {
+      fetchLocations();
+    }
+  }, [currentCompany]);
 
   const handleAddLocation = async (data: Omit<Location, 'id' | 'created_at'>): Promise<Location | undefined> => {
+    if (!currentCompany) {
+      toast.error('No company selected');
+      return undefined;
+    }
+    
     try {
+      // Add company_id to the location data
+      const locationWithCompany = {
+        ...data,
+        company_id: currentCompany.id
+      };
+      
       const { data: newLocation, error } = await supabase
         .from('locations')
-        .insert([data])
+        .insert([locationWithCompany])
         .select('*')
         .single();
 
