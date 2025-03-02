@@ -32,51 +32,37 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Fetch companies the user belongs to through the employees table
-      const { data: employeeData, error: employeeError } = await supabase
-        .from('employees')
-        .select('company_id')
-        .eq('auth_id', userId);
-
-      if (employeeError) {
-        throw employeeError;
-      }
-
-      if (!employeeData || employeeData.length === 0) {
-        setUserCompanies([]);
-        setCurrentCompany(null);
-        return;
-      }
-
-      const companyIds = employeeData.map(emp => emp.company_id);
-
-      // Fetch company details
+      // For now, just fetch all companies since we don't have employee-company relationship yet
       const { data: companiesData, error: companiesError } = await supabase
         .from('companies')
-        .select('*')
-        .in('id', companyIds);
+        .select('*');
 
       if (companiesError) {
         throw companiesError;
       }
 
-      setUserCompanies(companiesData || []);
+      // Type guard to ensure we have Company objects
+      const typedCompanies = companiesData?.filter(
+        (item): item is Company => 'name' in item && typeof item.name === 'string'
+      ) || [];
+      
+      setUserCompanies(typedCompanies);
       
       // If we have companies but no current company selected, select the first one
-      if (companiesData && companiesData.length > 0 && !currentCompany) {
-        setCurrentCompany(companiesData[0]);
+      if (typedCompanies.length > 0 && !currentCompany) {
+        setCurrentCompany(typedCompanies[0]);
         // Store the selected company in localStorage
-        localStorage.setItem('currentCompanyId', companiesData[0].id);
-      } else if (companiesData && companiesData.length > 0) {
+        localStorage.setItem('currentCompanyId', typedCompanies[0].id);
+      } else if (typedCompanies.length > 0) {
         // Check if the stored company is still valid
         const storedCompanyId = localStorage.getItem('currentCompanyId');
         if (storedCompanyId) {
-          const storedCompany = companiesData.find(c => c.id === storedCompanyId);
+          const storedCompany = typedCompanies.find(c => c.id === storedCompanyId);
           if (storedCompany) {
             setCurrentCompany(storedCompany);
           } else {
-            setCurrentCompany(companiesData[0]);
-            localStorage.setItem('currentCompanyId', companiesData[0].id);
+            setCurrentCompany(typedCompanies[0]);
+            localStorage.setItem('currentCompanyId', typedCompanies[0].id);
           }
         }
       }

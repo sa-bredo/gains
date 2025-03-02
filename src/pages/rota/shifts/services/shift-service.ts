@@ -142,8 +142,8 @@ export const fetchShiftsWithDateRange = async (
       .from('shifts')
       .select(`
         *,
-        locations:location_id (id, name, company_id),
-        employees:employee_id (id, first_name, last_name, role, email, company_id)
+        locations:location_id (id, name),
+        employees:employee_id (id, first_name, last_name, role, email)
       `)
       .order('date', { ascending: true });
     
@@ -166,12 +166,11 @@ export const fetchShiftsWithDateRange = async (
       query = query.eq('location_id', locationId);
     }
     
-    // Filter by company ID through the locations table
-    if (companyId) {
-      query = query.in('location_id', function(subQuery) {
-        return subQuery.select('id').from('locations').eq('company_id', companyId);
-      });
-    }
+    // Filter by company ID - since we don't have company_id in the locations table yet,
+    // we'll temporarily disable this filter for now
+    // if (companyId) {
+    //   // We'll implement this later when the locations table has company_id column
+    // }
     
     const { data, error } = await query;
     
@@ -340,7 +339,8 @@ export function useShiftService() {
   const { currentCompany } = useCompany();
   
   const fetchShifts = async (startDate: Date | null, endDate: Date | null, locationId: string | null) => {
-    return fetchShiftsWithDateRange(startDate, endDate, locationId, currentCompany?.id || null);
+    // Temporarily pass null for companyId until we have that column in the database
+    return fetchShiftsWithDateRange(startDate, endDate, locationId, null);
   };
   
   // Wrap other shift service functions similarly
