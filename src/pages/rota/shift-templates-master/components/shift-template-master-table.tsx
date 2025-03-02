@@ -48,10 +48,10 @@ export function ShiftTemplateMasterTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-left">Location</TableHead>
-              <TableHead className="text-left">Version</TableHead>
-              <TableHead className="text-left">Created</TableHead>
-              <TableHead className="text-left w-[120px]">Actions</TableHead>
+              <TableHead>Location</TableHead>
+              <TableHead>Version</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="w-[120px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -70,7 +70,7 @@ export function ShiftTemplateMasterTable({
             ) : (
               templateMasters.map((master) => (
                 <TableRow key={`${master.location_id}-${master.version}`}>
-                  <TableCell className="font-medium">{master.location_name}</TableCell>
+                  <TableCell>{master.location_name}</TableCell>
                   <TableCell>v{master.version}</TableCell>
                   <TableCell>{formatDate(master.created_at)}</TableCell>
                   <TableCell>
