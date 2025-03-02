@@ -11,6 +11,9 @@ export interface StaffMember {
   last_name: string;
   role: string;
   email: string;
+  start_job_date?: string | null;
+  end_job_date?: string | null;
+  created_at?: string | null;
   // Other employee fields may be included
 }
 

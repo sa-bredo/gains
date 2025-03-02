@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -160,7 +159,7 @@ export default function ShiftTemplatesPage() {
   }, [selectedLocationId, selectedVersion, isNewTemplate]);
 
   // Add a new shift template
-  const addShiftTemplate = async (templateData: Omit<ShiftTemplate, 'id' | 'created_at' | 'version'>) => {
+  const addShiftTemplate = async (templateData: ShiftTemplateFormValues): Promise<void> => {
     try {
       setIsUpdating(true);
       
@@ -174,7 +173,7 @@ export default function ShiftTemplatesPage() {
       };
       
       // Remove any joined fields before sending to Supabase
-      const { locations, employees, ...dataToInsert } = dataToAdd;
+      const { locations, employees, ...dataToInsert } = dataToAdd as any;
       
       const { data, error } = await supabase
         .from('shift_templates')
@@ -191,7 +190,6 @@ export default function ShiftTemplatesPage() {
       });
       
       await fetchShiftTemplates();
-      return data?.[0];
     } catch (error) {
       console.error('Error adding shift template:', error);
       toast({
@@ -375,7 +373,7 @@ export default function ShiftTemplatesPage() {
             <ShiftTemplatesTable 
               templates={shiftTemplates}
               locations={locations}
-              staffMembers={staffMembers}
+              staffMembers={staffMembers as any}
               isLoading={isLoading || isUpdating}
               onUpdate={updateShiftTemplate}
               onDelete={deleteShiftTemplate}
