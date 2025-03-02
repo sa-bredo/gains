@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,6 +28,7 @@ export interface AddShiftFormProps {
   error: any;
   onLocationChange: (locationId: string) => Promise<void>;
   onVersionChange: (version: number) => Promise<void>;
+  onAddComplete?: () => void; // Added this prop to match what's being passed in index.tsx
 }
 
 export function AddShiftForm({ 
@@ -42,7 +42,8 @@ export function AddShiftForm({
   isLoading,
   error,
   onLocationChange,
-  onVersionChange
+  onVersionChange,
+  onAddComplete
 }: AddShiftFormProps) {
   const [availableVersions, setAvailableVersions] = useState<{label: string, value: number}[]>([]);
   const [availableDates, setAvailableDates] = useState<Date[]>([]);

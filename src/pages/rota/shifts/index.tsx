@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -22,17 +21,26 @@ import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddShiftForm } from './components/add-shift-form';
+import { 
+  fetchLocations, 
+  fetchStaffMembers, 
+  fetchTemplateMasters,
+  fetchTemplatesForLocationAndVersion
+} from './services/shift-service';
 
 export default function ShiftsPage() {
   const { toast } = useToast();
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
+  const [templates, setTemplates] = useState<ShiftTemplate[]>([]); 
+  const [templateMasters, setTemplateMasters] = useState<ShiftTemplateMaster[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [activeTab, setActiveTab] = useState<string>("view");
+  const [formError, setFormError] = useState<any>(null);
 
   // Fetch shifts
   const fetchShifts = async () => {
@@ -134,12 +142,97 @@ export default function ShiftsPage() {
   // Load initial data
   useEffect(() => {
     Promise.all([
-      fetchLocations(),
-      fetchStaffMembers()
+      loadLocations(),
+      loadStaffMembers(),
+      loadTemplateMasters()
     ]).then(() => {
       fetchShifts();
     });
   }, []);
+
+  // Function to load locations
+  const loadLocations = async () => {
+    try {
+      const locationsData = await fetchLocations();
+      setLocations(locationsData);
+      
+      // Set the first location as selected if none is selected and there are locations
+      if (!selectedLocationId && locationsData.length > 0) {
+        setSelectedLocationId(locationsData[0].id);
+        if (activeTab === "add") {
+          await loadTemplatesForLocation(locationsData[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading locations:', error);
+      toast({
+        title: "Failed to load locations",
+        description: "There was a problem loading the locations data.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Function to load staff members
+  const loadStaffMembers = async () => {
+    try {
+      const staffData = await fetchStaffMembers();
+      setStaffMembers(staffData);
+    } catch (error) {
+      console.error('Error loading staff members:', error);
+      toast({
+        title: "Failed to load staff members",
+        description: "There was a problem loading the staff members data.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Function to load template masters
+  const loadTemplateMasters = async () => {
+    try {
+      const masterData = await fetchTemplateMasters();
+      setTemplateMasters(masterData);
+    } catch (error) {
+      console.error('Error loading template masters:', error);
+      toast({
+        title: "Failed to load template masters",
+        description: "There was a problem loading the template masters data.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Function to load templates for a specific location
+  const loadTemplatesForLocation = async (locationId: string, version?: number) => {
+    try {
+      setIsLoading(true);
+      
+      // Find the latest version for this location if version is not provided
+      if (!version && templateMasters.length > 0) {
+        const locationMasters = templateMasters
+          .filter(tm => tm.location_id === locationId)
+          .sort((a, b) => b.version - a.version);
+        
+        version = locationMasters.length > 0 ? locationMasters[0].version : 1;
+      }
+      
+      if (locationId && version) {
+        const templatesData = await fetchTemplatesForLocationAndVersion(locationId, version);
+        setTemplates(templatesData);
+      }
+    } catch (error) {
+      console.error('Error loading templates:', error);
+      setFormError(error);
+      toast({
+        title: "Failed to load templates",
+        description: "There was a problem loading the templates data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Refetch shifts when filters change
   useEffect(() => {
@@ -158,6 +251,24 @@ export default function ShiftsPage() {
     if (date) {
       setSelectedDate(date);
     }
+  };
+
+  // Handle location change in form
+  const handleFormLocationChange = async (locationId: string) => {
+    await loadTemplatesForLocation(locationId);
+  };
+
+  // Handle version change in form
+  const handleFormVersionChange = async (version: number) => {
+    if (selectedLocationId) {
+      await loadTemplatesForLocation(selectedLocationId, version);
+    }
+  };
+
+  // Handle add shift form submission
+  const handleAddShiftSubmit = (values: any) => {
+    console.log('Add shift form submitted:', values);
+    // Implement form submission logic here
   };
 
   // Handle add shift completion
@@ -259,8 +370,17 @@ export default function ShiftsPage() {
                   </div>
                 ) : (
                   <AddShiftForm 
-                    onAddComplete={handleAddShiftComplete} 
+                    locations={locations}
+                    templates={templates}
+                    templateMasters={templateMasters}
                     defaultLocationId={selectedLocationId || undefined}
+                    onSubmit={handleAddShiftSubmit}
+                    onCancel={() => setActiveTab("view")}
+                    isLoading={isLoading}
+                    error={formError}
+                    onLocationChange={handleFormLocationChange}
+                    onVersionChange={handleFormVersionChange}
+                    onAddComplete={handleAddShiftComplete}
                   />
                 )}
               </TabsContent>
