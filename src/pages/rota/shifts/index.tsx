@@ -74,13 +74,12 @@ function ShiftsPage() {
       <AddShiftDialog
         open={isAddShiftDialogOpen}
         onOpenChange={setIsAddShiftDialogOpen}
-        onAddComplete={() => {
-          // Refetch the shifts data after adding new shifts
+        onAddComplete={(newShift) => {
+          // If a new shift was created, add it to our shifts state
+          if (newShift) {
+            setShifts([...shifts, newShift]);
+          }
           // The query will be invalidated and refetched automatically
-        }}
-        onSuccess={(newShift) => {
-          setShifts([...shifts, newShift]);
-          setIsAddShiftDialogOpen(false);
         }}
       />
     </div>
