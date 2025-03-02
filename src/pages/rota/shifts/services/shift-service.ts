@@ -23,7 +23,7 @@ export const fetchLocations = async (): Promise<Location[]> => {
 export const fetchTemplateMasters = async (): Promise<ShiftTemplateMaster[]> => {
   const { data, error } = await supabase
     .from('shift_templates')
-    .select('location_id, version, locations:location_id(name)')
+    .select('location_id, version, locations:location_id(name), created_at')
     .order('location_id')
     .order('version', { ascending: false });
 

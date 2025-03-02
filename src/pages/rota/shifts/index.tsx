@@ -88,58 +88,6 @@ export default function ShiftsPage() {
     }
   };
 
-  // Fetch locations
-  const fetchLocations = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('locations')
-        .select('*')
-        .order('name');
-      
-      if (error) {
-        throw error;
-      }
-      
-      setLocations(data || []);
-      
-      // Set the first location as selected if none is selected and there are locations
-      if (!selectedLocationId && data && data.length > 0) {
-        setSelectedLocationId(data[0].id);
-      }
-    } catch (error) {
-      console.error('Error fetching locations:', error);
-      toast({
-        title: "Failed to load locations",
-        description: "There was a problem loading the locations data.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Fetch staff members
-  const fetchStaffMembers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('employees')
-        .select('*')
-        .in('role', ['Manager', 'Front Of House', 'Instructor'])
-        .order('first_name');
-      
-      if (error) {
-        throw error;
-      }
-      
-      setStaffMembers(data || []);
-    } catch (error) {
-      console.error('Error fetching staff members:', error);
-      toast({
-        title: "Failed to load staff members",
-        description: "There was a problem loading the staff members data.",
-        variant: "destructive",
-      });
-    }
-  };
-
   // Load initial data
   useEffect(() => {
     Promise.all([
