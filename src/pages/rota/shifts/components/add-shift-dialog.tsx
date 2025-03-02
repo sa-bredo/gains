@@ -1,255 +1,134 @@
-
 import React, { useState, useEffect } from 'react';
-import { parse } from 'date-fns';
-import { Location, ShiftTemplate, ShiftTemplateMaster } from '../../shift-templates/types';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useToast } from '@/hooks/use-toast';
-import { ShiftPreview, ShiftPreviewItem } from './shift-preview';
-import { AddShiftForm } from './add-shift-form';
-import { AddShiftFormValues } from './add-shift-form-schema';
-import { 
-  fetchLocations, 
-  fetchTemplateMasters, 
-  fetchTemplatesForLocationAndVersion,
-  generateShiftsPreview,
-  mapShiftsToPreview,
-  formatShiftsForCreation,
-  createShifts
-} from '../services/shift-service';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Location } from '../../shift-templates/types';
+import { StaffMember } from '../../shift-templates/types';
+import { useShiftService } from '../../shifts/services/shift-service';
+import { useCompany } from '@/contexts/CompanyContext';
 
-export interface AddShiftDialogProps {
+interface AddShiftDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddComplete?: () => void;
-  defaultLocationId?: string;
-  defaultVersion?: number;
+  onConfirm: (data: any) => void;
 }
 
-export function AddShiftDialog({ 
-  open, 
-  onOpenChange, 
-  onAddComplete,
-  defaultLocationId,
-  defaultVersion
-}: AddShiftDialogProps) {
-  const { toast } = useToast();
+export function AddShiftDialog({ open, onOpenChange, onConfirm }: AddShiftDialogProps) {
+  const [location, setLocation] = useState<string>('');
+  const [employee, setEmployee] = useState<string>('');
+  const [startTime, setStartTime] = useState<string>('');
+  const [endTime, setEndTime] = useState<string>('');
   const [locations, setLocations] = useState<Location[]>([]);
-  const [templateMasters, setTemplateMasters] = useState<ShiftTemplateMaster[]>([]);
-  const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
-  const [generatedShifts, setGeneratedShifts] = useState<ShiftPreviewItem[]>([]);
-  const [showPreview, setShowPreview] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<any>(null);
+	const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
+  const { fetchLocations, fetchStaffMembers } = useShiftService();
+  const { currentCompany } = useCompany();
 
-  // Load initial data
   useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        const [locationsData, mastersData] = await Promise.all([
-          fetchLocations(),
-          fetchTemplateMasters()
-        ]);
-        
-        setLocations(locationsData);
-        setTemplateMasters(mastersData);
-        
-        // If defaultLocationId is provided, fetch templates for that location
-        if (defaultLocationId) {
-          // Find the latest version for the selected location if defaultVersion is not provided
-          const version = defaultVersion || findLatestVersionForLocation(mastersData, defaultLocationId);
-          if (version) {
-            const templatesData = await fetchTemplatesForLocationAndVersion(defaultLocationId, version);
-            setTemplates(templatesData);
-          }
-        }
-      } catch (error) {
-        console.error("Error loading initial data:", error);
-        toast({
-          title: "Failed to load data",
-          description: "There was a problem loading the initial data.",
-          variant: "destructive",
-        });
-      }
-    };
-    
     if (open) {
-      loadInitialData();
+      fetchLocations(currentCompany?.id || null);
+      fetchStaffMembers();
     }
-  }, [open, defaultLocationId, defaultVersion, toast]);
+  }, [open, fetchLocations, fetchStaffMembers, currentCompany]);
 
-  // Find the latest version for a location
-  const findLatestVersionForLocation = (masters: ShiftTemplateMaster[], locationId: string): number => {
-    const locationMasters = masters.filter(m => m.location_id === locationId);
-    return locationMasters.length > 0 
-      ? Math.max(...locationMasters.map(m => m.version))
-      : 1;
+  useEffect(() => {
+    const loadLocations = async () => {
+      const locationsData = await fetchLocations(currentCompany?.id || null);
+      setLocations(locationsData);
+    };
+
+    const loadStaffMembers = async () => {
+      const staffMembersData = await fetchStaffMembers();
+      setStaffMembers(staffMembersData);
+    };
+
+    loadLocations();
+    loadStaffMembers();
+  }, [fetchLocations, fetchStaffMembers, currentCompany]);
+
+  const handleConfirm = () => {
+    const data = {
+      location,
+      employee,
+      startTime,
+      endTime,
+    };
+    onConfirm(data);
+    onOpenChange(false);
   };
-
-  // Handle location change
-  const handleLocationChange = async (locationId: string) => {
-    try {
-      if (locationId) {
-        // Find the latest version for the selected location
-        const latestVersion = findLatestVersionForLocation(templateMasters, locationId);
-        
-        // Fetch templates for the location and version
-        const templatesData = await fetchTemplatesForLocationAndVersion(locationId, latestVersion);
-        setTemplates(templatesData);
-      }
-    } catch (error) {
-      console.error("Error handling location change:", error);
-      toast({
-        title: "Failed to load templates",
-        description: "There was a problem loading the templates for the selected location.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Handle version change
-  const handleVersionChange = async (version: number) => {
-    try {
-      const currentLocationId = locations.length > 0 ? locations[0].id : '';
-      // Get the current location ID from somewhere - might need to fix this logic
-      const locationId = defaultLocationId || currentLocationId;
-      if (locationId) {
-        // Fetch templates for the location and version
-        const templatesData = await fetchTemplatesForLocationAndVersion(locationId, version);
-        setTemplates(templatesData);
-      }
-    } catch (error) {
-      console.error("Error handling version change:", error);
-      toast({
-        title: "Failed to load templates",
-        description: "There was a problem loading the templates for the selected version.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Handle form submission
-  const onSubmit = async (values: AddShiftFormValues) => {
-    setError(null);
-    setIsGenerating(true);
-    try {
-      const startDate = parse(values.start_date, 'yyyy-MM-dd', new Date());
-      const weeks = values.weeks;
-
-      // Generate shifts preview
-      const shifts = generateShiftsPreview(templates, startDate, weeks);
-      setGeneratedShifts(shifts);
-      setShowPreview(true);
-    } catch (e: any) {
-      console.error("Error generating shifts:", e);
-      setError(e);
-      toast({
-        title: "Failed to generate shifts",
-        description: "There was a problem generating the shifts.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  // Function to create shifts in Supabase
-  const handleCreateShifts = async () => {
-    setIsCreating(true);
-    try {
-      // Map shifts to the format expected by the shifts table
-      const shiftsToCreate = formatShiftsForCreation(generatedShifts);
-
-      // Create the shifts
-      await createShifts(shiftsToCreate);
-
-      toast({
-        title: "Shifts created successfully",
-        description: "The shifts have been created successfully.",
-      });
-      onOpenChange(false);
-      setGeneratedShifts([]);
-      setShowPreview(false);
-      if (onAddComplete) {
-        onAddComplete();
-      }
-    } catch (e: any) {
-      console.error("Error creating shifts:", e);
-      setError(e);
-      toast({
-        title: "Failed to create shifts",
-        description: "There was a problem creating the shifts.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  const handleBack = () => {
-    setShowPreview(false);
-  };
-
-  // Create preview shifts from the generated shifts data
-  const previewShifts = mapShiftsToPreview(generatedShifts, locations);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add Shifts</DialogTitle>
-          <DialogDescription>
-            Generate shifts based on a shift template.
-          </DialogDescription>
-        </DialogHeader>
-        
-        {showPreview ? (
-          <ShiftPreview 
-            shifts={previewShifts} 
-            onSave={handleCreateShifts} 
-            onBack={handleBack}
-            isSubmitting={isCreating}
-          />
-        ) : (
-          <AddShiftForm
-            locations={locations}
-            templates={templates}
-            templateMasters={templateMasters}
-            defaultLocationId={defaultLocationId}
-            defaultVersion={defaultVersion}
-            onSubmit={onSubmit}
-            onCancel={() => onOpenChange(false)}
-            isLoading={isGenerating}
-            error={error}
-            onLocationChange={handleLocationChange}
-            onVersionChange={handleVersionChange}
-            onAddComplete={() => {
-              if (onAddComplete) onAddComplete();
-            }}
-          />
-        )}
-        
-        {!showPreview && (
-          <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button 
-              type="button" 
-              onClick={() => {
-                const formElement = document.querySelector('form');
-                if (formElement) {
-                  formElement.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-                }
-              }} 
-              disabled={isGenerating}
-            >
-              {isGenerating ? "Generating..." : "Preview Shifts"}
-            </Button>
-          </DialogFooter>
-        )}
-      </DialogContent>
-    </Dialog>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogTrigger asChild>
+        <Button variant="outline">Add Shift</Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Add a new shift</AlertDialogTitle>
+          <AlertDialogDescription>
+            Specify the details for the new shift.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="location" className="text-right">
+              Location
+            </Label>
+            <Select onValueChange={setLocation} defaultValue={location}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a location" />
+              </SelectTrigger>
+              <SelectContent>
+                {locations.map((location) => (
+                  <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="employee" className="text-right">
+              Employee
+            </Label>
+            <Select onValueChange={setEmployee} defaultValue={employee}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select an employee" />
+              </SelectTrigger>
+              <SelectContent>
+                {staffMembers.map((staffMember) => (
+                  <SelectItem key={staffMember.id} value={staffMember.id}>{staffMember.first_name} {staffMember.last_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="start-time" className="text-right">
+              Start Time
+            </Label>
+            <Input id="start-time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="end-time" className="text-right">
+              End Time
+            </Label>
+            <Input id="end-time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="col-span-3" />
+          </div>
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirm}>Confirm</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

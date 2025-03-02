@@ -6,7 +6,7 @@ import { CompanyProvider } from "./contexts/CompanyContext";
 import { Toaster } from "sonner";
 
 // Import pages
-import { Index } from "./pages/Index";
+import Index from "./pages/Index";
 import About from "./pages/About";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";

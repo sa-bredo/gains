@@ -1,3 +1,4 @@
+
 import { useCompany } from "@/contexts/CompanyContext";
 import { format, parse, addDays, addWeeks, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -180,11 +181,21 @@ export const fetchShiftsWithDateRange = async (
       query = query.eq('location_id', locationId);
     } else {
       // If no specific location is selected, filter by company_id
-      query = query.in('location_id', supabase
+      // Fix: Instead of using .in() with a subquery (which causes the type error),
+      // we'll first get the location IDs and then use those
+      const { data: locationIds, error: locError } = await supabase
         .from('locations')
         .select('id')
-        .eq('company_id', companyId)
-      );
+        .eq('company_id', companyId);
+        
+      if (locError) {
+        throw locError;
+      }
+      
+      if (locationIds && locationIds.length > 0) {
+        const ids = locationIds.map(loc => loc.id);
+        query = query.in('location_id', ids);
+      }
     }
     
     const { data, error } = await query;
