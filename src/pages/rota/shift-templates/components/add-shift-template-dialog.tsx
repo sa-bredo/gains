@@ -22,17 +22,35 @@ const FormSchema = z.object({
   endTime: z.string({
     required_error: "Please select an end time",
   }),
-  locationId: z.string({
-    required_error: "Please select a location",
-  }),
   employeeId: z.string().optional(),
 });
+
+// Generate time options in 30-minute increments from 5:00 AM to 10:00 PM
+const generateTimeOptions = () => {
+  const options: string[] = [];
+  const startHour = 5; // 5 AM
+  const endHour = 22; // 10 PM
+  
+  for (let hour = startHour; hour <= endHour; hour++) {
+    const hourStr = hour.toString().padStart(2, '0');
+    options.push(`${hourStr}:00`);
+    // Don't add :30 for the last hour (10 PM)
+    if (hour < endHour) {
+      options.push(`${hourStr}:30`);
+    }
+  }
+  
+  return options;
+};
+
+const timeOptions = generateTimeOptions();
 
 interface AddShiftTemplateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAdd: (data: ShiftTemplateFormValues) => Promise<void>;
   locations: { id: string; name: string }[];
+  selectedLocationId?: string;
 }
 
 export function AddShiftTemplateDialog({
@@ -40,6 +58,7 @@ export function AddShiftTemplateDialog({
   onOpenChange,
   onAdd,
   locations,
+  selectedLocationId,
 }: AddShiftTemplateDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeStaff, setActiveStaff] = useState<TeamMember[]>([]);
@@ -47,8 +66,19 @@ export function AddShiftTemplateDialog({
   
   useEffect(() => {
     const getActiveStaff = async () => {
-      const staff = await fetchActiveStaff();
-      setActiveStaff(staff);
+      try {
+        const staff = await fetchActiveStaff();
+        // Filter staff to only include front of house and managers
+        const filteredStaff = staff.filter(member => 
+          member.end_job_date === null && 
+          (member.role?.toLowerCase() === 'front_of_house' || 
+           member.role?.toLowerCase() === 'manager')
+        );
+        setActiveStaff(filteredStaff);
+      } catch (error) {
+        console.error("Error fetching active staff:", error);
+        setActiveStaff([]);
+      }
     };
     
     if (open) {
@@ -62,14 +92,15 @@ export function AddShiftTemplateDialog({
       dayOfWeek: '',
       startTime: '',
       endTime: '',
-      locationId: '',
       employeeId: undefined,
     },
   });
 
   const generateShiftName = (data: z.infer<typeof FormSchema>) => {
     const dayOfWeek = data.dayOfWeek;
-    const locationName = locations.find(loc => loc.id === data.locationId)?.name || 'Unknown Location';
+    const locationName = selectedLocationId 
+      ? locations.find(loc => loc.id === selectedLocationId)?.name || 'Unknown Location'
+      : 'Unknown Location';
     const employeeName = data.employeeId 
       ? activeStaff.find(emp => emp.id === data.employeeId)
         ? `${activeStaff.find(emp => emp.id === data.employeeId)?.first_name} ${activeStaff.find(emp => emp.id === data.employeeId)?.last_name}`
@@ -80,13 +111,18 @@ export function AddShiftTemplateDialog({
   };
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
+    if (!selectedLocationId) {
+      console.error("No location selected");
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       const formattedData: ShiftTemplateFormValues = {
         day_of_week: data.dayOfWeek,
         start_time: data.startTime,
         end_time: data.endTime,
-        location_id: data.locationId,
+        location_id: selectedLocationId,
         employee_id: data.employeeId || null,
         // Auto-generate a name based on day, location, and employee
         name: generateShiftName(data)
@@ -145,13 +181,20 @@ export function AddShiftTemplateDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Start Time</FormLabel>
-                  <FormControl>
-                    <input
-                      type="time"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      {...field}
-                    />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select start time" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {timeOptions.map((time) => (
+                        <SelectItem key={`start-${time}`} value={time}>
+                          {time}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -162,33 +205,16 @@ export function AddShiftTemplateDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>End Time</FormLabel>
-                  <FormControl>
-                    <input
-                      type="time"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="locationId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Location</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a location" />
+                        <SelectValue placeholder="Select end time" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>
-                          {location.name}
+                      {timeOptions.map((time) => (
+                        <SelectItem key={`end-${time}`} value={time}>
+                          {time}
                         </SelectItem>
                       ))}
                     </SelectContent>

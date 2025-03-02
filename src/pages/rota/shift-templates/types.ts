@@ -55,6 +55,15 @@ export interface Shift {
   employees?: StaffMember | null;
 }
 
+export interface ShiftTemplateFormValues {
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
+  location_id: string;
+  employee_id: string | null;
+  name?: string;
+}
+
 export const DAYS_OF_WEEK = [
   'Monday',
   'Tuesday',

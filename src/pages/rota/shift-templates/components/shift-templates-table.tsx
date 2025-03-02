@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Clock, MapPin, UserRound } from 'lucide-react';
+import { Edit, Trash2, Clock, MapPin, UserRound, Copy } from 'lucide-react';
 import { ShiftTemplate } from '../types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EditShiftTemplateDialog } from './edit-shift-template-dialog';
@@ -22,16 +22,22 @@ interface ShiftTemplatesTableProps {
   templates: ShiftTemplate[];
   locations: { id: string; name: string }[];
   isLoading: boolean;
+  staffMembers?: TeamMember[];
   onUpdate: (id: string, data: Partial<ShiftTemplate>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onClone?: (template: ShiftTemplate) => Promise<void>;
+  selectedLocationId?: string;
 }
 
 export function ShiftTemplatesTable({
   templates,
   locations,
   isLoading,
+  staffMembers = [],
   onUpdate,
   onDelete,
+  onClone,
+  selectedLocationId,
 }: ShiftTemplatesTableProps) {
   const [editTemplate, setEditTemplate] = useState<ShiftTemplate | null>(null);
   const [deleteTemplate, setDeleteTemplate] = useState<ShiftTemplate | null>(null);
@@ -57,7 +63,11 @@ export function ShiftTemplatesTable({
 
   const getEmployeeName = (employeeId: string | null) => {
     if (!employeeId) return 'Unassigned';
-    const employee = activeStaff.find(emp => emp.id === employeeId);
+    
+    // Use staffMembers prop if provided, otherwise use activeStaff
+    const allStaff = staffMembers?.length ? staffMembers : activeStaff;
+    const employee = allStaff.find(emp => emp.id === employeeId);
+    
     return employee 
       ? `${employee.first_name} ${employee.last_name}` 
       : 'Unknown Employee';
@@ -72,6 +82,17 @@ export function ShiftTemplatesTable({
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } catch (e) {
       return time;
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    await onDelete(id);
+    setDeleteTemplate(null);
+  };
+
+  const handleClone = async (template: ShiftTemplate) => {
+    if (onClone) {
+      await onClone(template);
     }
   };
 
@@ -137,6 +158,7 @@ export function ShiftTemplatesTable({
                     variant="ghost"
                     size="icon"
                     onClick={() => setEditTemplate(template)}
+                    title="Edit template"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -144,9 +166,20 @@ export function ShiftTemplatesTable({
                     variant="ghost"
                     size="icon"
                     onClick={() => setDeleteTemplate(template)}
+                    title="Delete template"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
+                  {onClone && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleClone(template)}
+                      title="Clone template"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </TableCell>
             </TableRow>
@@ -161,6 +194,7 @@ export function ShiftTemplatesTable({
           onUpdate={onUpdate}
           template={editTemplate}
           locations={locations}
+          selectedLocationId={selectedLocationId}
         />
       )}
 
@@ -168,12 +202,7 @@ export function ShiftTemplatesTable({
         <DeleteShiftTemplateDialog
           open={!!deleteTemplate}
           onOpenChange={(open) => !open && setDeleteTemplate(null)}
-          onDelete={() => {
-            if (deleteTemplate) {
-              onDelete(deleteTemplate.id);
-              setDeleteTemplate(null);
-            }
-          }}
+          onDelete={() => handleDelete(deleteTemplate.id)}
           template={deleteTemplate}
         />
       )}

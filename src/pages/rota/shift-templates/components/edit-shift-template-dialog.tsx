@@ -22,12 +22,28 @@ const FormSchema = z.object({
   endTime: z.string({
     required_error: "Please select an end time",
   }),
-  locationId: z.string({
-    required_error: "Please select a location",
-  }),
   employeeId: z.string().optional(),
-  notes: z.string().optional(),
 });
+
+// Generate time options in 30-minute increments from 5:00 AM to 10:00 PM
+const generateTimeOptions = () => {
+  const options: string[] = [];
+  const startHour = 5; // 5 AM
+  const endHour = 22; // 10 PM
+  
+  for (let hour = startHour; hour <= endHour; hour++) {
+    const hourStr = hour.toString().padStart(2, '0');
+    options.push(`${hourStr}:00`);
+    // Don't add :30 for the last hour (10 PM)
+    if (hour < endHour) {
+      options.push(`${hourStr}:30`);
+    }
+  }
+  
+  return options;
+};
+
+const timeOptions = generateTimeOptions();
 
 interface EditShiftTemplateDialogProps {
   open: boolean;
@@ -35,6 +51,7 @@ interface EditShiftTemplateDialogProps {
   onUpdate: (id: string, data: Partial<ShiftTemplate>) => Promise<void>;
   template: ShiftTemplate;
   locations: { id: string; name: string }[];
+  selectedLocationId?: string;
 }
 
 export function EditShiftTemplateDialog({
@@ -43,6 +60,7 @@ export function EditShiftTemplateDialog({
   onUpdate,
   template,
   locations,
+  selectedLocationId,
 }: EditShiftTemplateDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeStaff, setActiveStaff] = useState<TeamMember[]>([]);
@@ -50,8 +68,19 @@ export function EditShiftTemplateDialog({
   
   useEffect(() => {
     const getActiveStaff = async () => {
-      const staff = await fetchActiveStaff();
-      setActiveStaff(staff);
+      try {
+        const staff = await fetchActiveStaff();
+        // Filter staff to only include front of house and managers
+        const filteredStaff = staff.filter(member => 
+          member.end_job_date === null && 
+          (member.role?.toLowerCase() === 'front_of_house' || 
+           member.role?.toLowerCase() === 'manager')
+        );
+        setActiveStaff(filteredStaff);
+      } catch (error) {
+        console.error("Error fetching active staff:", error);
+        setActiveStaff([]);
+      }
     };
     
     if (open) {
@@ -65,15 +94,14 @@ export function EditShiftTemplateDialog({
       dayOfWeek: template.day_of_week,
       startTime: template.start_time,
       endTime: template.end_time,
-      locationId: template.location_id,
       employeeId: template.employee_id || undefined,
-      notes: template.notes || '',
     },
   });
 
   const generateShiftName = (data: z.infer<typeof FormSchema>) => {
     const dayOfWeek = data.dayOfWeek;
-    const locationName = locations.find(loc => loc.id === data.locationId)?.name || 'Unknown Location';
+    const locationId = selectedLocationId || template.location_id;
+    const locationName = locations.find(loc => loc.id === locationId)?.name || 'Unknown Location';
     const employeeName = data.employeeId 
       ? activeStaff.find(emp => emp.id === data.employeeId)
         ? `${activeStaff.find(emp => emp.id === data.employeeId)?.first_name} ${activeStaff.find(emp => emp.id === data.employeeId)?.last_name}`
@@ -86,18 +114,15 @@ export function EditShiftTemplateDialog({
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     setIsSubmitting(true);
     try {
-      const formattedData = {
+      const updatedData: Partial<ShiftTemplate> = {
         day_of_week: data.dayOfWeek,
         start_time: data.startTime,
         end_time: data.endTime,
-        location_id: data.locationId,
         employee_id: data.employeeId || null,
-        notes: data.notes,
-        // Auto-generate a name based on day, location, and employee
-        name: generateShiftName(data)
+        name: generateShiftName(data),
       };
 
-      await onUpdate(template.id, formattedData);
+      await onUpdate(template.id, updatedData);
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to update shift template:', error);
@@ -112,7 +137,7 @@ export function EditShiftTemplateDialog({
         <DialogHeader>
           <DialogTitle>Edit Shift Template</DialogTitle>
           <DialogDescription>
-            Update this shift template details.
+            Update the details of your shift template.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -149,13 +174,20 @@ export function EditShiftTemplateDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Start Time</FormLabel>
-                  <FormControl>
-                    <input
-                      type="time"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      {...field}
-                    />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select start time" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {timeOptions.map((time) => (
+                        <SelectItem key={`start-${time}`} value={time}>
+                          {time}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -166,33 +198,16 @@ export function EditShiftTemplateDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>End Time</FormLabel>
-                  <FormControl>
-                    <input
-                      type="time"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="locationId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Location</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a location" />
+                        <SelectValue placeholder="Select end time" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>
-                          {location.name}
+                      {timeOptions.map((time) => (
+                        <SelectItem key={`end-${time}`} value={time}>
+                          {time}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -227,23 +242,6 @@ export function EditShiftTemplateDialog({
                       )}
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes (Optional)</FormLabel>
-                  <FormControl>
-                    <textarea
-                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      placeholder="Add any notes about this shift"
-                      {...field}
-                    />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
