@@ -47,6 +47,10 @@ function ShiftsPage() {
     }
   }, [error, toast]);
 
+  const handleAddComplete = () => {
+    // The query will be invalidated and refetched automatically
+  };
+
   return (
     <div className="flex h-screen w-full">
       <AppSidebar />
@@ -87,10 +91,7 @@ function ShiftsPage() {
           <AddShiftDialog
             open={isAddShiftDialogOpen}
             onOpenChange={setIsAddShiftDialogOpen}
-            onAddComplete={() => {
-              // The query will be invalidated and refetched automatically
-              // We don't use the newShift parameter since the type expects a function with no args
-            }}
+            onAddComplete={handleAddComplete}
           />
         </div>
       </main>

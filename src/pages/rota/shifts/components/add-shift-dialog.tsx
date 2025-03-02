@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   AlertDialog,
@@ -22,16 +23,26 @@ import { useCompany } from '@/contexts/CompanyContext';
 interface AddShiftDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (data: any) => void;
+  onConfirm?: (data: any) => void;
+  defaultLocationId?: string;
+  defaultVersion?: number;
+  onAddComplete?: () => void;
 }
 
-export function AddShiftDialog({ open, onOpenChange, onConfirm }: AddShiftDialogProps) {
-  const [location, setLocation] = useState<string>('');
+export function AddShiftDialog({ 
+  open, 
+  onOpenChange, 
+  onConfirm, 
+  defaultLocationId, 
+  defaultVersion,
+  onAddComplete 
+}: AddShiftDialogProps) {
+  const [location, setLocation] = useState<string>(defaultLocationId || '');
   const [employee, setEmployee] = useState<string>('');
   const [startTime, setStartTime] = useState<string>('');
   const [endTime, setEndTime] = useState<string>('');
   const [locations, setLocations] = useState<Location[]>([]);
-	const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const { fetchLocations, fetchStaffMembers } = useShiftService();
   const { currentCompany } = useCompany();
 
@@ -63,8 +74,17 @@ export function AddShiftDialog({ open, onOpenChange, onConfirm }: AddShiftDialog
       employee,
       startTime,
       endTime,
+      version: defaultVersion,
     };
-    onConfirm(data);
+    
+    if (onConfirm) {
+      onConfirm(data);
+    }
+    
+    if (onAddComplete) {
+      onAddComplete();
+    }
+    
     onOpenChange(false);
   };
 
@@ -85,7 +105,7 @@ export function AddShiftDialog({ open, onOpenChange, onConfirm }: AddShiftDialog
             <Label htmlFor="location" className="text-right">
               Location
             </Label>
-            <Select onValueChange={setLocation} defaultValue={location}>
+            <Select onValueChange={setLocation} value={location}>
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select a location" />
               </SelectTrigger>
@@ -100,7 +120,7 @@ export function AddShiftDialog({ open, onOpenChange, onConfirm }: AddShiftDialog
             <Label htmlFor="employee" className="text-right">
               Employee
             </Label>
-            <Select onValueChange={setEmployee} defaultValue={employee}>
+            <Select onValueChange={setEmployee} value={employee}>
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select an employee" />
               </SelectTrigger>
@@ -123,6 +143,14 @@ export function AddShiftDialog({ open, onOpenChange, onConfirm }: AddShiftDialog
             </Label>
             <Input id="end-time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="col-span-3" />
           </div>
+          {defaultVersion && (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="version" className="text-right">
+                Template Version
+              </Label>
+              <Input id="version" value={defaultVersion} readOnly className="col-span-3 bg-gray-100" />
+            </div>
+          )}
         </div>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
