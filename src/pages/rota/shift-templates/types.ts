@@ -34,7 +34,7 @@ export interface ShiftTemplate {
 export interface ShiftTemplateMaster {
   location_id: string;
   location_name: string;
-  latest_version: number;
+  version: number;
   created_at: string;
 }
 

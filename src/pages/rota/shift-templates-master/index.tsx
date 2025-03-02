@@ -20,12 +20,11 @@ export default function ShiftTemplatesMasterPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Fetch shift template masters (grouped by location and with latest version)
-  const fetchShiftTemplateMasters = async () => {
+  // Fetch all shift template versions (not just the latest)
+  const fetchShiftTemplateVersions = async () => {
     try {
       setIsLoading(true);
       
-      // Using raw query instead of RPC to avoid TypeScript issues
       const { data, error } = await supabase
         .from('shift_templates')
         .select(`
@@ -34,30 +33,44 @@ export default function ShiftTemplatesMasterPage() {
           version,
           created_at
         `)
-        .order('version', { ascending: false });
+        .order('created_at', { ascending: false });
       
       if (error) {
         throw error;
       }
       
-      // Process the data to group by location with the latest version
-      const locationMap = new Map<string, ShiftTemplateMaster>();
+      // Process data to show all unique location+version combinations
+      const uniqueTemplates = new Map<string, ShiftTemplateMaster>();
       
       data?.forEach(template => {
         const locationId = template.location_id;
-        if (!locationMap.has(locationId)) {
-          locationMap.set(locationId, {
+        const version = template.version;
+        const key = `${locationId}-${version}`;
+        
+        if (!uniqueTemplates.has(key)) {
+          uniqueTemplates.set(key, {
             location_id: locationId,
             location_name: template.locations?.name || 'Unknown',
-            latest_version: template.version,
+            version: version,
             created_at: template.created_at,
           });
         }
       });
       
-      setTemplateMasters(Array.from(locationMap.values()));
+      // Convert to array and sort by location name and version (descending)
+      const templates = Array.from(uniqueTemplates.values());
+      templates.sort((a, b) => {
+        // First sort by location name
+        if (a.location_name < b.location_name) return -1;
+        if (a.location_name > b.location_name) return 1;
+        
+        // Then sort by version (highest first)
+        return b.version - a.version;
+      });
+      
+      setTemplateMasters(templates);
     } catch (error) {
-      console.error('Error fetching shift template masters:', error);
+      console.error('Error fetching shift templates:', error);
       toast({
         title: "Failed to load shift templates",
         description: "There was a problem loading the template data.",
@@ -94,7 +107,7 @@ export default function ShiftTemplatesMasterPage() {
   // Load initial data
   useEffect(() => {
     fetchLocations();
-    fetchShiftTemplateMasters();
+    fetchShiftTemplateVersions();
   }, []);
 
   // Handle going to template details
@@ -105,6 +118,71 @@ export default function ShiftTemplatesMasterPage() {
   // Handle creating a new template version
   const handleCreateNewVersion = (locationId: string, newVersion: number) => {
     navigate(`/rota/shift-templates?location=${locationId}&version=${newVersion}&new=true`);
+  };
+
+  // Handle cloning templates
+  const handleCloneTemplates = async (locationId: string, version: number) => {
+    try {
+      // First, get the current highest version for this location
+      const { data: versionData, error: versionError } = await supabase
+        .from('shift_templates')
+        .select('version')
+        .eq('location_id', locationId)
+        .order('version', { ascending: false })
+        .limit(1);
+      
+      if (versionError) throw versionError;
+      
+      const newVersion = versionData && versionData.length > 0 
+        ? versionData[0].version + 1 
+        : 1;
+        
+      // Get templates to clone
+      const { data: templatesData, error: templatesError } = await supabase
+        .from('shift_templates')
+        .select('*')
+        .eq('location_id', locationId)
+        .eq('version', version);
+        
+      if (templatesError) throw templatesError;
+      
+      if (templatesData && templatesData.length > 0) {
+        // Clone the templates with a new version
+        const newTemplates = templatesData.map(template => ({
+          ...template,
+          id: undefined, // Let Supabase generate a new ID
+          version: newVersion,
+          created_at: new Date().toISOString()
+        }));
+        
+        const { error: insertError } = await supabase
+          .from('shift_templates')
+          .insert(newTemplates);
+          
+        if (insertError) throw insertError;
+        
+        toast({
+          title: "Templates cloned successfully",
+          description: `Created version ${newVersion} based on version ${version}`,
+        });
+        
+        // Refresh the templates list
+        fetchShiftTemplateVersions();
+      } else {
+        toast({
+          title: "No templates to clone",
+          description: "The selected version has no templates.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error cloning templates:', error);
+      toast({
+        title: "Failed to clone templates",
+        description: "There was a problem cloning the templates.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -144,6 +222,7 @@ export default function ShiftTemplatesMasterPage() {
               templateMasters={templateMasters}
               isLoading={isLoading}
               onViewTemplates={handleViewTemplates}
+              onCloneTemplates={handleCloneTemplates}
             />
             
             <NewTemplateVersionDialog 

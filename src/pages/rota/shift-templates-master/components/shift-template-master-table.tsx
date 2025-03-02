@@ -2,7 +2,7 @@
 import React from 'react';
 import { ShiftTemplateMaster } from '../../shift-templates/types';
 import { Button } from '@/components/ui/button';
-import { Edit } from 'lucide-react';
+import { Edit, Copy } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -23,12 +23,14 @@ interface ShiftTemplateMasterTableProps {
   templateMasters: ShiftTemplateMaster[];
   isLoading: boolean;
   onViewTemplates: (locationId: string, version: number) => void;
+  onCloneTemplates: (locationId: string, version: number) => void;
 }
 
 export function ShiftTemplateMasterTable({ 
   templateMasters, 
   isLoading, 
-  onViewTemplates
+  onViewTemplates,
+  onCloneTemplates
 }: ShiftTemplateMasterTableProps) {
   // Format the date for display
   const formatDate = (dateString: string) => {
@@ -47,9 +49,9 @@ export function ShiftTemplateMasterTable({
           <TableHeader>
             <TableRow>
               <TableHead className="text-left">Location</TableHead>
-              <TableHead className="text-left">Latest Version</TableHead>
+              <TableHead className="text-left">Version</TableHead>
               <TableHead className="text-left">Created</TableHead>
-              <TableHead className="w-[100px]"></TableHead>
+              <TableHead className="text-left w-[120px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -67,27 +69,46 @@ export function ShiftTemplateMasterTable({
               </TableRow>
             ) : (
               templateMasters.map((master) => (
-                <TableRow key={`${master.location_id}-${master.latest_version}`}>
+                <TableRow key={`${master.location_id}-${master.version}`}>
                   <TableCell className="font-medium">{master.location_name}</TableCell>
-                  <TableCell>v{master.latest_version}</TableCell>
+                  <TableCell>v{master.version}</TableCell>
                   <TableCell>{formatDate(master.created_at)}</TableCell>
                   <TableCell>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onViewTemplates(master.location_id, master.latest_version)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Edit Templates</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <div className="flex space-x-1">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onViewTemplates(master.location_id, master.version)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Edit Templates</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onCloneTemplates(master.location_id, master.version)}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Clone Templates</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
