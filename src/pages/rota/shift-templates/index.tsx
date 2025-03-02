@@ -50,8 +50,7 @@ export default function ShiftTemplatesPage() {
           *,
           locations:location_id (id, name),
           employees:employee_id (id, first_name, last_name, role, email)
-        `)
-        .order('day_of_week', { ascending: true });
+        `);
       
       if (selectedLocationId) {
         query = query.eq('location_id', selectedLocationId);
@@ -61,13 +60,43 @@ export default function ShiftTemplatesPage() {
         query = query.eq('version', selectedVersion);
       }
       
-      const { data, error } = await query;
+      const { data, error } = await query
+        .order('day_of_week', {
+          ascending: true,
+          nullsFirst: false,
+          foreignTable: null,
+          referencedTable: { 
+            schema: 'public', 
+            table: 'custom_day_order',
+            column: 'position'
+          }
+        })
+        .order('start_time', { ascending: true });
       
       if (error) {
         throw error;
       }
       
-      setShiftTemplates(data as ShiftTemplate[] || []);
+      const dayOrder = {
+        'Monday': 1,
+        'Tuesday': 2,
+        'Wednesday': 3,
+        'Thursday': 4,
+        'Friday': 5,
+        'Saturday': 6,
+        'Sunday': 7
+      };
+      
+      const sortedData = (data || []).sort((a, b) => {
+        const dayDiff = dayOrder[a.day_of_week] - dayOrder[b.day_of_week];
+        if (dayDiff !== 0) {
+          return dayDiff;
+        }
+        
+        return a.start_time.localeCompare(b.start_time);
+      });
+      
+      setShiftTemplates(sortedData as ShiftTemplate[] || []);
     } catch (error) {
       console.error('Error fetching shift templates:', error);
       toast({

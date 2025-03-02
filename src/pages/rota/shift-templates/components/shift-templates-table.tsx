@@ -117,6 +117,8 @@ export function ShiftTemplatesTable({
     );
   }
 
+  // We don't need to sort the templates here since they're already sorted by the parent component
+
   return (
     <>
       <Table>
