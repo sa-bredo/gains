@@ -1,4 +1,4 @@
-
+import { useCompany } from "@/contexts/CompanyContext";
 import { format, parse, addDays, addWeeks, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { Location, ShiftTemplate, ShiftTemplateMaster, StaffMember } from '../../shift-templates/types';
@@ -130,19 +130,20 @@ export const createShifts = async (shiftsToCreate: {
   return { success: true };
 };
 
-// Fetch shifts with date range filter
+// Modified fetchShiftsWithDateRange to include company filtering
 export const fetchShiftsWithDateRange = async (
   startDate: Date | null,
   endDate: Date | null,
-  locationId: string | null
+  locationId: string | null,
+  companyId: string | null
 ) => {
   try {
     let query = supabase
       .from('shifts')
       .select(`
         *,
-        locations:location_id (id, name),
-        employees:employee_id (id, first_name, last_name, role, email)
+        locations:location_id (id, name, company_id),
+        employees:employee_id (id, first_name, last_name, role, email, company_id)
       `)
       .order('date', { ascending: true });
     
@@ -163,6 +164,13 @@ export const fetchShiftsWithDateRange = async (
     if (locationId) {
       console.log(`Filtering shifts for location ${locationId}`);
       query = query.eq('location_id', locationId);
+    }
+    
+    // Filter by company ID through the locations table
+    if (companyId) {
+      query = query.in('location_id', function(subQuery) {
+        return subQuery.select('id').from('locations').eq('company_id', companyId);
+      });
     }
     
     const { data, error } = await query;
@@ -310,9 +318,9 @@ export const formatShiftsForCreation = (shifts: ShiftPreviewItem[]) => {
     start_time: shift.start_time,
     end_time: shift.end_time,
     location_id: shift.location_id,
-    employee_id: shift.employee_id, // Ensure employee_id is included
-    name: `${shift.day_of_week} Shift`, // We still use day_of_week for the name
-    status: 'scheduled' // Adding a default status
+    employee_id: shift.employee_id,
+    name: `${shift.day_of_week} Shift`,
+    status: 'scheduled'
   }));
 };
 
@@ -326,3 +334,19 @@ export const DAYS_OF_WEEK: Record<string, number> = {
   Friday: 5,
   Saturday: 6
 };
+
+// Create a hook that combines the shift service with company context
+export function useShiftService() {
+  const { currentCompany } = useCompany();
+  
+  const fetchShifts = async (startDate: Date | null, endDate: Date | null, locationId: string | null) => {
+    return fetchShiftsWithDateRange(startDate, endDate, locationId, currentCompany?.id || null);
+  };
+  
+  // Wrap other shift service functions similarly
+  
+  return {
+    fetchShifts,
+    // Include other service methods here
+  };
+}

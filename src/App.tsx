@@ -1,152 +1,182 @@
-
-import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
+import { CompanyProvider } from "@/contexts/CompanyContext";
+import { ThemeProvider } from "next-themes";
+import { SignedIn, SignedOut } from "@clerk/clerk-react";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
-import { ProtectedRoute } from "./components/ProtectedRoute";
-import { AuthProvider } from "./contexts/AuthContext";
+// Pages
+import Home from "@/pages/Home";
+import Dashboard from "@/pages/Dashboard";
+import LoginPage from "@/pages/Login";
+import SelectCompany from "@/pages/SelectCompany";
+import NotFound from "@/pages/NotFound";
+import ShiftTemplatesPage from "@/pages/rota/shift-templates";
+import ShiftTemplatesMasterPage from "@/pages/rota/shift-templates-master";
+import ShiftsPage from "@/pages/rota/shifts";
+import LocationsPage from "@/pages/settings/locations";
+import ConfigPage from "@/pages/settings/config";
+import TeamPage from "@/pages/team";
+import DocumentSigningPage from "@/pages/document-signing";
+import TransactionsPage from "@/pages/financials/transactions";
+import TransactionsGcPage from "@/pages/financials/transactions-gocardless";
+import EmployeesPage from "@/pages/employees";
 
-import Index from "./pages/Index";
-import Home from "./pages/Home";
-import About from "./pages/About";
-import Dashboard from "./pages/Dashboard";
-import Explore from "./pages/Explore";
-import Login from "./pages/Login";
-import NotFound from "./pages/NotFound";
-import TableExample from "./pages/TableExample";
-import DocumentSigning from "./pages/document-signing";
-import TeamPage from "./pages/team";
-import FinancialsTransactions from "./pages/financials/transactions";
-import FinancialsTransactionsGoCardless from "./pages/financials/transactions-gocardless";
-import LocationsPage from "./pages/settings/locations";
-import ShiftTemplatesPage from "./pages/rota/shift-templates";
-import ShiftTemplatesMasterPage from "./pages/rota/shift-templates-master";
-import ShiftsPage from "./pages/rota/shifts";
-import ConfigPage from "./pages/settings/config";
-
+// Import styles
 import "./App.css";
 
 // Create a client
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <AuthProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <CompanyProvider>
           <Router>
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/home" element={<Home />} />
-              <Route path="/about" element={<About />} />
-              <Route
-                path="/dashboard"
+              <Route path="/" element={<Home />} />
+              <Route 
+                path="/login" 
                 element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
+                  <SignedOut>
+                    <LoginPage />
+                  </SignedOut>
+                } 
               />
-              <Route
-                path="/explore"
+              <Route 
+                path="/select-company" 
                 element={
-                  <ProtectedRoute>
-                    <Explore />
-                  </ProtectedRoute>
-                }
+                  <SignedIn>
+                    <SelectCompany />
+                  </SignedIn>
+                } 
               />
-              <Route
-                path="/table-example"
+              <Route 
+                path="/dashboard" 
                 element={
-                  <ProtectedRoute>
-                    <TableExample />
-                  </ProtectedRoute>
-                }
+                  <SignedIn>
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  </SignedIn>
+                } 
               />
-              <Route
-                path="/document-signing/*"
+              <Route 
+                path="/rota/shift-templates" 
                 element={
-                  <ProtectedRoute>
-                    <DocumentSigning />
-                  </ProtectedRoute>
-                }
+                  <SignedIn>
+                    <ProtectedRoute>
+                      <ShiftTemplatesPage />
+                    </ProtectedRoute>
+                  </SignedIn>
+                } 
               />
-              <Route
-                path="/team"
+              <Route 
+                path="/rota/shift-templates-master" 
                 element={
-                  <ProtectedRoute>
-                    <TeamPage />
-                  </ProtectedRoute>
-                }
+                  <SignedIn>
+                    <ProtectedRoute>
+                      <ShiftTemplatesMasterPage />
+                    </ProtectedRoute>
+                  </SignedIn>
+                } 
               />
-              <Route
-                path="/financials/transactions"
+              <Route 
+                path="/rota/shifts" 
                 element={
-                  <ProtectedRoute>
-                    <FinancialsTransactions />
-                  </ProtectedRoute>
-                }
+                  <SignedIn>
+                    <ProtectedRoute>
+                      <ShiftsPage />
+                    </ProtectedRoute>
+                  </SignedIn>
+                } 
               />
-              <Route
-                path="/financials/transactions-gocardless"
+              <Route 
+                path="/settings/locations" 
                 element={
-                  <ProtectedRoute>
-                    <FinancialsTransactionsGoCardless />
-                  </ProtectedRoute>
-                }
+                  <SignedIn>
+                    <ProtectedRoute>
+                      <LocationsPage />
+                    </ProtectedRoute>
+                  </SignedIn>
+                } 
               />
-              {/* Routes for locations and templates */}
-              <Route
-                path="/settings/locations"
+              <Route 
+                path="/settings/config" 
                 element={
-                  <ProtectedRoute>
-                    <LocationsPage />
-                  </ProtectedRoute>
-                }
+                  <SignedIn>
+                    <ProtectedRoute>
+                      <ConfigPage />
+                    </ProtectedRoute>
+                  </SignedIn>
+                } 
               />
-              <Route
-                path="/rota/shift-templates"
+              <Route 
+                path="/team" 
                 element={
-                  <ProtectedRoute>
-                    <ShiftTemplatesPage />
-                  </ProtectedRoute>
-                }
+                  <SignedIn>
+                    <ProtectedRoute>
+                      <TeamPage />
+                    </ProtectedRoute>
+                  </SignedIn>
+                } 
               />
-              <Route
-                path="/rota/shift-templates-master"
+              <Route 
+                path="/document-signing" 
                 element={
-                  <ProtectedRoute>
-                    <ShiftTemplatesMasterPage />
-                  </ProtectedRoute>
-                }
+                  <SignedIn>
+                    <ProtectedRoute>
+                      <DocumentSigningPage />
+                    </ProtectedRoute>
+                  </SignedIn>
+                } 
               />
-              <Route
-                path="/rota/shifts"
+              <Route 
+                path="/financials/transactions" 
                 element={
-                  <ProtectedRoute>
-                    <ShiftsPage />
-                  </ProtectedRoute>
-                }
+                  <SignedIn>
+                    <ProtectedRoute>
+                      <TransactionsPage />
+                    </ProtectedRoute>
+                  </SignedIn>
+                } 
               />
-              {/* Add the new route for config */}
-              <Route
-                path="/settings/config"
+              <Route 
+                path="/financials/transactions-gocardless" 
                 element={
-                  <ProtectedRoute>
-                    <ConfigPage />
-                  </ProtectedRoute>
-                }
+                  <SignedIn>
+                    <ProtectedRoute>
+                      <TransactionsGcPage />
+                    </ProtectedRoute>
+                  </SignedIn>
+                } 
+              />
+              <Route 
+                path="/employees" 
+                element={
+                  <SignedIn>
+                    <ProtectedRoute>
+                      <EmployeesPage />
+                    </ProtectedRoute>
+                  </SignedIn>
+                } 
               />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Router>
           <Toaster />
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+        </CompanyProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

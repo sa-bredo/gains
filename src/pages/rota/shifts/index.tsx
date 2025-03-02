@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -9,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
 import { ShiftsTable } from './components/shifts-table';
 import { Shift, ShiftTemplate, Location, StaffMember, ShiftTemplateMaster } from '../shift-templates/types';
+import { useCompany } from "@/contexts/CompanyContext";
 import {
   Select,
   SelectContent,
@@ -44,6 +44,8 @@ interface DateRange {
 
 export default function ShiftsPage() {
   const { toast } = useToast();
+  const { currentCompany } = useCompany();
+  
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
@@ -53,7 +55,6 @@ export default function ShiftsPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   
-  // Initialize with next month dates by default
   const nextMonthRange = getDateRangeForPreset('nextMonth');
   const [startDate, setStartDate] = useState<Date | null>(nextMonthRange.startDate);
   const [endDate, setEndDate] = useState<Date | null>(nextMonthRange.endDate);
@@ -74,7 +75,12 @@ export default function ShiftsPage() {
   const fetchShifts = async () => {
     try {
       setIsLoading(true);
-      const shiftsData = await fetchShiftsWithDateRange(startDate, endDate, selectedLocationId);
+      const shiftsData = await fetchShiftsWithDateRange(
+        startDate, 
+        endDate, 
+        selectedLocationId,
+        currentCompany?.id || null
+      );
       setShifts(shiftsData as Shift[]);
     } catch (error) {
       console.error('Error fetching shifts:', error);
@@ -90,10 +96,16 @@ export default function ShiftsPage() {
 
   const fetchLocations = async () => {
     try {
-      const { data, error } = await supabase
+      const query = supabase
         .from('locations')
         .select('*')
         .order('name');
+      
+      if (currentCompany?.id) {
+        query.eq('company_id', currentCompany.id);
+      }
+      
+      const { data, error } = await query;
       
       if (error) {
         throw error;
@@ -116,11 +128,17 @@ export default function ShiftsPage() {
 
   const fetchStaffMembers = async () => {
     try {
-      const { data, error } = await supabase
+      const query = supabase
         .from('employees')
         .select('*')
         .in('role', ['Manager', 'Front Of House', 'Instructor'])
         .order('first_name');
+      
+      if (currentCompany?.id) {
+        query.eq('company_id', currentCompany.id);
+      }
+      
+      const { data, error } = await query;
       
       if (error) {
         throw error;
@@ -138,14 +156,16 @@ export default function ShiftsPage() {
   };
 
   useEffect(() => {
-    Promise.all([
-      fetchLocations(),
-      fetchStaffMembers()
-    ]).then(() => {
-      fetchShifts();
-      loadTemplateMasters();
-    });
-  }, []);
+    if (currentCompany?.id) {
+      Promise.all([
+        fetchLocations(),
+        fetchStaffMembers()
+      ]).then(() => {
+        fetchShifts();
+        loadTemplateMasters();
+      });
+    }
+  }, [currentCompany]);
 
   const loadTemplateMasters = async () => {
     try {
@@ -175,7 +195,6 @@ export default function ShiftsPage() {
     if (date) {
       setStartDate(date);
       
-      // If end date is before start date, reset it
       if (endDate && date > endDate) {
         setEndDate(date);
       }
@@ -186,7 +205,6 @@ export default function ShiftsPage() {
     if (date) {
       setEndDate(date);
       
-      // If start date is after end date, reset it
       if (startDate && date < startDate) {
         setStartDate(date);
       }
@@ -205,7 +223,6 @@ export default function ShiftsPage() {
       if (range.to) {
         setEndDate(range.to);
       } else {
-        // If no end date is selected, use the start date as the end date
         setEndDate(range.from);
       }
     }
