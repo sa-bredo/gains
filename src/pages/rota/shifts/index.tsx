@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -8,7 +9,7 @@ import { CalendarIcon } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
 import { ShiftsTable } from './components/shifts-table';
-import { Shift, ShiftTemplate, Location, StaffMember } from '../shift-templates/types';
+import { Shift, ShiftTemplate, Location, StaffMember, ShiftTemplateMaster } from '../shift-templates/types';
 import {
   Select,
   SelectContent,

@@ -39,8 +39,8 @@ export const fetchTemplateMasters = async (): Promise<ShiftTemplateMaster[]> => 
       mastersMap.set(key, {
         location_id: item.location_id,
         version: item.version,
-        location_name: item.locations?.name,
-        created_at: '' // This field might not be available
+        location_name: item.locations?.name || '',
+        created_at: item.created_at || new Date().toISOString()
       });
     }
   });
