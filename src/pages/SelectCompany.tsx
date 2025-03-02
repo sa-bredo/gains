@@ -4,18 +4,28 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import { Loader2 } from "lucide-react";
 
 export default function SelectCompany() {
   const { userCompanies, switchCompany, isLoadingCompanies, currentCompany } = useCompany();
   const { user } = useUser();
+  const { isLoaded, isSignedIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
   const from = location.state?.from?.pathname || "/dashboard";
   
   useEffect(() => {
+    // Don't run this effect until auth is loaded
+    if (!isLoaded) return;
+    
+    // If user is not signed in, redirect to login
+    if (isLoaded && !isSignedIn) {
+      navigate("/login", { replace: true });
+      return;
+    }
+    
     // If there's only one company, automatically select it and redirect
     if (userCompanies.length === 1 && !currentCompany) {
       switchCompany(userCompanies[0].id);
@@ -26,7 +36,19 @@ export default function SelectCompany() {
     if (currentCompany) {
       navigate(from, { replace: true });
     }
-  }, [userCompanies, currentCompany, navigate, from, switchCompany]);
+  }, [userCompanies, currentCompany, navigate, from, switchCompany, isLoaded, isSignedIn]);
+  
+  // Show loading state if auth is not loaded yet
+  if (!isLoaded) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Loading authentication...</h1>
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
   
   if (isLoadingCompanies) {
     return (

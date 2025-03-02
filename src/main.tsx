@@ -9,6 +9,7 @@ import { CompanyProvider } from "./contexts/CompanyContext";
 // Get the Clerk publishable key from environment variable
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
+// Instead of throwing an error, just log a warning
 if (!CLERK_PUBLISHABLE_KEY) {
   console.error("Missing VITE_CLERK_PUBLISHABLE_KEY environment variable");
 }
