@@ -22,6 +22,7 @@ import FinancialsTransactions from "./pages/financials/transactions";
 import FinancialsTransactionsGoCardless from "./pages/financials/transactions-gocardless";
 import LocationsPage from "./pages/settings/locations";
 import ShiftTemplatesPage from "./pages/rota/shift-templates";
+import ShiftsPage from "./pages/rota/shifts";
 
 import "./App.css";
 
@@ -95,7 +96,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              {/* New routes for locations and shift templates */}
+              {/* Routes for locations and templates */}
               <Route
                 path="/settings/locations"
                 element={
@@ -109,6 +110,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ShiftTemplatesPage />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Add the new route for shifts */}
+              <Route
+                path="/rota/shifts"
+                element={
+                  <ProtectedRoute>
+                    <ShiftsPage />
                   </ProtectedRoute>
                 }
               />
