@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -195,6 +196,7 @@ export default function ShiftsPage() {
       if (range.to) {
         setEndDate(range.to);
       } else {
+        // If no end date is selected, use the start date as the end date
         setEndDate(range.from);
       }
     }
