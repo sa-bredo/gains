@@ -5,6 +5,7 @@ import { fetchShiftsWithDateRange } from './services/shift-service';
 import { AddShiftDialog } from './components/add-shift-dialog';
 import { ShiftsTable } from './components/shifts-table';
 import { useToast } from '@/hooks/use-toast';
+import { AppSidebar } from '@/components/sidebar';
 
 // Create a memoized component to break potential recursive render cycles
 export const MemoizedShiftComponent = memo(function MemoizedShiftComponent(props: any) {
@@ -45,40 +46,45 @@ function ShiftsPage() {
   }, [error, toast]);
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Shifts</h1>
-        <button
-          onClick={() => setIsAddShiftDialogOpen(true)}
-          className="bg-primary text-primary-foreground shadow hover:bg-primary/90 px-4 py-2 rounded-md"
-        >
-          Add Shift
-        </button>
-      </div>
+    <div className="flex h-screen w-full">
+      <AppSidebar />
+      <main className="flex-1 overflow-y-auto bg-background p-6">
+        <div className="container mx-auto py-10">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold">Shifts</h1>
+            <button
+              onClick={() => setIsAddShiftDialogOpen(true)}
+              className="bg-primary text-primary-foreground shadow hover:bg-primary/90 px-4 py-2 rounded-md"
+            >
+              Add Shift
+            </button>
+          </div>
 
-      {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <p>Loading shifts...</p>
-        </div>
-      ) : (
-        <MemoizedShiftComponent>
-          <ShiftsTable 
-            shifts={shifts} 
-            isLoading={isLoading} 
-            locations={locations} 
-            staffMembers={staffMembers} 
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <p>Loading shifts...</p>
+            </div>
+          ) : (
+            <MemoizedShiftComponent>
+              <ShiftsTable 
+                shifts={shifts} 
+                isLoading={isLoading} 
+                locations={locations} 
+                staffMembers={staffMembers} 
+              />
+            </MemoizedShiftComponent>
+          )}
+
+          <AddShiftDialog
+            open={isAddShiftDialogOpen}
+            onOpenChange={setIsAddShiftDialogOpen}
+            onAddComplete={() => {
+              // The query will be invalidated and refetched automatically
+              // We don't use the newShift parameter since the type expects a function with no args
+            }}
           />
-        </MemoizedShiftComponent>
-      )}
-
-      <AddShiftDialog
-        open={isAddShiftDialogOpen}
-        onOpenChange={setIsAddShiftDialogOpen}
-        onAddComplete={() => {
-          // The query will be invalidated and refetched automatically
-          // We don't use the newShift parameter since the type expects a function with no args
-        }}
-      />
+        </div>
+      </main>
     </div>
   );
 }
