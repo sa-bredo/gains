@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -215,6 +214,7 @@ export function AddShiftForm({
       setIsSubmitting(true);
       
       const shiftsToCreate = formatShiftsForCreation(previewShifts);
+      console.log("Shifts to create:", shiftsToCreate);
       
       await createShifts(shiftsToCreate);
       

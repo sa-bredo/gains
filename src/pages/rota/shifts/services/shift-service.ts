@@ -1,4 +1,3 @@
-
 import { format, parse, addDays, addWeeks } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { Location, ShiftTemplate, ShiftTemplateMaster, StaffMember } from '../../shift-templates/types';
@@ -109,7 +108,6 @@ export const fetchStaffMembers = async (): Promise<StaffMember[]> => {
 // Create shifts in Supabase
 export const createShifts = async (shiftsToCreate: {
   date: string;
-  day_of_week: string;
   start_time: string;
   end_time: string;
   location_id: string;
@@ -117,14 +115,17 @@ export const createShifts = async (shiftsToCreate: {
   name: string;
   status: string;
 }[]) => {
-  const { error } = await supabase
+  console.log('Creating shifts with data:', shiftsToCreate);
+  const { data, error } = await supabase
     .from('shifts')
     .insert(shiftsToCreate);
 
   if (error) {
+    console.error('Error creating shifts:', error);
     throw error;
   }
 
+  console.log('Shifts created successfully:', data);
   return { success: true };
 };
 
@@ -204,14 +205,14 @@ export const mapShiftsToPreview = (
 
 // Format shifts for database insertion
 export const formatShiftsForCreation = (shifts: ShiftPreviewItem[]) => {
+  console.log('Formatting shifts for creation:', shifts);
   return shifts.map(shift => ({
     date: shift.date,
-    day_of_week: shift.day_of_week,
     start_time: shift.start_time,
     end_time: shift.end_time,
     location_id: shift.location_id,
     employee_id: shift.employee_id,
-    name: `${shift.day_of_week} Shift`, // Adding a default name
+    name: `${shift.day_of_week} Shift`, // We still use day_of_week for the name
     status: 'scheduled' // Adding a default status
   }));
 };
