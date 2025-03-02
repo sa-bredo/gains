@@ -22,11 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { isSignedIn, isLoaded } = useClerkAuth();
   const { user: clerkUser } = useUser();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<AuthContextType['user']>({
-    name: "John Doe",
-    email: "john@example.com",
-    avatar: null
-  });
+  const [user, setUser] = useState<AuthContextType['user']>();
   
   // Sync the authentication state with Clerk
   useEffect(() => {
@@ -36,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isSignedIn && clerkUser) {
         setUser({
           name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || "User",
-          email: clerkUser.primaryEmailAddress?.emailAddress || "john@example.com",
+          email: clerkUser.primaryEmailAddress?.emailAddress || "",
           avatar: clerkUser.imageUrl || null
         });
       }
@@ -56,8 +52,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log("Logout function called - using Clerk for authentication");
   };
 
+  const contextValue = {
+    isAuthenticated,
+    login,
+    logout,
+    user
+  };
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout, user }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

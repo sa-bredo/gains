@@ -6,6 +6,7 @@ import App from "./App";
 import "./index.css";
 import { CompanyProvider } from "./contexts/CompanyContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { SidebarProvider } from "./components/ui/sidebar";
 
 // Get the Clerk publishable key from environment variable
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -20,7 +21,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY || ""}>
       <AuthProvider>
         <CompanyProvider>
-          <App />
+          <SidebarProvider>
+            <App />
+          </SidebarProvider>
         </CompanyProvider>
       </AuthProvider>
     </ClerkProvider>

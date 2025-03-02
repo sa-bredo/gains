@@ -2,7 +2,7 @@
 import { FC } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronsUpDown, LogOut, UserCircle } from "lucide-react";
-import { useUser, useAuth as useClerkAuth, useClerk } from "@clerk/clerk-react";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { useToast } from "@/hooks/use-toast";
 
 import {
@@ -125,10 +125,9 @@ const defaultUserProfile: UserProfileType = {
 // Export the component and use default user if none provided
 export function UserProfile() {
   const { user } = useUser();
-  const { isSignedIn } = useClerkAuth();
   const isMobile = false; // We could use a hook here but keeping it simple
   
-  const userProfileData: UserProfileType = isSignedIn && user ? {
+  const userProfileData: UserProfileType = user ? {
     name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || "User",
     email: user.primaryEmailAddress?.emailAddress || "",
     avatar: user.imageUrl || "",
