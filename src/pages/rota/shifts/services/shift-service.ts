@@ -96,11 +96,19 @@ export const createShifts = async (shiftsToCreate: {
   name: string;
   status: string;
 }[]) => {
+  if (!shiftsToCreate || shiftsToCreate.length === 0) {
+    console.error('No shifts to create');
+    return { success: false, error: 'No shifts to create' };
+  }
+
+  console.log('Creating shifts:', shiftsToCreate);
+
   const { error } = await supabase
     .from('shifts')
     .insert(shiftsToCreate);
 
   if (error) {
+    console.error('Error creating shifts:', error);
     throw error;
   }
 
@@ -174,8 +182,8 @@ export const formatShiftsForCreation = (shifts: ShiftPreviewItem[]) => {
     end_time: shift.end_time,
     location_id: shift.location_id,
     employee_id: shift.employee_id,
-    name: `${shift.day_of_week} Shift`, // Adding a default name
-    status: 'scheduled' // Adding a default status
+    name: `${shift.day_of_week} ${shift.start_time}-${shift.end_time}`, // More descriptive name
+    status: 'scheduled' // Default status
   }));
 };
 

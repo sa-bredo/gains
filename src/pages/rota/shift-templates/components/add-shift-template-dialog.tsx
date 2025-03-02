@@ -148,13 +148,13 @@ export function AddShiftTemplateDialog({
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4 max-w-[250px] mx-auto">
             <FormField
               control={form.control}
               name="dayOfWeek"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Day of Week</FormLabel>
+                  <FormLabel className="text-left font-bold">Day of Week</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -180,7 +180,7 @@ export function AddShiftTemplateDialog({
               name="startTime"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Start Time</FormLabel>
+                  <FormLabel className="text-left font-bold">Start Time</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -204,7 +204,7 @@ export function AddShiftTemplateDialog({
               name="endTime"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>End Time</FormLabel>
+                  <FormLabel className="text-left font-bold">End Time</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -228,7 +228,7 @@ export function AddShiftTemplateDialog({
               name="employeeId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Staff Member (Optional)</FormLabel>
+                  <FormLabel className="text-left font-bold">Staff Member (Optional)</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>

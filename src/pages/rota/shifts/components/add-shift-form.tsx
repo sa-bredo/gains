@@ -28,7 +28,7 @@ export interface AddShiftFormProps {
   error: any;
   onLocationChange: (locationId: string) => Promise<void>;
   onVersionChange: (version: number) => Promise<void>;
-  onAddComplete?: () => void; // Added this prop to match what's being passed in index.tsx
+  onAddComplete?: () => void;
 }
 
 export function AddShiftForm({ 
@@ -48,7 +48,6 @@ export function AddShiftForm({
   const [availableVersions, setAvailableVersions] = useState<{label: string, value: number}[]>([]);
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
   
-  // Form setup
   const form = useForm<AddShiftFormValues>({
     resolver: zodResolver(addShiftFormSchema),
     defaultValues: {
@@ -59,14 +58,12 @@ export function AddShiftForm({
     },
   });
 
-  // When locations or templateMasters change, update available versions
   useEffect(() => {
     if (form.getValues('location_id')) {
       updateAvailableVersions(form.getValues('location_id'));
     }
   }, [locations, templateMasters]);
 
-  // Watch for location changes to update versions
   const watchedLocationId = form.watch('location_id');
   useEffect(() => {
     if (watchedLocationId) {
@@ -75,7 +72,6 @@ export function AddShiftForm({
     }
   }, [watchedLocationId]);
 
-  // Watch for version changes to update available dates
   const watchedVersion = form.watch('version');
   useEffect(() => {
     if (watchedVersion && watchedLocationId) {
@@ -83,12 +79,6 @@ export function AddShiftForm({
     }
   }, [watchedVersion, watchedLocationId]);
 
-  // Update available dates when templates change
-  useEffect(() => {
-    updateAvailableDates();
-  }, [templates]);
-
-  // Function to update available versions when location changes
   const updateAvailableVersions = (locationId: string) => {
     const versions = templateMasters
       .filter(tm => tm.location_id === locationId)
@@ -96,30 +86,25 @@ export function AddShiftForm({
         label: `Version ${tm.version}`,
         value: tm.version
       }))
-      .sort((a, b) => b.value - a.value); // Sort in descending order
+      .sort((a, b) => b.value - a.value);
     
     setAvailableVersions(versions);
     
-    // If no version is selected or current version isn't available, select the latest
     if (versions.length > 0 && (!form.getValues('version') || !versions.some(v => v.value === form.getValues('version')))) {
       form.setValue('version', versions[0].value);
     }
   };
 
-  // Find the first day of week in templates
   const findFirstDayOfWeek = (): string | null => {
     if (!templates.length) return null;
     
-    // Sort templates by day of week
     const sortedTemplates = [...templates].sort(
       (a, b) => DAY_ORDER[a.day_of_week] - DAY_ORDER[b.day_of_week]
     );
     
-    // Return the day of week of the first template
     return sortedTemplates[0]?.day_of_week || null;
   };
 
-  // Update available dates based on the first day of the week in templates
   const updateAvailableDates = () => {
     const firstDayOfWeek = findFirstDayOfWeek();
     if (!firstDayOfWeek) {
@@ -127,22 +112,18 @@ export function AddShiftForm({
       return;
     }
     
-    // Get day number (0-6) for the first day in template
     const dayNumber = DAY_ORDER[firstDayOfWeek] || 0;
     
-    // Generate dates for the next 12 weeks (3 months)
     const dates: Date[] = [];
     const today = new Date();
     const startOfDay = new Date(today.setHours(0, 0, 0, 0));
     
-    // Find the upcoming matching day
     let daysUntilTarget = (dayNumber - startOfDay.getDay() + 7) % 7;
-    if (daysUntilTarget === 0) daysUntilTarget = 7; // If today is the target day, go to next week
+    if (daysUntilTarget === 0) daysUntilTarget = 7;
     
     let currentDate = new Date(startOfDay);
     currentDate.setDate(currentDate.getDate() + daysUntilTarget);
     
-    // Add 12 weekly options
     for (let i = 0; i < 12; i++) {
       dates.push(new Date(currentDate));
       currentDate.setDate(currentDate.getDate() + 7);
@@ -150,7 +131,6 @@ export function AddShiftForm({
     
     setAvailableDates(dates);
     
-    // If we have dates and no date is selected, select the first one
     if (dates.length > 0 && !form.getValues('start_date')) {
       form.setValue('start_date', format(dates[0], 'yyyy-MM-dd'));
     }
@@ -158,31 +138,25 @@ export function AddShiftForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-[250px]">
         <FormField
           control={form.control}
           name="location_id"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Location</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                defaultValue={field.value}
-                disabled={isLoading}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a location" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {locations.map((location) => (
-                    <SelectItem key={location.id} value={location.id}>
-                      {location.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormLabel className="text-left font-bold">Location</FormLabel>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a location" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {locations.map((location) => (
+                  <SelectItem key={location.id} value={location.id}>
+                    {location.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
               <FormMessage />
             </FormItem>
           )}
@@ -193,7 +167,7 @@ export function AddShiftForm({
           name="version"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Template Version</FormLabel>
+              <FormLabel className="text-left font-bold">Template Version</FormLabel>
               <Select 
                 onValueChange={(value) => field.onChange(parseInt(value))} 
                 value={field.value?.toString()}
@@ -222,7 +196,7 @@ export function AddShiftForm({
           name="start_date"
           render={({ field }) => (
             <FormItem className="flex flex-col">
-              <FormLabel>Start Date</FormLabel>
+              <FormLabel className="text-left font-bold">Start Date</FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
@@ -270,7 +244,7 @@ export function AddShiftForm({
           name="weeks"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Number of Weeks</FormLabel>
+              <FormLabel className="text-left font-bold">Number of Weeks</FormLabel>
               <FormControl>
                 <Input 
                   type="number" 
