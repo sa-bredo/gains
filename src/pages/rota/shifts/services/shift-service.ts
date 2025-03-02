@@ -57,7 +57,7 @@ export const fetchTemplatesForLocationAndVersion = async (
     .from('shift_templates')
     .select(`
       *,
-      employees:employee_id (id, first_name, last_name)
+      employees:employee_id (id, first_name, last_name, role, email)
     `)
     .eq('location_id', locationId)
     .eq('version', version);
@@ -66,8 +66,19 @@ export const fetchTemplatesForLocationAndVersion = async (
     throw error;
   }
 
+  // Transform the data to ensure it matches the ShiftTemplate type
+  const templates = data?.map(template => ({
+    ...template,
+    employees: template.employees ? {
+      ...template.employees,
+      // Add required fields with default values if missing
+      role: template.employees.role || '',
+      email: template.employees.email || ''
+    } : null
+  })) || [];
+
   // Sort templates by day of week
-  return data?.sort((a, b) => DAY_ORDER[a.day_of_week] - DAY_ORDER[b.day_of_week]) || [];
+  return templates.sort((a, b) => DAY_ORDER[a.day_of_week] - DAY_ORDER[b.day_of_week]);
 };
 
 // Fetch staff members

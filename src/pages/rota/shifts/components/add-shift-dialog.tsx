@@ -111,7 +111,9 @@ export function AddShiftDialog({
   // Handle version change
   const handleVersionChange = async (version: number) => {
     try {
-      const locationId = locations.length > 0 ? locations[0].id : '';
+      const currentLocationId = locations.length > 0 ? locations[0].id : '';
+      // Get the current location ID from somewhere - might need to fix this logic
+      const locationId = defaultLocationId || currentLocationId;
       if (locationId) {
         // Fetch templates for the location and version
         const templatesData = await fetchTemplatesForLocationAndVersion(locationId, version);
@@ -222,6 +224,9 @@ export function AddShiftDialog({
             error={error}
             onLocationChange={handleLocationChange}
             onVersionChange={handleVersionChange}
+            onAddComplete={() => {
+              if (onAddComplete) onAddComplete();
+            }}
           />
         )}
         

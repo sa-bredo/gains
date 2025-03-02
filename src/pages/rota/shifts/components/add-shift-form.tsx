@@ -22,6 +22,7 @@ import { format, parse } from 'date-fns';
 import { Location, ShiftTemplate, ShiftTemplateMaster } from '../../shift-templates/types';
 import { AddShiftFormValues, addShiftFormSchema } from './add-shift-form-schema';
 import { ShiftPreview, ShiftPreviewItem } from './shift-preview';
+import { generateWeeksOptions } from '../utils/date-utils';
 import { 
   fetchLocations, 
   fetchStaffMembers,
@@ -33,22 +34,41 @@ import {
   formatShiftsForCreation
 } from '../services/shift-service';
 
-interface AddShiftFormProps {
+export interface AddShiftFormProps {
   onAddComplete: () => void;
   defaultLocationId?: string;
+  defaultVersion?: number;
+  locations: Location[];
+  templates: ShiftTemplate[];
+  templateMasters: ShiftTemplateMaster[];
+  onSubmit: (data: AddShiftFormValues) => void;
+  onCancel: () => void;
+  isLoading: boolean;
+  error: any;
+  onLocationChange: (locationId: string) => void;
+  onVersionChange: (version: number) => void;
 }
 
-export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormProps) {
+export function AddShiftForm({ 
+  onAddComplete, 
+  defaultLocationId,
+  defaultVersion,
+  locations,
+  templates,
+  templateMasters,
+  onSubmit: parentOnSubmit,
+  onCancel,
+  isLoading,
+  error,
+  onLocationChange,
+  onVersionChange
+}: AddShiftFormProps) {
   const { toast } = useToast();
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [templateMasters, setTemplateMasters] = useState<ShiftTemplateMaster[]>([]);
   const [filteredMasters, setFilteredMasters] = useState<ShiftTemplateMaster[]>([]);
   const [startDateOptions, setStartDateOptions] = useState<{ value: string; label: string; date: Date }[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [previewShifts, setPreviewShifts] = useState<ShiftPreviewItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
   const [firstDayOfWeek, setFirstDayOfWeek] = useState<string | null>(null);
 
   const weeksOptions = generateWeeksOptions();
@@ -57,7 +77,7 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
     resolver: zodResolver(addShiftFormSchema),
     defaultValues: {
       location_id: defaultLocationId || '',
-      version: 0,
+      version: defaultVersion || 0,
       start_date: '',
       weeks: 1,
     },
@@ -164,18 +184,11 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
     form.setValue('version', filtered.length > 0 ? filtered[0].version : 0);
     form.setValue('start_date', '');
     
-    if (filtered.length > 0) {
-      loadTemplatesAndDates(locationId, filtered[0].version);
-    } else {
-      setTemplates([]);
-      setStartDateOptions([]);
-      setFirstDayOfWeek(null);
-    }
+    onLocationChange(locationId);
   };
 
   const handleVersionChange = (version: number) => {
-    const locationId = form.getValues('location_id');
-    loadTemplatesAndDates(locationId, version);
+    onVersionChange(version);
   };
 
   const onSubmit = (data: AddShiftFormValues) => {
@@ -235,7 +248,7 @@ export function AddShiftForm({ onAddComplete, defaultLocationId }: AddShiftFormP
         <div className="max-w-[250px]">
           <h2 className="text-xl font-semibold mb-4">Add Shifts from Template</h2>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(parentOnSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="location_id"
