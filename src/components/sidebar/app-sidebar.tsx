@@ -17,7 +17,7 @@ import { useSidebar } from "./sidebar-hook";
 import { UserProfileMenu } from "./user-profile";
 import { MainNavigation } from "./main-navigation";
 import { DiscoverSection } from "./discover-section";
-import { navMain } from "./navigation-data";
+import { navMain, navDiscover } from "./navigation-data";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -47,7 +47,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <MainNavigation items={navMain} />
-        <DiscoverSection />
+        <DiscoverSection items={navDiscover} />
       </SidebarContent>
       <SidebarFooter>
         <UserProfileMenu user={user || defaultUser} isMobile={isMobile} />

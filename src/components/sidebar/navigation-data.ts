@@ -1,23 +1,11 @@
 
 import {
   Heart,
-  Brain,
-  ScrollText,
-  Layers,
-  Users,
-  Settings,
-  Activity,
   Search,
   Lightbulb,
+  Activity,
   Calendar,
-  DollarSign,
-  BarChart,
-  Briefcase,
-  ListCheck,
-  BanknoteIcon,
-  FileSignature,
-  MapPin,
-  Clock
+  Settings,
 } from "lucide-react";
 import { NavItem } from "./types";
 
@@ -76,5 +64,21 @@ export const navMain: NavItem[] = [
         url: "/settings/config",
       },
     ],
+  },
+];
+
+// Add the Discovery section items
+export const navDiscover: NavItem[] = [
+  {
+    title: "Knowledge",
+    url: "/knowledge",
+    icon: Search,
+    items: [],
+  },
+  {
+    title: "Learn About Us",
+    url: "/about",
+    icon: Lightbulb,
+    items: [],
   },
 ];
