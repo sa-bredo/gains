@@ -45,6 +45,33 @@ export type Database = {
         }
         Relationships: []
       }
+      config: {
+        Row: {
+          created_at: string | null
+          display_name: string
+          id: string
+          key: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_name: string
+          id?: string
+          key: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       document_instances: {
         Row: {
           created_at: string | null
