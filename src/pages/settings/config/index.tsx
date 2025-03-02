@@ -8,6 +8,8 @@ import { ConfigTable } from "./components/config-table";
 import { AddConfigDialog } from "./components/add-config-dialog";
 import { ConfigItem } from "./types";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 export default function ConfigPage() {
   const [configItems, setConfigItems] = useState<ConfigItem[]>([]);
@@ -40,14 +42,17 @@ export default function ConfigPage() {
 
   const handleEdit = (config: ConfigItem) => {
     setEditingConfig(config);
+    // You would show an edit dialog here
   };
 
   const handleDelete = (config: ConfigItem) => {
     setDeletingConfig(config);
+    // You would show a delete confirmation here
   };
 
   const handleAddSuccess = () => {
     fetchConfigItems();
+    setIsAddDialogOpen(false);
   };
 
   return (
@@ -65,17 +70,21 @@ export default function ConfigPage() {
           <div className="container mx-auto p-6">
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-3xl font-bold">Configuration</h1>
-              <AddConfigDialog 
-                open={isAddDialogOpen}
-                onOpenChange={setIsAddDialogOpen}
-                onSuccess={handleAddSuccess}
-              />
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Config
+              </Button>
             </div>
             <ConfigTable 
               configItems={configItems}
               isLoading={isLoading}
               onEdit={handleEdit}
               onDelete={handleDelete}
+            />
+            <AddConfigDialog 
+              open={isAddDialogOpen}
+              onOpenChange={setIsAddDialogOpen}
+              onSuccess={handleAddSuccess}
             />
           </div>
         </SidebarInset>

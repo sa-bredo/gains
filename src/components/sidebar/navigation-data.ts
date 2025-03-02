@@ -119,7 +119,12 @@ export const navMain: NavItem[] = [
     title: "Team",
     url: "/team",
     icon: Users,
-    items: [],
+    items: [
+      {
+        title: "All Team",
+        url: "/team",
+      },
+    ],
   },
   {
     title: "Settings",
