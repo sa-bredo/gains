@@ -129,13 +129,13 @@ export function NewTemplateVersionDialog({
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-[250px] mx-auto">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="locationId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-left font-bold">Location</FormLabel>
+                  <FormLabel>Location</FormLabel>
                   <Select 
                     onValueChange={field.onChange} 
                     defaultValue={field.value}

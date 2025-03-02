@@ -23,7 +23,7 @@ export const fetchLocations = async (): Promise<Location[]> => {
 export const fetchTemplateMasters = async (): Promise<ShiftTemplateMaster[]> => {
   const { data, error } = await supabase
     .from('shift_templates')
-    .select('location_id, version, locations:location_id(name), created_at')
+    .select('location_id, version, locations:location_id(name)')
     .order('location_id')
     .order('version', { ascending: false });
 
@@ -39,8 +39,8 @@ export const fetchTemplateMasters = async (): Promise<ShiftTemplateMaster[]> => 
       mastersMap.set(key, {
         location_id: item.location_id,
         version: item.version,
-        location_name: item.locations?.name || '',
-        created_at: item.created_at || new Date().toISOString()
+        location_name: item.locations?.name,
+        created_at: '' // This field might not be available
       });
     }
   });
@@ -57,7 +57,7 @@ export const fetchTemplatesForLocationAndVersion = async (
     .from('shift_templates')
     .select(`
       *,
-      employees:employee_id (id, first_name, last_name, role, email)
+      employees:employee_id (id, first_name, last_name)
     `)
     .eq('location_id', locationId)
     .eq('version', version);
@@ -96,19 +96,11 @@ export const createShifts = async (shiftsToCreate: {
   name: string;
   status: string;
 }[]) => {
-  if (!shiftsToCreate || shiftsToCreate.length === 0) {
-    console.error('No shifts to create');
-    return { success: false, error: 'No shifts to create' };
-  }
-
-  console.log('Creating shifts:', shiftsToCreate);
-
   const { error } = await supabase
     .from('shifts')
     .insert(shiftsToCreate);
 
   if (error) {
-    console.error('Error creating shifts:', error);
     throw error;
   }
 
@@ -182,8 +174,8 @@ export const formatShiftsForCreation = (shifts: ShiftPreviewItem[]) => {
     end_time: shift.end_time,
     location_id: shift.location_id,
     employee_id: shift.employee_id,
-    name: `${shift.day_of_week} ${shift.start_time}-${shift.end_time}`, // More descriptive name
-    status: 'scheduled' // Default status
+    name: `${shift.day_of_week} Shift`, // Adding a default name
+    status: 'scheduled' // Adding a default status
   }));
 };
 
