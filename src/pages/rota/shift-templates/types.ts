@@ -1,3 +1,4 @@
+
 export interface Location {
   id: string;
   name: string;
@@ -25,9 +26,9 @@ export interface ShiftTemplate {
   notes?: string | null;
   created_at?: string | null;
   
-  // Join fields from the Supabase query
+  // Join fields from the Supabase query - make these optional since they are from joins
   locations?: Location;
-  employees?: StaffMember;
+  employees?: StaffMember | null;
 }
 
 export const DAYS_OF_WEEK = [

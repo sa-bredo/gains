@@ -56,7 +56,18 @@ export function AddShiftTemplateDialog({
   // Form submission handler
   const onSubmit = async (values: FormValues) => {
     try {
-      await onAdd(values);
+      // Make sure location_id is required, and handle the empty employee_id case
+      const templateData: Omit<ShiftTemplate, 'id' | 'created_at'> = {
+        name: values.name,
+        day_of_week: values.day_of_week,
+        start_time: values.start_time,
+        end_time: values.end_time,
+        location_id: values.location_id,
+        employee_id: values.employee_id || null,
+        notes: values.notes || null
+      };
+      
+      await onAdd(templateData);
       form.reset();
       onOpenChange(false);
     } catch (error) {

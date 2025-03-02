@@ -37,7 +37,13 @@ export function AddLocationDialog({ open, onOpenChange, onAdd }: AddLocationDial
   // Form submission handler
   const onSubmit = async (values: FormValues) => {
     try {
-      await onAdd(values);
+      // Ensure name is provided and properly typed
+      const locationData: Omit<Location, 'id' | 'created_at'> = {
+        name: values.name,
+        address: values.address || null,
+      };
+      
+      await onAdd(locationData);
       form.reset();
       onOpenChange(false);
     } catch (error) {

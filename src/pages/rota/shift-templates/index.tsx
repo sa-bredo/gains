@@ -29,7 +29,7 @@ export default function ShiftTemplatesPage() {
         .select(`
           *,
           locations:location_id (id, name),
-          employees:employee_id (id, first_name, last_name, role)
+          employees:employee_id (id, first_name, last_name, role, email)
         `)
         .order('day_of_week', { ascending: true });
       
@@ -37,6 +37,7 @@ export default function ShiftTemplatesPage() {
         throw error;
       }
       
+      // Ensure the data conforms to our ShiftTemplate type
       setShiftTemplates(data || []);
     } catch (error) {
       console.error('Error fetching shift templates:', error);
