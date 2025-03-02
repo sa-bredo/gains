@@ -1,7 +1,7 @@
 
-import React, { memo, useEffect, useState } from 'react';
+import React, { memo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchShifts } from './services/shift-service';
+import { fetchShiftsWithDateRange } from './services/shift-service';
 import { AddShiftDialog } from './components/add-shift-dialog';
 import { ShiftsTable } from './components/shifts-table';
 import { useToast } from '@/hooks/use-toast';
@@ -16,22 +16,33 @@ function ShiftsPage() {
   const { toast } = useToast();
   const [shifts, setShifts] = useState([]);
   const [isAddShiftDialogOpen, setIsAddShiftDialogOpen] = useState(false);
+  const [locations, setLocations] = useState([]);
+  const [staffMembers, setStaffMembers] = useState([]);
 
-  const { data: fetchedShifts, isLoading } = useQuery({
+  // Using fetchShiftsWithDateRange with no parameters will fetch all shifts
+  const { data, isLoading, error } = useQuery({
     queryKey: ['shifts'],
-    queryFn: fetchShifts,
-    onSuccess: (data) => {
+    queryFn: () => fetchShiftsWithDateRange(null, null, null, null)
+  });
+
+  // Update the shifts state when data is fetched
+  React.useEffect(() => {
+    if (data) {
       setShifts(data);
-    },
-    onError: (error) => {
+    }
+  }, [data]);
+
+  // Handle error with useEffect
+  React.useEffect(() => {
+    if (error) {
       console.error('Error fetching shifts:', error);
       toast({
         title: 'Error',
         description: 'Failed to load shifts. Please try again later.',
         variant: 'destructive',
       });
-    },
-  });
+    }
+  }, [error, toast]);
 
   return (
     <div className="container mx-auto py-10">
@@ -51,12 +62,17 @@ function ShiftsPage() {
         </div>
       ) : (
         <MemoizedShiftComponent>
-          <ShiftsTable shifts={shifts} />
+          <ShiftsTable 
+            shifts={shifts} 
+            isLoading={isLoading} 
+            locations={locations} 
+            staffMembers={staffMembers} 
+          />
         </MemoizedShiftComponent>
       )}
 
       <AddShiftDialog
-        isOpen={isAddShiftDialogOpen}
+        open={isAddShiftDialogOpen}
         onClose={() => setIsAddShiftDialogOpen(false)}
         onSuccess={(newShift) => {
           setShifts([...shifts, newShift]);
