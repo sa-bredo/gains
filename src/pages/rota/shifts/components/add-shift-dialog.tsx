@@ -14,7 +14,6 @@ import { format, parse, addDays, addWeeks, isAfter, isBefore, getDay } from 'dat
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ShiftPreview, ShiftPreviewItem } from './shift-preview';
-import { Sheet } from '@/components/ui/sheet';
 
 export interface AddShiftDialogProps {
   open: boolean;
@@ -114,7 +113,6 @@ export function AddShiftDialog({
   // Fetch template masters from Supabase
   const fetchTemplateMasters = async () => {
     try {
-      // Get template masters from view or joined query since shift_template_masters table doesn't exist directly
       const { data, error } = await supabase
         .from('shift_templates')
         .select('location_id, version, locations:location_id(name)')
@@ -166,6 +164,9 @@ export function AddShiftDialog({
       // Sort templates by day of week
       const sortedTemplates = data?.sort((a, b) => DAY_ORDER[a.day_of_week] - DAY_ORDER[b.day_of_week]) || [];
       setTemplates(sortedTemplates);
+      
+      // Reset the start date field since template days might have changed
+      form.setValue('start_date', '');
     } catch (error) {
       console.error("Error fetching templates:", error);
       toast({
@@ -202,36 +203,49 @@ export function AddShiftDialog({
     }
   }, [defaultVersion, form]);
 
-  // Function to find the next occurrence of a specific day of the week
-  const findNextDayOccurrence = (startDate: Date, dayOfWeek: string): Date => {
-    const dayNo = DAYS_OF_WEEK[dayOfWeek];
-    const startDayNo = startDate.getDay();
-    const daysToAdd = (dayNo + 7 - startDayNo) % 7;
-    const resultDate = new Date(startDate);
-    resultDate.setDate(startDate.getDate() + daysToAdd);
-    return resultDate;
-  };
-
-  // Function to generate start date options based on the selected location
+  // Function to generate start date options based on the loaded templates
   const generateStartDateOptions = (): { value: string; label: string }[] => {
     const locationId = form.getValues('location_id');
-    if (!locationId) {
+    if (!locationId || templates.length === 0) {
       return [];
     }
 
     const today = new Date();
     const options: { value: string; label: string }[] = [];
 
-    // Generate options for each day of the week in the next 7 days
-    Object.keys(DAYS_OF_WEEK).forEach(dayOfWeek => {
-      const nextOccurrence = findNextDayOccurrence(today, dayOfWeek);
+    // Find the first day of week in the template
+    const sortedDays = [...templates]
+      .sort((a, b) => DAY_ORDER[a.day_of_week] - DAY_ORDER[b.day_of_week])
+      .map(t => t.day_of_week);
+
+    if (sortedDays.length === 0) return [];
+
+    // Get the first day of week from sorted templates
+    const firstDayOfWeek = sortedDays[0];
+    const firstDayNumber = DAYS_OF_WEEK[firstDayOfWeek];
+
+    // Find the next 4 occurrences of the first day
+    for (let i = 0; i < 4; i++) {
+      const nextDate = findNextDayOccurrence(addWeeks(today, i), firstDayOfWeek);
       options.push({
-        value: format(nextOccurrence, 'yyyy-MM-dd'),
-        label: `Next ${dayOfWeek} (${format(nextOccurrence, 'MMM dd')})`,
+        value: format(nextDate, 'yyyy-MM-dd'),
+        label: `Next ${firstDayOfWeek} (${format(nextDate, 'MMM dd')})`,
       });
-    });
+    }
 
     return options;
+  };
+
+  // Function to find the next occurrence of a specific day of the week
+  const findNextDayOccurrence = (startDate: Date, dayOfWeek: string): Date => {
+    const dayNo = DAYS_OF_WEEK[dayOfWeek];
+    const startDayNo = startDate.getDay();
+    const daysToAdd = (dayNo + 7 - startDayNo) % 7;
+    // If today is the target day, we still want the next occurrence, so add 7 if daysToAdd is 0
+    const actualDaysToAdd = daysToAdd === 0 ? 7 : daysToAdd;
+    const resultDate = new Date(startDate);
+    resultDate.setDate(startDate.getDate() + actualDaysToAdd);
+    return resultDate;
   };
 
   // Handle location change
@@ -268,7 +282,12 @@ export function AddShiftDialog({
 
       for (let i = 0; i < weeks; i++) {
         templates.forEach(template => {
-          const shiftDate = addWeeks(findNextDayOccurrence(startDate, template.day_of_week), i);
+          // Calculate the correct day in the week for this template
+          const templateDayNo = DAYS_OF_WEEK[template.day_of_week];
+          const startDayNo = startDate.getDay();
+          const daysToAdd = (templateDayNo - startDayNo + 7) % 7;
+          const shiftDate = addDays(addWeeks(startDate, i), daysToAdd);
+
           shifts.push({
             date: format(shiftDate, 'yyyy-MM-dd'),
             day_of_week: template.day_of_week,
@@ -399,7 +418,7 @@ export function AddShiftDialog({
                         handleLocationChange(value);
                       }} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="border-input">
                             <SelectValue placeholder="Select a location" />
                           </SelectTrigger>
                         </FormControl>
