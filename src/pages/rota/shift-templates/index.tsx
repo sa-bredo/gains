@@ -4,7 +4,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from '@/components/ui/button';
-import { PlusIcon, ChevronDown } from 'lucide-react';
+import { PlusIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
 import { ShiftTemplatesTable } from './components/shift-templates-table';
@@ -129,11 +129,16 @@ export default function ShiftTemplatesPage() {
       const dataToAdd = {
         ...templateData,
         location_id: templateData.location_id || selectedLocationId,
+        // Ensure name is not undefined - provide a default
+        name: templateData.name || `${templateData.day_of_week} ${templateData.start_time}-${templateData.end_time}`
       };
+      
+      // Remove any joined fields before sending to Supabase
+      const { locations, employees, ...dataToInsert } = dataToAdd;
       
       const { data, error } = await supabase
         .from('shift_templates')
-        .insert(dataToAdd)
+        .insert(dataToInsert)
         .select();
       
       if (error) {
@@ -234,7 +239,7 @@ export default function ShiftTemplatesPage() {
       
       // Extract only the needed fields and avoid including joined data
       const clonedTemplate = {
-        name: `Copy of ${template.name}`,
+        name: `Copy of ${template.name || ''}`.trim() || `Copy of ${template.day_of_week} ${template.start_time}-${template.end_time}`,
         day_of_week: template.day_of_week,
         start_time: template.start_time,
         end_time: template.end_time,

@@ -35,7 +35,7 @@ import { toast } from 'sonner';
 // Form schema
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }).optional(),
-  day_of_week: z.enum(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], {
+  day_of_week: z.enum(DAYS_OF_WEEK, {
     errorMap: () => ({ message: 'Please select a day of the week.' }),
   }),
   start_time: z.string().min(1, { message: 'Please select a start time.' }),
@@ -101,7 +101,7 @@ export function AddShiftTemplateDialog({
       setIsSubmitting(true);
       
       // Format the times with seconds
-      const formattedData = {
+      const formattedData: Omit<ShiftTemplate, 'id' | 'created_at'> = {
         name: data.name || `${data.day_of_week} ${data.start_time}-${data.end_time}`,
         day_of_week: data.day_of_week,
         start_time: data.start_time + ':00',

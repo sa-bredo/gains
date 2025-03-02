@@ -56,4 +56,6 @@ export const DAYS_OF_WEEK = [
   'Friday',
   'Saturday',
   'Sunday'
-];
+] as const; // Make this a readonly tuple for proper type checking
+
+export type DayOfWeek = typeof DAYS_OF_WEEK[number]; // This creates a union type of all days
