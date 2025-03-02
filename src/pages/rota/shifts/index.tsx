@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -51,8 +52,12 @@ export default function ShiftsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
-  const [startDate, setStartDate] = useState<Date | null>(new Date());
-  const [endDate, setEndDate] = useState<Date | null>(null);
+  
+  // Initialize with next month dates by default
+  const nextMonthRange = getDateRangeForPreset('nextMonth');
+  const [startDate, setStartDate] = useState<Date | null>(nextMonthRange.startDate);
+  const [endDate, setEndDate] = useState<Date | null>(nextMonthRange.endDate);
+  
   const [activeTab, setActiveTab] = useState<string>("view");
   const [error, setError] = useState<any>(null);
 
@@ -333,7 +338,7 @@ export default function ShiftsPage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="outline" className="gap-2">
-                                <span>Presets</span>
+                                <span>Dates...</span>
                                 <ChevronDownIcon className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
