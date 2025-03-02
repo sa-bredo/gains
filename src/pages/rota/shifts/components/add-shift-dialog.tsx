@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Location, ShiftTemplate, ShiftTemplateMaster, StaffMember } from '../../shift-templates/types';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import * as z from 'zod';
 import { format, parse, addDays, addWeeks, isAfter, isBefore, getDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Sheet, ShiftPreview } from './shift-preview';
+import { ShiftPreview } from './shift-preview';
 
 export interface AddShiftDialogProps {
   open: boolean;
@@ -111,15 +112,33 @@ export function AddShiftDialog({
   // Fetch template masters from Supabase
   const fetchTemplateMasters = async () => {
     try {
+      // Get template masters from view or joined query since shift_template_masters table doesn't exist directly
       const { data, error } = await supabase
-        .from('shift_template_masters')
-        .select('*');
+        .from('shift_templates')
+        .select('location_id, version, locations:location_id(name)')
+        .order('location_id')
+        .order('version', { ascending: false });
 
       if (error) {
         throw error;
       }
 
-      setTemplateMasters(data || []);
+      // Process the data to get unique location_id, version combinations
+      const mastersMap = new Map();
+      data?.forEach(item => {
+        const key = `${item.location_id}-${item.version}`;
+        if (!mastersMap.has(key)) {
+          mastersMap.set(key, {
+            location_id: item.location_id,
+            version: item.version,
+            location_name: item.locations?.name,
+            created_at: '' // This field might not be available
+          });
+        }
+      });
+      
+      const processedMasters = Array.from(mastersMap.values()) as ShiftTemplateMaster[];
+      setTemplateMasters(processedMasters);
     } catch (error) {
       console.error("Error fetching template masters:", error);
       toast({
@@ -216,8 +235,12 @@ export function AddShiftDialog({
   // Handle location change
   const handleLocationChange = (locationId: string) => {
     if (locationId) {
-      // Fetch the latest version for the selected location
-      const latestVersion = templateMasters.find(master => master.location_id === locationId)?.version || 1;
+      // Find the latest version for the selected location
+      const locationTemplates = templateMasters.filter(master => master.location_id === locationId);
+      const latestVersion = locationTemplates.length > 0 
+        ? Math.max(...locationTemplates.map(t => t.version))
+        : 1;
+        
       form.setValue('version', latestVersion);
       fetchTemplates(locationId, latestVersion);
     }
@@ -274,6 +297,7 @@ export function AddShiftDialog({
   const createShifts = async () => {
     setIsCreating(true);
     try {
+      // Map ShiftPreview objects to the format expected by the shifts table
       const shiftsToCreate = generatedShifts.map(shift => ({
         date: shift.date,
         day_of_week: shift.day_of_week,
@@ -281,7 +305,8 @@ export function AddShiftDialog({
         end_time: shift.end_time,
         location_id: shift.location_id,
         employee_id: shift.employee_id,
-        version: shift.version,
+        name: `${shift.day_of_week} Shift`, // Adding a default name
+        status: 'scheduled' // Adding a default status
       }));
 
       const { error } = await supabase
@@ -452,7 +477,16 @@ export function AddShiftDialog({
               </p>
               <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 {generatedShifts.map((shift, index) => (
-                  <ShiftPreview key={index} {...shift} />
+                  <div 
+                    key={index} 
+                    className="rounded-lg border p-3 shadow-sm"
+                  >
+                    <div className="font-medium">{shift.day_of_week}</div>
+                    <div className="text-sm text-muted-foreground">{shift.date}</div>
+                    <div className="text-sm">
+                      {shift.start_time.substring(0, 5)} - {shift.end_time.substring(0, 5)}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

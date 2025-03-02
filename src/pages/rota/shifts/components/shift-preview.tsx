@@ -12,6 +12,18 @@ import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { AlertTriangle, Save, ArrowLeft } from 'lucide-react';
 
+export interface ShiftPreview {
+  date: string;
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
+  location_id: string;
+  location_name?: string;
+  employee_id: string | null;
+  employee_name?: string;
+  version: number;
+}
+
 interface PreviewShift {
   template_id: string;
   template_name?: string;

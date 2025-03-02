@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -24,7 +25,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 export default function ShiftsPage() {
   const { toast } = useToast();
   const [shifts, setShifts] = useState<Shift[]>([]);
-  const [shiftTemplates, setShiftTemplates] = useState<ShiftTemplate[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,33 +75,6 @@ export default function ShiftsPage() {
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // Fetch shift templates
-  const fetchShiftTemplates = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('shift_templates')
-        .select(`
-          *,
-          locations:location_id (id, name),
-          employees:employee_id (id, first_name, last_name, role, email)
-        `)
-        .order('day_of_week', { ascending: true });
-      
-      if (error) {
-        throw error;
-      }
-      
-      setShiftTemplates(data as ShiftTemplate[] || []);
-    } catch (error) {
-      console.error('Error fetching shift templates:', error);
-      toast({
-        title: "Failed to load shift templates",
-        description: "There was a problem loading the shift templates data.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -161,7 +134,6 @@ export default function ShiftsPage() {
   useEffect(() => {
     Promise.all([
       fetchLocations(),
-      fetchShiftTemplates(),
       fetchStaffMembers()
     ]).then(() => {
       fetchShifts();
@@ -265,12 +237,8 @@ export default function ShiftsPage() {
             <AddShiftDialog 
               open={isDialogOpen}
               onOpenChange={setIsDialogOpen}
-              shiftTemplates={shiftTemplates}
-              locations={locations}
-              staffMembers={staffMembers}
-              selectedLocationId={selectedLocationId}
-              selectedDate={selectedDate}
-              onSuccess={() => fetchShifts()}
+              onAddComplete={() => fetchShifts()}
+              defaultLocationId={selectedLocationId || undefined}
             />
           </div>
         </SidebarInset>
