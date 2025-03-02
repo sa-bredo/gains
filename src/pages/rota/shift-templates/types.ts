@@ -25,10 +25,19 @@ export interface ShiftTemplate {
   employee_id?: string | null;
   notes?: string | null;
   created_at?: string | null;
+  version: number;
   
   // Join fields from the Supabase query - make these optional since they are from joins
   locations?: Location;
   employees?: StaffMember | null;
+}
+
+export interface ShiftTemplateMaster {
+  location_id: string;
+  location_name: string;
+  latest_version: number;
+  template_count: number;
+  created_at: string;
 }
 
 export interface Shift {

@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from '@/components/ui/button';
-import { PlusIcon } from 'lucide-react';
+import { PlusIcon, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
 import { ShiftTemplatesTable } from './components/shift-templates-table';
@@ -20,19 +21,33 @@ import {
 
 export default function ShiftTemplatesPage() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Parse query parameters
+  const queryParams = new URLSearchParams(location.search);
+  const locationId = queryParams.get('location');
+  const versionParam = queryParams.get('version');
+  const isNewTemplate = queryParams.get('new') === 'true';
+  
+  const version = versionParam ? parseInt(versionParam, 10) : null;
+  
   const [shiftTemplates, setShiftTemplates] = useState<ShiftTemplate[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(locationId);
+  const [selectedVersion, setSelectedVersion] = useState<number | null>(version);
+  const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
 
   // Fetch shift templates
   const fetchShiftTemplates = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+      
+      let query = supabase
         .from('shift_templates')
         .select(`
           *,
@@ -40,6 +55,18 @@ export default function ShiftTemplatesPage() {
           employees:employee_id (id, first_name, last_name, role, email)
         `)
         .order('day_of_week', { ascending: true });
+      
+      // Filter by location if selected
+      if (selectedLocationId) {
+        query = query.eq('location_id', selectedLocationId);
+      }
+      
+      // Filter by version if selected
+      if (selectedVersion) {
+        query = query.eq('version', selectedVersion);
+      }
+      
+      const { data, error } = await query;
       
       if (error) {
         throw error;
@@ -72,6 +99,12 @@ export default function ShiftTemplatesPage() {
       }
       
       setLocations(data || []);
+      
+      // Find the current location for display
+      if (selectedLocationId) {
+        const currentLoc = data?.find(loc => loc.id === selectedLocationId) || null;
+        setCurrentLocation(currentLoc);
+      }
       
       // Set the first location as selected if none is selected and there are locations
       if (!selectedLocationId && data && data.length > 0) {
@@ -114,14 +147,20 @@ export default function ShiftTemplatesPage() {
   // Load initial data
   useEffect(() => {
     Promise.all([
-      fetchShiftTemplates(),
       fetchLocations(),
       fetchStaffMembers()
-    ]);
-  }, []);
+    ]).then(() => {
+      fetchShiftTemplates();
+    });
+    
+    // Open the add dialog if this is a new template
+    if (isNewTemplate) {
+      setIsDialogOpen(true);
+    }
+  }, [selectedLocationId, selectedVersion, isNewTemplate]);
 
   // Add a new shift template
-  const addShiftTemplate = async (templateData: Omit<ShiftTemplate, 'id' | 'created_at'>) => {
+  const addShiftTemplate = async (templateData: Omit<ShiftTemplate, 'id' | 'created_at' | 'version'>) => {
     try {
       setIsUpdating(true);
       
@@ -129,6 +168,7 @@ export default function ShiftTemplatesPage() {
       const dataToAdd = {
         ...templateData,
         location_id: templateData.location_id || selectedLocationId,
+        version: selectedVersion || 1,
         // Ensure name is not undefined - provide a default
         name: templateData.name || `${templateData.day_of_week} ${templateData.start_time}-${templateData.end_time}`
       };
@@ -245,7 +285,8 @@ export default function ShiftTemplatesPage() {
         end_time: template.end_time,
         location_id: template.location_id,
         employee_id: template.employee_id,
-        notes: template.notes
+        notes: template.notes,
+        version: template.version, // Keep the same version
       };
       
       const { data, error } = await supabase
@@ -275,9 +316,17 @@ export default function ShiftTemplatesPage() {
     }
   };
 
-  // Handle location change
-  const handleLocationChange = (locationId: string) => {
-    setSelectedLocationId(locationId);
+  // Handle going back to the master page
+  const handleBackToMaster = () => {
+    navigate('/rota/shift-templates-master');
+  };
+
+  // Build page title
+  const getPageTitle = () => {
+    if (currentLocation && selectedVersion) {
+      return `${currentLocation.name} Templates (v${selectedVersion})`;
+    }
+    return 'Shift Templates';
   };
 
   return (
@@ -295,29 +344,20 @@ export default function ShiftTemplatesPage() {
           <div className="container mx-auto p-6">
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-4">
-                <h1 className="text-3xl font-bold">Shift Templates</h1>
-                {locations.length > 0 && (
-                  <Select 
-                    value={selectedLocationId || ''} 
-                    onValueChange={handleLocationChange}
-                  >
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder="Select location" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations.map(location => (
-                        <SelectItem key={location.id} value={location.id}>
-                          {location.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={handleBackToMaster}
+                  className="mr-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <h1 className="text-3xl font-bold">{getPageTitle()}</h1>
               </div>
               <Button 
                 onClick={() => setIsDialogOpen(true)}
                 className="flex items-center gap-2"
-                disabled={isUpdating || locations.length === 0 || !selectedLocationId}
+                disabled={isUpdating || locations.length === 0 || !selectedLocationId || !selectedVersion}
               >
                 <PlusIcon className="h-4 w-4" />
                 Add Shift Template

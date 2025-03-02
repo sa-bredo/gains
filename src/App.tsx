@@ -22,6 +22,7 @@ import FinancialsTransactions from "./pages/financials/transactions";
 import FinancialsTransactionsGoCardless from "./pages/financials/transactions-gocardless";
 import LocationsPage from "./pages/settings/locations";
 import ShiftTemplatesPage from "./pages/rota/shift-templates";
+import ShiftTemplatesMasterPage from "./pages/rota/shift-templates-master";
 import ShiftsPage from "./pages/rota/shifts";
 
 import "./App.css";
@@ -110,6 +111,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ShiftTemplatesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/rota/shift-templates-master"
+                element={
+                  <ProtectedRoute>
+                    <ShiftTemplatesMasterPage />
                   </ProtectedRoute>
                 }
               />

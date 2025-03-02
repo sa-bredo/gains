@@ -324,6 +324,7 @@ export type Database = {
           name: string
           notes: string | null
           start_time: string
+          version: number
         }
         Insert: {
           created_at?: string | null
@@ -335,6 +336,7 @@ export type Database = {
           name: string
           notes?: string | null
           start_time: string
+          version?: number
         }
         Update: {
           created_at?: string | null
@@ -346,6 +348,7 @@ export type Database = {
           name?: string
           notes?: string | null
           start_time?: string
+          version?: number
         }
         Relationships: [
           {

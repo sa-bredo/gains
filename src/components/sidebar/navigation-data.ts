@@ -1,4 +1,3 @@
-
 import {
   Heart,
   Brain,
@@ -107,7 +106,7 @@ export const navMain: NavItem[] = [
       },
       {
         title: "Shift Templates",
-        url: "/rota/shift-templates",
+        url: "/rota/shift-templates-master",
       },
     ],
   },
