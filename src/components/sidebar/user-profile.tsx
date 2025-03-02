@@ -131,7 +131,7 @@ const defaultUserProfile: UserProfileType = {
 
 // Export the component and use default user if none provided
 export function UserProfile() {
-  const { isLoaded, user } = useAuth();
+  const { user } = useAuth();
   const isMobile = false; // We could use a hook here but keeping it simple
   
   const userProfileData: UserProfileType = user ? {
