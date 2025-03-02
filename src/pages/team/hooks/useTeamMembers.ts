@@ -35,6 +35,32 @@ export function useTeamMembers() {
     }
   }, []);
 
+  const fetchActiveStaff = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .is('end_job_date', null)
+        .in('role', ['front_of_house', 'manager'])
+        .order('last_name', { ascending: true });
+      
+      if (error) throw new Error(error.message);
+      
+      console.log("Fetched active staff:", data);
+      return data || [];
+    } catch (err) {
+      console.error('Error fetching active staff:', err);
+      const errorObj = err instanceof Error ? err : new Error('Unknown error occurred');
+      setError(errorObj);
+      throw errorObj;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   async function addTeamMember(newMember: TeamMemberFormValues) {
     try {
       console.log("Adding team member:", newMember);
@@ -181,6 +207,7 @@ export function useTeamMembers() {
     isLoading,
     error,
     refetchTeamMembers: fetchTeamMembers,
+    fetchActiveStaff,
     addTeamMember,
     updateTeamMember,
     deleteTeamMember,

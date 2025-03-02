@@ -1,59 +1,38 @@
 
 import React, { useState, useEffect } from 'react';
-import { DAYS_OF_WEEK, Location, ShiftTemplate, StaffMember } from '../types';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2 } from 'lucide-react';
+import { ShiftTemplateFormValues } from '../types';
+import { useTeamMembers } from '@/pages/team/hooks/useTeamMembers';
+import { TeamMember } from '@/pages/team/types';
 
-// Form schema
-const formSchema = z.object({
-  day_of_week: z.enum(DAYS_OF_WEEK, {
-    errorMap: () => ({ message: 'Please select a day of the week.' }),
+const FormSchema = z.object({
+  dayOfWeek: z.string({
+    required_error: "Please select a day of the week",
   }),
-  start_time: z.string().min(1, { message: 'Please select a start time.' }),
-  end_time: z.string().min(1, { message: 'Please select an end time.' }),
-  location_id: z.string().uuid({ message: 'Please select a location.' }),
-  employee_id: z.string().uuid().optional().nullable(),
-  notes: z.string().optional(),
+  startTime: z.string({
+    required_error: "Please select a start time",
+  }),
+  endTime: z.string({
+    required_error: "Please select an end time",
+  }),
+  locationId: z.string({
+    required_error: "Please select a location",
+  }),
+  employeeId: z.string().optional(),
 });
-
-type FormValues = z.infer<typeof formSchema>;
 
 interface AddShiftTemplateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (data: Omit<ShiftTemplate, 'id' | 'created_at'>) => Promise<any>;
-  locations: Location[];
-  staffMembers: StaffMember[];
-  preselectedLocationId?: string | null;
+  onAdd: (data: ShiftTemplateFormValues) => Promise<void>;
+  locations: { id: string; name: string }[];
 }
 
 export function AddShiftTemplateDialog({
@@ -61,88 +40,63 @@ export function AddShiftTemplateDialog({
   onOpenChange,
   onAdd,
   locations,
-  staffMembers,
-  preselectedLocationId
 }: AddShiftTemplateDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeStaffMembers, setActiveStaffMembers] = useState<StaffMember[]>([]);
-
-  // Fetch active staff members (Front of House or Manager with no end_job_date)
+  const [activeStaff, setActiveStaff] = useState<TeamMember[]>([]);
+  const { fetchActiveStaff } = useTeamMembers();
+  
   useEffect(() => {
-    const fetchActiveStaff = async () => {
-      const { data, error } = await supabase
-        .from('employees')
-        .select('id, first_name, last_name, role, email')
-        .is('end_job_date', null)
-        .in('role', ['Front Of House', 'Manager'])
-        .order('last_name', { ascending: true });
-      
-      if (error) {
-        console.error('Error fetching staff:', error);
-        toast.error('Failed to load staff members');
-        return;
-      }
-      
-      setActiveStaffMembers(data || []);
+    const getActiveStaff = async () => {
+      const staff = await fetchActiveStaff();
+      setActiveStaff(staff);
     };
-
+    
     if (open) {
-      fetchActiveStaff();
+      getActiveStaff();
     }
-  }, [open]);
+  }, [open, fetchActiveStaff]);
 
-  // Setup form
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<z.infer<typeof FormSchema>>({
+    resolver: zodResolver(FormSchema),
     defaultValues: {
-      day_of_week: 'Monday',
-      start_time: '09:00',
-      end_time: '17:00',
-      location_id: preselectedLocationId || '',
-      employee_id: undefined,
-      notes: '',
+      dayOfWeek: '',
+      startTime: '',
+      endTime: '',
+      locationId: '',
+      employeeId: undefined,
     },
   });
 
-  // Reset form when dialog opens
-  React.useEffect(() => {
-    if (open) {
-      form.reset({
-        day_of_week: 'Monday',
-        start_time: '09:00',
-        end_time: '17:00',
-        location_id: preselectedLocationId || '',
-        employee_id: undefined,
-        notes: '',
-      });
-    }
-  }, [open, form, preselectedLocationId]);
+  const generateShiftName = (data: z.infer<typeof FormSchema>) => {
+    const dayOfWeek = data.dayOfWeek;
+    const locationName = locations.find(loc => loc.id === data.locationId)?.name || 'Unknown Location';
+    const employeeName = data.employeeId 
+      ? activeStaff.find(emp => emp.id === data.employeeId)
+        ? `${activeStaff.find(emp => emp.id === data.employeeId)?.first_name} ${activeStaff.find(emp => emp.id === data.employeeId)?.last_name}`
+        : 'Unassigned'
+      : 'Unassigned';
+    
+    return `${dayOfWeek} - ${locationName} (${employeeName})`;
+  };
 
-  // Handle form submission
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (data: z.infer<typeof FormSchema>) => {
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      
-      // Generate a default name based on day and time
-      const defaultName = `${data.day_of_week} ${data.start_time}-${data.end_time}`;
-      
-      // Format the times with seconds
-      const formattedData: Omit<ShiftTemplate, 'id' | 'created_at'> = {
-        name: defaultName, // Use generated name
-        day_of_week: data.day_of_week,
-        start_time: data.start_time + ':00',
-        end_time: data.end_time + ':00',
-        location_id: data.location_id,
-        employee_id: data.employee_id || null,
-        notes: data.notes || null,
-        version: 1 // Add default version
+      const formattedData: ShiftTemplateFormValues = {
+        day_of_week: data.dayOfWeek,
+        start_time: data.startTime,
+        end_time: data.endTime,
+        location_id: data.locationId,
+        employee_id: data.employeeId || null,
+        // Auto-generate a name based on day, location, and employee
+        name: generateShiftName(data)
       };
-      
+
       await onAdd(formattedData);
+      form.reset();
       onOpenChange(false);
     } catch (error) {
-      console.error('Error adding shift template:', error);
-      toast.error('Failed to add shift template');
+      console.error('Failed to add shift template:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -150,127 +104,120 @@ export function AddShiftTemplateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Shift Template</DialogTitle>
+          <DialogTitle>Add Shift Template</DialogTitle>
           <DialogDescription>
-            Create a new shift template that can be used to generate shifts on the schedule.
+            Create a new shift template for your rota.
           </DialogDescription>
         </DialogHeader>
-
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="day_of_week"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Day of Week</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select day" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {DAYS_OF_WEEK.map((day) => (
-                          <SelectItem key={day} value={day}>
-                            {day}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="location_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select location" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {locations.map((location) => (
-                          <SelectItem key={location.id} value={location.id}>
-                            {location.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="start_time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Time</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="end_time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Time</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
             <FormField
               control={form.control}
-              name="employee_id"
+              name="dayOfWeek"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Assigned Staff (Optional)</FormLabel>
-                  <Select
-                    value={field.value || ""}
-                    onValueChange={(value) => field.onChange(value === "none" ? null : value)}
-                  >
+                  <FormLabel>Day of Week</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select staff member (optional)" />
+                        <SelectValue placeholder="Select a day" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {activeStaffMembers.length === 0 ? (
-                        <SelectItem value="none" disabled>No active staff available</SelectItem>
+                      <SelectItem value="Monday">Monday</SelectItem>
+                      <SelectItem value="Tuesday">Tuesday</SelectItem>
+                      <SelectItem value="Wednesday">Wednesday</SelectItem>
+                      <SelectItem value="Thursday">Thursday</SelectItem>
+                      <SelectItem value="Friday">Friday</SelectItem>
+                      <SelectItem value="Saturday">Saturday</SelectItem>
+                      <SelectItem value="Sunday">Sunday</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="startTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Start Time</FormLabel>
+                  <FormControl>
+                    <input
+                      type="time"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="endTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>End Time</FormLabel>
+                  <FormControl>
+                    <input
+                      type="time"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="locationId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Location</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a location" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {locations.map((location) => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="employeeId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Staff Member (Optional)</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Assign to staff member" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {activeStaff.length === 0 ? (
+                        <SelectItem value="no-staff" disabled>
+                          No active staff members available
+                        </SelectItem>
                       ) : (
-                        activeStaffMembers.map((staff) => (
-                          <SelectItem key={staff.id} value={staff.id}>
-                            {staff.first_name} {staff.last_name} ({staff.role})
+                        activeStaff.map((employee) => (
+                          <SelectItem key={employee.id} value={employee.id}>
+                            {employee.first_name} {employee.last_name}
                           </SelectItem>
                         ))
                       )}
@@ -280,36 +227,16 @@ export function AddShiftTemplateDialog({
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Add any additional information about this shift template"
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Adding...' : 'Add Template'}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  'Add Template'
+                )}
               </Button>
             </DialogFooter>
           </form>

@@ -348,7 +348,7 @@ export type Database = {
           end_time: string
           id: string
           location_id: string
-          name: string
+          name: string | null
           notes: string | null
           start_time: string
           version: number
@@ -360,7 +360,7 @@ export type Database = {
           end_time: string
           id?: string
           location_id: string
-          name: string
+          name?: string | null
           notes?: string | null
           start_time: string
           version?: number
@@ -372,7 +372,7 @@ export type Database = {
           end_time?: string
           id?: string
           location_id?: string
-          name?: string
+          name?: string | null
           notes?: string | null
           start_time?: string
           version?: number
