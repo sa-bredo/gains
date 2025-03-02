@@ -61,16 +61,7 @@ export default function ShiftTemplatesPage() {
       }
       
       const { data, error } = await query
-        .order('day_of_week', {
-          ascending: true,
-          nullsFirst: false,
-          foreignTable: null,
-          referencedTable: { 
-            schema: 'public', 
-            table: 'custom_day_order',
-            column: 'position'
-          }
-        })
+        .order('day_of_week', { ascending: true })
         .order('start_time', { ascending: true });
       
       if (error) {
