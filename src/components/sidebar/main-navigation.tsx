@@ -7,7 +7,21 @@ import {
 } from "@/components/ui/sidebar";
 import { NavItem } from "./types";
 import { SidebarNavItem } from "./nav-item";
-import { BarChart3, Home, Settings, Users } from "lucide-react";
+import { 
+  Activity, 
+  BarChart3, 
+  Briefcase, 
+  Calendar, 
+  DollarSign, 
+  FileText, 
+  Heart, 
+  Home, 
+  Lightbulb, 
+  ListTodo, 
+  Search, 
+  Settings, 
+  Users 
+} from "lucide-react";
 
 interface MainNavigationProps {
   items?: NavItem[];
@@ -17,7 +31,7 @@ interface MainNavigationProps {
 const defaultNavItems: NavItem[] = [
   {
     title: "Dashboard",
-    icon: Home,
+    icon: Activity,
     url: "/dashboard",
     isActive: true,
     items: [
@@ -26,21 +40,65 @@ const defaultNavItems: NavItem[] = [
     ]
   },
   {
+    title: "Tasks",
+    icon: ListTodo,
+    url: "/tasks",
+    items: [
+      { title: "My Tasks", url: "/tasks" },
+      { title: "Assigned Tasks", url: "/tasks/assigned" }
+    ]
+  },
+  {
+    title: "Documents",
+    icon: FileText,
+    url: "/document-signing",
+    items: [
+      { title: "Templates", url: "/document-signing" },
+      { title: "Sent Documents", url: "/document-signing/sent" }
+    ]
+  },
+  {
+    title: "Financials",
+    icon: DollarSign,
+    url: "/financials/transactions",
+    items: [
+      { title: "Transactions", url: "/financials/transactions" },
+      { title: "GoCardless", url: "/financials/transactions-gocardless" }
+    ]
+  },
+  {
+    title: "Rota",
+    icon: Calendar,
+    url: "/rota/shifts",
+    items: [
+      { title: "Shifts", url: "/rota/shifts" },
+      { title: "Shift Templates", url: "/rota/shift-templates-master" }
+    ]
+  },
+  {
+    title: "Payroll",
+    icon: DollarSign,
+    url: "/payroll",
+    items: []
+  },
+  {
+    title: "Analytics",
+    icon: BarChart3,
+    url: "/analytics",
+    items: []
+  },
+  {
+    title: "Operations",
+    icon: Briefcase,
+    url: "/operations",
+    items: []
+  },
+  {
     title: "Team",
     icon: Users,
     url: "/team",
     items: [
-      { title: "Members", url: "/team" },
-      { title: "Settings", url: "/team/settings" }
-    ]
-  },
-  {
-    title: "Reports",
-    icon: BarChart3,
-    url: "/reports",
-    items: [
-      { title: "Performance", url: "/reports/performance" },
-      { title: "Finance", url: "/reports/finance" }
+      { title: "All Team", url: "/team" }
     ]
   },
   {
@@ -48,9 +106,9 @@ const defaultNavItems: NavItem[] = [
     icon: Settings,
     url: "/settings",
     items: [
-      { title: "General", url: "/settings" },
-      { title: "Security", url: "/settings/security" },
-      { title: "Notifications", url: "/settings/notifications" }
+      { title: "Account", url: "/settings/account" },
+      { title: "Locations", url: "/settings/locations" },
+      { title: "Config", url: "/settings/config" }
     ]
   }
 ];
