@@ -38,7 +38,7 @@ export default function ShiftTemplatesPage() {
       }
       
       // Ensure the data conforms to our ShiftTemplate type
-      setShiftTemplates(data || []);
+      setShiftTemplates(data as ShiftTemplate[] || []);
     } catch (error) {
       console.error('Error fetching shift templates:', error);
       toast({
@@ -152,9 +152,13 @@ export default function ShiftTemplatesPage() {
   const updateShiftTemplate = async (id: string, templateData: Partial<ShiftTemplate>) => {
     try {
       setIsUpdating(true);
+      
+      // Remove any joined fields before sending to Supabase
+      const { locations, employees, ...dataToUpdate } = templateData;
+      
       const { error } = await supabase
         .from('shift_templates')
-        .update(templateData)
+        .update(dataToUpdate)
         .eq('id', id);
       
       if (error) {
@@ -174,6 +178,7 @@ export default function ShiftTemplatesPage() {
         description: "There was a problem updating the shift template.",
         variant: "destructive",
       });
+      throw error;
     } finally {
       setIsUpdating(false);
     }
@@ -214,12 +219,16 @@ export default function ShiftTemplatesPage() {
   const cloneShiftTemplate = async (template: ShiftTemplate) => {
     try {
       setIsUpdating(true);
-      const { id, created_at, ...templateData } = template;
       
-      // Add "Copy of" to the name
+      // Extract only the needed fields and avoid including joined data
       const clonedTemplate = {
-        ...templateData,
-        name: `Copy of ${template.name}`
+        name: `Copy of ${template.name}`,
+        day_of_week: template.day_of_week,
+        start_time: template.start_time,
+        end_time: template.end_time,
+        location_id: template.location_id,
+        employee_id: template.employee_id,
+        notes: template.notes
       };
       
       const { data, error } = await supabase

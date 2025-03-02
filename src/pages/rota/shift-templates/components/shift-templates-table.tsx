@@ -73,7 +73,9 @@ export function ShiftTemplatesTable({
   // Handle saving edits
   const saveEdits = async (id: string) => {
     try {
-      await onUpdate(id, editData);
+      // Make a copy of editData to avoid reference issues
+      const dataToUpdate = { ...editData };
+      await onUpdate(id, dataToUpdate);
       setEditingRow(null);
       setEditData({});
     } catch (error) {
@@ -90,10 +92,10 @@ export function ShiftTemplatesTable({
 
   // Handle field changes
   const handleChange = (field: string, value: string | null) => {
-    setEditData({
-      ...editData,
+    setEditData(prev => ({
+      ...prev,
       [field]: value
-    });
+    }));
   };
 
   // Format time for display (HH:MM:SS to HH:MM AM/PM)
@@ -201,7 +203,7 @@ export function ShiftTemplatesTable({
                   <TableCell>
                     {editingRow === template.id ? (
                       <Select 
-                        value={editData.day_of_week || template.day_of_week} 
+                        value={editData.day_of_week} 
                         onValueChange={(value) => handleChange('day_of_week', value)}
                       >
                         <SelectTrigger className="w-full">
@@ -230,7 +232,7 @@ export function ShiftTemplatesTable({
                       <Input 
                         className="w-full"
                         type="time"
-                        value={editData.start_time?.substring(0, 5) || template.start_time.substring(0, 5)} 
+                        value={editData.start_time?.substring(0, 5) || ''} 
                         onChange={(e) => handleChange('start_time', e.target.value + ':00')} 
                       />
                     ) : (
@@ -250,7 +252,7 @@ export function ShiftTemplatesTable({
                       <Input 
                         className="w-full"
                         type="time"
-                        value={editData.end_time?.substring(0, 5) || template.end_time.substring(0, 5)} 
+                        value={editData.end_time?.substring(0, 5) || ''} 
                         onChange={(e) => handleChange('end_time', e.target.value + ':00')} 
                       />
                     ) : (
@@ -268,7 +270,7 @@ export function ShiftTemplatesTable({
                   <TableCell>
                     {editingRow === template.id ? (
                       <Select 
-                        value={editData.location_id || template.location_id} 
+                        value={editData.location_id} 
                         onValueChange={(value) => handleChange('location_id', value)}
                       >
                         <SelectTrigger className="w-full">
