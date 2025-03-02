@@ -2,6 +2,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { ClerkProvider } from "@clerk/clerk-react";
+import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
 import { CompanyProvider } from "./contexts/CompanyContext";
@@ -19,13 +20,15 @@ if (!CLERK_PUBLISHABLE_KEY) {
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY || ""}>
-      <AuthProvider>
-        <CompanyProvider>
-          <SidebarProvider>
-            <App />
-          </SidebarProvider>
-        </CompanyProvider>
-      </AuthProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <CompanyProvider>
+            <SidebarProvider>
+              <App />
+            </SidebarProvider>
+          </CompanyProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </ClerkProvider>
   </React.StrictMode>
 );
