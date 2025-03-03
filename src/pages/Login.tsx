@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Mail, Lock, Building, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Company } from "@/types/company";
 
 // Define an explicit interface for login credentials to avoid TypeScript issues
 interface LoginCredentials {
@@ -61,14 +62,14 @@ export default function LoginPage() {
         throw new Error("Sign in not available");
       }
 
-      type Company = { id: string }; // Define expected type
+      // Use a simplified approach to query company data
+      const { data, error: companyError } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('slug', companySlug)
+        .limit(1);
 
-      const { data: companyData, error: companyError } = await supabase
-          .from('companies')
-          .select('id')
-          .maybeSingle<Company>();  // Explicitly specify return type
-
-      // Check if we got any company back
+      // Check for query errors
       if (companyError) {
         console.error("Company lookup error:", companyError);
         setError("Error checking company slug. Please try again.");
