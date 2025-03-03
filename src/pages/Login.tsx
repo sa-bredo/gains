@@ -8,8 +8,8 @@ import { Loader2, Mail, Lock, Building, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-// Define the sign-in parameters type explicitly to avoid infinite type instantiation
-interface SignInParams {
+// Define an explicit interface for login credentials to avoid circular type references
+interface LoginCredentials {
   identifier: string;
   password: string;
 }
@@ -74,13 +74,14 @@ export default function LoginPage() {
         return;
       }
       
-      // Use explicitly typed parameters to avoid infinite type instantiation
-      const signInParams: SignInParams = {
+      // Create credentials object with explicit type
+      const credentials: LoginCredentials = {
         identifier: email,
         password: password
       };
       
-      const result = await signIn.create(signInParams);
+      // Pass typed credentials to signIn.create
+      const result = await signIn.create(credentials);
       
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
