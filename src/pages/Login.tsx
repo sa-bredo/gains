@@ -74,7 +74,7 @@ export default function LoginPage() {
         return;
       }
       
-      // Important: Create the credentials object with explicit typing to avoid deep type inference
+      // Create a credentials object with explicitly typed interface
       const credentials: LoginCredentials = {
         identifier: email,
         password: password
