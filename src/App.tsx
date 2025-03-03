@@ -20,6 +20,7 @@ import RotaPage from './pages/rota';
 import PlaidPage from './pages/plaid';
 import DocumentsPage from './pages/documents';
 import PermissionsPage from './pages/settings/permissions';
+import TeamPage from './pages/team';
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
             <Route path="/rota" element={<RotaPage />} />
             <Route path="/plaid" element={<PlaidPage />} />
             <Route path="/documents" element={<DocumentsPage />} />
+            <Route path="/team" element={<TeamPage />} />
           </Route>
         </Routes>
       </CompanyProvider>

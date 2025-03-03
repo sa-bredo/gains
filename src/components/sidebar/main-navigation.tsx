@@ -14,7 +14,6 @@ import {
   Calendar, 
   DollarSign, 
   FileText, 
-  Heart, 
   Home, 
   Lightbulb, 
   ListTodo, 
@@ -27,87 +26,55 @@ interface MainNavigationProps {
   items?: NavItem[];
 }
 
-// Default navigation items to use if none are provided
+// Updated navigation items to match actual application routes
 const defaultNavItems: NavItem[] = [
   {
     title: "Dashboard",
     icon: Activity,
-    url: "/dashboard",
+    url: "/",
     isActive: true,
-    items: [
-      { title: "Overview", url: "/dashboard" },
-      { title: "Analytics", url: "/dashboard/analytics" }
-    ]
+    items: []
   },
   {
-    title: "Tasks",
-    icon: ListTodo,
-    url: "/tasks",
+    title: "Employees",
+    icon: Users,
+    url: "/employees",
     items: [
-      { title: "My Tasks", url: "/tasks" },
-      { title: "Assigned Tasks", url: "/tasks/assigned" }
+      { title: "All Employees", url: "/employees" },
+      { title: "Invite Employee", url: "/employees/invite" }
     ]
   },
   {
     title: "Documents",
     icon: FileText,
-    url: "/document-signing",
-    items: [
-      { title: "Templates", url: "/document-signing" },
-      { title: "Sent Documents", url: "/document-signing/sent" }
-    ]
+    url: "/documents",
+    items: []
   },
   {
     title: "Financials",
     icon: DollarSign,
-    url: "/financials/transactions",
-    items: [
-      { title: "Transactions", url: "/financials/transactions" },
-      { title: "GoCardless", url: "/financials/transactions-gocardless" }
-    ]
+    url: "/plaid",
+    items: []
   },
   {
     title: "Rota",
     icon: Calendar,
-    url: "/rota/shifts",
-    items: [
-      { title: "Shifts", url: "/rota/shifts" },
-      { title: "Shift Templates", url: "/rota/shift-templates-master" }
-    ]
-  },
-  {
-    title: "Payroll",
-    icon: DollarSign,
-    url: "/payroll",
-    items: []
-  },
-  {
-    title: "Analytics",
-    icon: BarChart3,
-    url: "/analytics",
-    items: []
-  },
-  {
-    title: "Operations",
-    icon: Briefcase,
-    url: "/operations",
+    url: "/rota",
     items: []
   },
   {
     title: "Team",
     icon: Users,
     url: "/team",
-    items: [
-      { title: "All Team", url: "/team" }
-    ]
+    items: []
   },
   {
     title: "Settings",
     icon: Settings,
     url: "/settings",
     items: [
-      { title: "Account", url: "/settings/account" },
       { title: "Locations", url: "/settings/locations" },
+      { title: "Permissions", url: "/settings/permissions" },
       { title: "Config", url: "/settings/config" }
     ]
   }
