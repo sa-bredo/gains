@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -17,28 +16,23 @@ export default function SelectCompany() {
   const from = location.state?.from?.pathname || "/dashboard";
   
   useEffect(() => {
-    // Don't run this effect until auth is loaded
     if (!isLoaded) return;
     
-    // If user is not signed in, redirect to login
     if (isLoaded && !isSignedIn) {
       navigate("/login", { replace: true });
       return;
     }
     
-    // If there's only one company, automatically select it and redirect
     if (userCompanies.length === 1 && !currentCompany) {
       switchCompany(userCompanies[0].id);
-      navigate(from, { replace: true });
+      navigate("/dashboard", { replace: true });
     }
     
-    // If a company is already selected, redirect to the intended destination
     if (currentCompany) {
-      navigate(from, { replace: true });
+      navigate("/dashboard", { replace: true });
     }
-  }, [userCompanies, currentCompany, navigate, from, switchCompany, isLoaded, isSignedIn]);
+  }, [userCompanies, currentCompany, navigate, switchCompany, isLoaded, isSignedIn]);
   
-  // Show loading state if auth is not loaded yet
   if (!isLoaded) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
@@ -108,7 +102,7 @@ export default function SelectCompany() {
             <CardFooter className="pt-2">
               <Button className="w-full" onClick={() => {
                 switchCompany(company.id);
-                navigate(from, { replace: true });
+                navigate("/dashboard", { replace: true });
               }}>
                 Select
               </Button>
