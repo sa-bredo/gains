@@ -21,6 +21,21 @@ interface SidebarNavItemProps {
 }
 
 export const SidebarNavItem: FC<SidebarNavItemProps> = ({ item }) => {
+  // If there are no sub-items, render a direct link
+  if (!item.items || item.items.length === 0) {
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild tooltip={item.title}>
+          <Link to={item.url}>
+            {item.icon && <item.icon className="h-5 w-5" />}
+            <span>{item.title}</span>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  }
+
+  // If there are sub-items, render a collapsible menu
   return (
     <Collapsible
       key={item.title}
