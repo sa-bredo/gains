@@ -8,6 +8,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { CompanyProvider } from "./contexts/CompanyContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { MainLayout } from "./layouts/MainLayout";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import LoginPage from "./pages/Login";
 import DashboardPage from "./pages/Dashboard";
 import SelectCompanyPage from "./pages/SelectCompany";
@@ -33,31 +34,33 @@ function App() {
   return (
     <AuthProvider>
       <CompanyProvider>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/select-company" element={<SelectCompanyPage />} />
-          
-          <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/employees" element={<EmployeesPage />} />
-            <Route path="/employees/:id" element={<EmployeeDetailsPage />} />
-            <Route path="/employees/invite" element={<EmployeeInvitePage />} />
-            <Route path="/settings/locations" element={<LocationsPage />} />
-            <Route path="/settings/permissions" element={<PermissionsPage />} />
-            <Route path="/settings/config" element={<ConfigPage />} />
-            <Route path="/rota" element={<RotaPage />} />
-            <Route path="/rota/shifts" element={<ShiftsPage />} />
-            <Route path="/rota/shift-templates" element={<ShiftTemplatesPage />} />
-            <Route path="/rota/shift-templates-master" element={<ShiftTemplatesMasterPage />} />
-            <Route path="/plaid" element={<PlaidPage />} />
-            <Route path="/documents" element={<DocumentsPage />} />
-            <Route path="/document-signing" element={<DocumentSigningPage />} />
-            <Route path="/document-signing/sent" element={<SentDocumentsPage />} />
-            <Route path="/team" element={<TeamPage />} />
-            <Route path="/financials/transactions" element={<TransactionsPage />} />
-            <Route path="/financials/transactions-gocardless" element={<GoCardlessPage />} />
-          </Route>
-        </Routes>
+        <SidebarProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/select-company" element={<SelectCompanyPage />} />
+            
+            <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/employees" element={<EmployeesPage />} />
+              <Route path="/employees/:id" element={<EmployeeDetailsPage />} />
+              <Route path="/employees/invite" element={<EmployeeInvitePage />} />
+              <Route path="/settings/locations" element={<LocationsPage />} />
+              <Route path="/settings/permissions" element={<PermissionsPage />} />
+              <Route path="/settings/config" element={<ConfigPage />} />
+              <Route path="/rota" element={<RotaPage />} />
+              <Route path="/rota/shifts" element={<ShiftsPage />} />
+              <Route path="/rota/shift-templates" element={<ShiftTemplatesPage />} />
+              <Route path="/rota/shift-templates-master" element={<ShiftTemplatesMasterPage />} />
+              <Route path="/plaid" element={<PlaidPage />} />
+              <Route path="/documents" element={<DocumentsPage />} />
+              <Route path="/document-signing" element={<DocumentSigningPage />} />
+              <Route path="/document-signing/sent" element={<SentDocumentsPage />} />
+              <Route path="/team" element={<TeamPage />} />
+              <Route path="/financials/transactions" element={<TransactionsPage />} />
+              <Route path="/financials/transactions-gocardless" element={<GoCardlessPage />} />
+            </Route>
+          </Routes>
+        </SidebarProvider>
       </CompanyProvider>
     </AuthProvider>
   );
