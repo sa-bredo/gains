@@ -4,6 +4,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
+// Define and export the Employee type
+export interface Employee {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  mobile_number?: string | null;
+  invited: boolean;
+}
+
+// Define and export the EmployeeFormValues type
+export interface EmployeeFormValues {
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  mobile_number?: string;
+}
+
 const EmployeesPage: React.FC = () => {
   return (
     <div className="container mx-auto py-6">
