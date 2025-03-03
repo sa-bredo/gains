@@ -8,7 +8,7 @@ import { Loader2, Mail, Lock, Building, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-// Define an explicit interface for login credentials to avoid circular type references
+// Define an explicit interface for login credentials
 interface LoginCredentials {
   identifier: string;
   password: string;
@@ -74,7 +74,7 @@ export default function LoginPage() {
         return;
       }
       
-      // Explicitly type the credentials object to avoid TypeScript inference issues
+      // Create an explicitly typed credentials object
       const credentials: LoginCredentials = {
         identifier: email,
         password: password
