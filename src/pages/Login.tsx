@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useSignIn, useAuth } from "@clerk/clerk-react";
@@ -9,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Company } from "@/types/company";
 
-// Define an explicit interface for login credentials to avoid TypeScript issues
 interface LoginCredentials {
   identifier: string;
   password: string;
@@ -28,10 +26,9 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
   
-  // Redirect if user is already signed in
   if (isLoaded && isSignedIn) {
     setIsRedirecting(true);
-    navigate("/settings/locations");
+    navigate("/dashboard");
     return null;
   }
   
@@ -39,7 +36,7 @@ export default function LoginPage() {
     return (
       <div className="flex min-h-screen w-full items-center justify-center p-6 md:p-10">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Redirecting to locations...</h1>
+          <h1 className="text-2xl font-bold mb-4">Redirecting to dashboard...</h1>
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
         </div>
       </div>
@@ -62,14 +59,12 @@ export default function LoginPage() {
         throw new Error("Sign in not available");
       }
 
-      // Query company data using name
       const { data, error: companyError } = await supabase
         .from('companies')
         .select('id, name, slug')
         .eq('name', companyName)
         .limit(1);
 
-      // Check for query errors
       if (companyError) {
         console.error("Company lookup error:", companyError);
         setError("Error checking company name. Please try again.");
@@ -77,35 +72,30 @@ export default function LoginPage() {
         return;
       }
       
-      // Check if company exists by checking if data array has any items
       if (!data || data.length === 0) {
         setError(`Company "${companyName}" not found. Please check and try again.`);
         setIsSubmitting(false);
         return;
       }
       
-      // Create a credentials object with explicitly typed interface
       const credentials: LoginCredentials = {
         identifier: email,
         password: password
       };
       
-      // Use the explicit interface for the result type
       const result = await signIn.create(credentials);
       
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         
-        // Store company slug in local storage for persistence
         localStorage.setItem('currentCompanySlug', data[0].slug);
         
         toast({
           title: "Login successful",
           description: "You have been logged in successfully.",
         });
-        navigate("/settings/locations");
+        navigate("/dashboard");
       } else {
-        // This shouldn't happen with email/password auth
         setError("Something went wrong. Please try again.");
       }
     } catch (err: any) {

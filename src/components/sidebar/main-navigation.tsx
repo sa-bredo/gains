@@ -10,15 +10,9 @@ import { NavItem } from "./types";
 import { SidebarNavItem } from "./nav-item";
 import { 
   Activity, 
-  BarChart3, 
-  Briefcase, 
-  Calendar, 
+  CalendarDays, 
   DollarSign, 
   FileText, 
-  Home, 
-  Lightbulb, 
-  ListTodo, 
-  Search, 
   Settings, 
   Users 
 } from "lucide-react";
@@ -27,12 +21,12 @@ interface MainNavigationProps {
   items?: NavItem[];
 }
 
-// Navigation items to match actual application routes with detailed sub-items
+// Navigation items to match actual application routes
 const defaultNavItems: NavItem[] = [
   {
     title: "Dashboard",
     icon: Activity,
-    url: "/",
+    url: "/dashboard",
     items: []
   },
   {
@@ -66,7 +60,7 @@ const defaultNavItems: NavItem[] = [
   },
   {
     title: "Rota",
-    icon: Calendar,
+    icon: CalendarDays,
     url: "/rota",
     items: [
       { title: "Overview", url: "/rota" },
@@ -86,7 +80,7 @@ const defaultNavItems: NavItem[] = [
   {
     title: "Settings",
     icon: Settings,
-    url: "/settings",
+    url: "/settings/config",
     items: [
       { title: "Locations", url: "/settings/locations" },
       { title: "Permissions", url: "/settings/permissions" },

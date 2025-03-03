@@ -21,7 +21,7 @@ export default function Home() {
   
   // Redirect based on authentication status
   if (isSignedIn) {
-    return <Navigate to="/select-company" replace />;
+    return <Navigate to="/dashboard" replace />;
   } else {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center p-4">

@@ -7,9 +7,16 @@ import Login from "@/pages/Login";
 import SignUpPage from "@/pages/SignUp";
 import VerifyEmailPage from "@/pages/VerifyEmail";
 import SelectCompany from "@/pages/SelectCompany";
+import Dashboard from "@/pages/Dashboard";
 import PlaidPage from "./pages/plaid"; 
 import RotaPage from "@/pages/rota";
 import ShiftsPage from "@/pages/rota/shifts";
+import DocumentSigningPage from "@/pages/document-signing";
+import DocumentsPage from "@/pages/documents";
+import EmployeesPage from "@/pages/employees";
+import TeamPage from "@/pages/team";
+import SettingsConfigPage from "@/pages/settings/config";
+import AboutPage from "@/pages/About";
 import NotFound from "@/pages/NotFound";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
@@ -30,9 +37,17 @@ function App() {
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/select-company" element={<SelectCompany />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/plaid" element={<PlaidPage />} />
           <Route path="/rota" element={<RotaPage />} />
           <Route path="/rota/shifts" element={<ShiftsPage />} />
+          <Route path="/document-signing/*" element={<DocumentSigningPage />} />
+          <Route path="/documents" element={<DocumentsPage />} />
+          <Route path="/employees" element={<EmployeesPage />} />
+          <Route path="/team" element={<TeamPage />} />
+          <Route path="/settings/config" element={<SettingsConfigPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/knowledge" element={<NotFound />} />
         </Route>
       
         {/* This is crucial - catch all unmatched routes */}
