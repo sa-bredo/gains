@@ -29,8 +29,9 @@ export default function Home() {
           <img 
             src="/gains-logo.svg" 
             alt="Gains Logo" 
-            className="h-54 w-auto mb-6"
+            className="h-36 w-auto mb-2"
           />
+          <h1 className="text-3xl font-bold">Welcome</h1>
         </div>
         <p className="text-muted-foreground text-center max-w-md mb-8">
           Please sign in to access the dashboard and company resources.
