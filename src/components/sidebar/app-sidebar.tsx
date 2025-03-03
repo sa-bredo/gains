@@ -26,7 +26,7 @@ const discoverNavItems: NavItem[] = [
 
 export function AppSidebar() {
   return (
-    <Sidebar>
+    <Sidebar variant="sidebar" collapsible="icon">
       <SidebarHeader>
         <div className="px-4 py-2">
           <CompanySwitcher />
