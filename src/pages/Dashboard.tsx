@@ -22,7 +22,10 @@ import {
   CalendarDays, 
   FileText,
   Settings,
-  CreditCard
+  CreditCard,
+  Search,
+  Lightbulb,
+  HelpCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -66,18 +69,10 @@ const Dashboard = () => {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Team">
-                      <Link to="/team">
+                    <SidebarMenuButton asChild tooltip="Employees">
+                      <Link to="/employees">
                         <Users className="h-4 w-4" />
-                        <span>Team</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Rota">
-                      <Link to="/rota">
-                        <CalendarDays className="h-4 w-4" />
-                        <span>Rota</span>
+                        <span>Employees</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -97,19 +92,51 @@ const Dashboard = () => {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-            
-            <SidebarGroup>
-              <SidebarGroupLabel>Settings</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Rota">
+                      <Link to="/rota">
+                        <CalendarDays className="h-4 w-4" />
+                        <span>Rota</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Team">
+                      <Link to="/team">
+                        <Users className="h-4 w-4" />
+                        <span>Team</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Settings">
                       <Link to="/settings/config">
                         <Settings className="h-4 w-4" />
                         <span>Settings</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+            
+            <SidebarGroup>
+              <SidebarGroupLabel>Discover</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Knowledge">
+                      <Link to="/knowledge">
+                        <Search className="h-4 w-4" />
+                        <span>Knowledge</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Learn About Us">
+                      <Link to="/about">
+                        <HelpCircle className="h-4 w-4" />
+                        <span>Learn About Us</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
