@@ -15,6 +15,18 @@ type PermissionCheck = {
   isFrontOfHouse: boolean;
 };
 
+// Define types for database permission records
+type ResourcePermission = {
+  id: string;
+  role: string;
+  resource: string;
+  can_view: boolean;
+  can_edit: boolean;
+  can_create: boolean;
+  can_delete: boolean;
+  active: boolean;
+}
+
 // Fallback permission rules in case DB fetch fails
 const fallbackPermissionRules = {
   admin: {
@@ -65,7 +77,8 @@ export function usePermissions(): PermissionCheck {
       try {
         const { data, error } = await supabase
           .from('role_permissions')
-          .select('*');
+          .select('*')
+          .eq('active', true);
 
         if (error) {
           console.error('Error fetching permissions:', error);
@@ -76,9 +89,9 @@ export function usePermissions(): PermissionCheck {
           // Transform the flat DB records into our permission rules structure
           const dbPermissions: PermissionRules = {};
           
-          data.forEach(item => {
-            if (!dbPermissions[item.role]) {
-              dbPermissions[item.role] = {
+          data.forEach((item: ResourcePermission) => {
+            if (!dbPermissions[item.role as UserRole]) {
+              dbPermissions[item.role as UserRole] = {
                 view: [],
                 edit: [],
                 create: [],
@@ -86,10 +99,10 @@ export function usePermissions(): PermissionCheck {
               };
             }
             
-            if (item.can_view) dbPermissions[item.role].view.push(item.resource);
-            if (item.can_edit) dbPermissions[item.role].edit.push(item.resource);
-            if (item.can_create) dbPermissions[item.role].create.push(item.resource);
-            if (item.can_delete) dbPermissions[item.role].delete.push(item.resource);
+            if (item.can_view) dbPermissions[item.role as UserRole].view.push(item.resource);
+            if (item.can_edit) dbPermissions[item.role as UserRole].edit.push(item.resource);
+            if (item.can_create) dbPermissions[item.role as UserRole].create.push(item.resource);
+            if (item.can_delete) dbPermissions[item.role as UserRole].delete.push(item.resource);
           });
 
           // Add wildcard permissions for admin and founder
