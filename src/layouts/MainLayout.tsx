@@ -2,18 +2,33 @@
 import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AppSidebar } from '@/components/sidebar';
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
 
 export const MainLayout: React.FC = () => {
   // Use location to force the component to re-render when location changes
-  // This helps ensure the sidebar state is preserved during navigation
   const location = useLocation();
+  const pathSegments = location.pathname.split('/').filter(Boolean);
+  const currentPage = pathSegments.length > 0 ? 
+    pathSegments[pathSegments.length - 1].charAt(0).toUpperCase() + 
+    pathSegments[pathSegments.length - 1].slice(1) : 
+    'Dashboard';
   
   return (
-    <div className="flex h-screen w-full">
+    <div className="min-h-screen flex w-full">
       <AppSidebar />
-      <main className="flex-1 overflow-auto p-6">
-        <Outlet />
-      </main>
+      <SidebarInset className="bg-background">
+        <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="mr-2" />
+            <Separator orientation="vertical" className="h-4" />
+            <span className="font-medium">{currentPage}</span>
+          </div>
+        </header>
+        <main className="flex-1 overflow-auto">
+          <Outlet />
+        </main>
+      </SidebarInset>
     </div>
   );
 };
