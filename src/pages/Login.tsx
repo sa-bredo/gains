@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useSignIn, useAuth } from "@clerk/clerk-react";
@@ -66,11 +67,14 @@ export default function LoginPage() {
       }
       
       // First check if company exists with this slug
-      const { data: companyData, error: companyError } = await supabase
+      const { data, error: companyError } = await supabase
         .from('companies')
         .select('id')
         .eq('slug', companySlug.toLowerCase())
         .maybeSingle();
+        
+      // Explicitly cast the data to our CompanyData type or null
+      const companyData: CompanyData | null = data;
         
       if (companyError || !companyData) {
         console.error("Company lookup error:", companyError);
