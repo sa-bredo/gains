@@ -61,8 +61,7 @@ export default function LoginPage() {
         throw new Error("Sign in not available");
       }
       
-      // First check if company exists with this slug
-      // @ts-ignore - Bypassing TypeScript excessive depth error
+      // First check if company exists with this slug - Fix the query format
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .select('id')
@@ -70,6 +69,7 @@ export default function LoginPage() {
         .maybeSingle();
         
       if (companyError || !companyData) {
+        console.error("Company lookup error:", companyError);
         setError(`Company with slug "${companySlug}" not found. Please check and try again.`);
         setIsSubmitting(false);
         return;

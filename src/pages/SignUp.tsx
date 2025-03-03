@@ -92,12 +92,12 @@ export default function SignUpPage() {
         return;
       }
       
-      // Create user account with Clerk
+      // Create user account with Clerk - Fix parameter names
       const result = await signUp.create({
-        firstName,
-        lastName,
+        firstName: firstName, 
+        lastName: lastName,
         emailAddress: email,
-        password,
+        password: password,
       });
       
       // Prepare for email verification
