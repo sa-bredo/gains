@@ -30,13 +30,13 @@ export function AppSidebar() {
   return (
     <Sidebar variant="sidebar" collapsible="icon">
       <SidebarHeader>
-        <div className="flex items-center px-2">
+        <div className="flex flex-col items-center px-2">
           <img 
             src="/gains-logo.svg" 
             alt="Gains Logo" 
             className="h-8 w-auto"
           />
-          <span className="ml-2 font-semibold text-lg">{currentCompany?.name}</span>
+          <span className="font-semibold text-lg">Welcome</span>
         </div>
       </SidebarHeader>
       <SidebarContent>
