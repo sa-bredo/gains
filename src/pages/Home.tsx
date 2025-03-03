@@ -29,7 +29,7 @@ export default function Home() {
           <img 
             src="/gains-logo.svg" 
             alt="Gains Logo" 
-            className="h-12 w-auto mb-2"
+            className="h-18 w-auto mb-2"
           />
           <h1 className="text-3xl font-bold">Welcome</h1>
         </div>

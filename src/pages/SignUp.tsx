@@ -183,7 +183,7 @@ export default function SignUpPage() {
           <img 
             src="/gains-logo.svg" 
             alt="Gains Logo" 
-            className="h-12 w-auto"
+            className="h-18 w-auto"
           />
         </div>
         
