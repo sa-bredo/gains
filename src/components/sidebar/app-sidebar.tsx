@@ -3,7 +3,6 @@ import React from "react";
 import { MainNavigation } from "./main-navigation";
 import { SidebarContent, SidebarFooter, SidebarHeader, Sidebar, SidebarGroup, SidebarGroupLabel, SidebarMenu } from "@/components/ui/sidebar";
 import { UserProfile } from "./user-profile";
-import { CompanySwitcher } from "@/components/company-switcher";
 import { Lightbulb, Search } from "lucide-react";
 import { SidebarNavItem } from "./nav-item";
 import { NavItem } from "./types";
@@ -28,9 +27,7 @@ export function AppSidebar() {
   return (
     <Sidebar variant="sidebar" collapsible="icon">
       <SidebarHeader>
-        <div className="px-4 py-2">
-          <CompanySwitcher />
-        </div>
+        {/* Company switcher has been removed from here */}
       </SidebarHeader>
       <SidebarContent>
         <MainNavigation />
