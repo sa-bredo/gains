@@ -60,14 +60,14 @@ export default function LoginPage() {
       if (!signIn) {
         throw new Error("Sign in not available");
       }
-      
-      // Instead of using maybeSingle which causes typing issues,
-      // use a simpler query approach
-      const { data, error: companyError } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('slug', companySlug.toLowerCase());
-      
+
+      type Company = { id: string }; // Define expected type
+
+      const { data: companyData, error: companyError } = await supabase
+          .from('companies')
+          .select('id')
+          .maybeSingle<Company>();  // Explicitly specify return type
+
       // Check if we got any company back
       if (companyError) {
         console.error("Company lookup error:", companyError);
