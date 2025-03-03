@@ -26,7 +26,7 @@ interface MainNavigationProps {
   items?: NavItem[];
 }
 
-// Updated navigation items to match actual application routes
+// Updated navigation items to match actual application routes with detailed sub-items
 const defaultNavItems: NavItem[] = [
   {
     title: "Dashboard",
@@ -48,25 +48,40 @@ const defaultNavItems: NavItem[] = [
     title: "Documents",
     icon: FileText,
     url: "/documents",
-    items: []
+    items: [
+      { title: "All Documents", url: "/documents" },
+      { title: "Templates", url: "/document-signing" },
+      { title: "Sent Documents", url: "/document-signing/sent" }
+    ]
   },
   {
     title: "Financials",
     icon: DollarSign,
     url: "/plaid",
-    items: []
+    items: [
+      { title: "Plaid", url: "/plaid" },
+      { title: "Transactions", url: "/financials/transactions" },
+      { title: "GoCardless", url: "/financials/transactions-gocardless" }
+    ]
   },
   {
     title: "Rota",
     icon: Calendar,
     url: "/rota",
-    items: []
+    items: [
+      { title: "Overview", url: "/rota" },
+      { title: "Shifts", url: "/rota/shifts" },
+      { title: "Shift Templates", url: "/rota/shift-templates" },
+      { title: "Shift Templates Master", url: "/rota/shift-templates-master" }
+    ]
   },
   {
     title: "Team",
     icon: Users,
     url: "/team",
-    items: []
+    items: [
+      { title: "All Team", url: "/team" }
+    ]
   },
   {
     title: "Settings",
