@@ -66,7 +66,7 @@ export default function LoginPage() {
         .from('companies')
         .select('id')
         .eq('slug', companySlug.toLowerCase())
-        .single();
+        .maybeSingle();
         
       if (companyError || !companyData) {
         setError(`Company with slug "${companySlug}" not found. Please check and try again.`);
