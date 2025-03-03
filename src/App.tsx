@@ -1,6 +1,6 @@
+
 import React from 'react';
 import {
-  BrowserRouter as Router,
   Route,
   Routes,
 } from "react-router-dom";
@@ -25,25 +25,23 @@ function App() {
   return (
     <AuthProvider>
       <CompanyProvider>
-        <Router>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/select-company" element={<SelectCompanyPage />} />
-            
-            <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/employees" element={<EmployeesPage />} />
-              <Route path="/employees/:id" element={<EmployeeDetailsPage />} />
-              <Route path="/employees/invite" element={<EmployeeInvitePage />} />
-              <Route path="/settings/locations" element={<LocationsPage />} />
-              <Route path="/settings/permissions" element={<PermissionsPage />} />
-              <Route path="/settings/config" element={<ConfigPage />} />
-              <Route path="/rota" element={<RotaPage />} />
-              <Route path="/plaid" element={<PlaidPage />} />
-              <Route path="/documents" element={<DocumentsPage />} />
-            </Route>
-          </Routes>
-        </Router>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/select-company" element={<SelectCompanyPage />} />
+          
+          <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/employees" element={<EmployeesPage />} />
+            <Route path="/employees/:id" element={<EmployeeDetailsPage />} />
+            <Route path="/employees/invite" element={<EmployeeInvitePage />} />
+            <Route path="/settings/locations" element={<LocationsPage />} />
+            <Route path="/settings/permissions" element={<PermissionsPage />} />
+            <Route path="/settings/config" element={<ConfigPage />} />
+            <Route path="/rota" element={<RotaPage />} />
+            <Route path="/plaid" element={<PlaidPage />} />
+            <Route path="/documents" element={<DocumentsPage />} />
+          </Route>
+        </Routes>
       </CompanyProvider>
     </AuthProvider>
   );
