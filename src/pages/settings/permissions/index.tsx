@@ -1,7 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/sidebar";
-import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Resource, RolePermission, AVAILABLE_ROLES } from "./types";
 import { RolePermissionTable } from "./components/role-permission-table";
@@ -131,52 +128,40 @@ export default function PermissionsPage() {
   };
 
   return (
-    <div className="min-h-screen flex w-full">
-      <AppSidebar />
-      <SidebarInset className="bg-background">
-        <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="mr-2" />
-            <Separator orientation="vertical" className="h-4" />
-            <span className="font-medium">Settings / Permissions</span>
-          </div>
-        </header>
-        <div className="container mx-auto p-6">
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold">Role Permissions</h1>
-              <p className="text-muted-foreground mt-2">
-                Manage what different user roles can access
-              </p>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Permissions Matrix</CardTitle>
-                <CardDescription>
-                  Configure which roles have permissions to view, edit, create, and delete resources.
-                  Use the toggles to grant or revoke permissions for each action.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                ) : (
-                  <RolePermissionTable
-                    rolePermissions={rolePermissions}
-                    resources={resources}
-                    roles={AVAILABLE_ROLES}
-                    onPermissionChange={handlePermissionChange}
-                    isLoading={isLoading}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </div>
+    <div className="container mx-auto p-6">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Role Permissions</h1>
+          <p className="text-muted-foreground mt-2">
+            Manage what different user roles can access
+          </p>
         </div>
-      </SidebarInset>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Permissions Matrix</CardTitle>
+            <CardDescription>
+              Configure which roles have permissions to view, edit, create, and delete resources.
+              Use the toggles to grant or revoke permissions for each action.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <RolePermissionTable
+                rolePermissions={rolePermissions}
+                resources={resources}
+                roles={AVAILABLE_ROLES}
+                onPermissionChange={handlePermissionChange}
+                isLoading={isLoading}
+              />
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
