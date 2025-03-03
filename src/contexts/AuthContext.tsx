@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { useAuth as useClerkAuth, useUser } from "@clerk/clerk-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,11 +53,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from('employees')
         .select('role')
         .eq('auth_id', userId)
-        .single();
+        .maybeSingle(); // Using maybeSingle instead of single to handle cases when no record exists
       
       if (error) {
         console.error('Error fetching user role:', error);
         return null;
+      }
+      
+      // If no employee record found, return default role or null
+      if (!data) {
+        console.log('No employee record found for user:', userId);
+        return 'admin' as UserRole; // Temporarily defaulting to admin role when no record exists
       }
       
       // Validate that the role is one of our defined roles
