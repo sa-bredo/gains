@@ -25,7 +25,14 @@ export default function Home() {
   } else {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center p-4">
-        <h1 className="text-3xl font-bold mb-6">Welcome to Studio Anatomy</h1>
+        <div className="flex flex-col items-center mb-6">
+          <img 
+            src="/gains-logo.svg" 
+            alt="Gains Logo" 
+            className="h-12 w-auto mb-2"
+          />
+          <h1 className="text-3xl font-bold">Welcome</h1>
+        </div>
         <p className="text-muted-foreground text-center max-w-md mb-8">
           Please sign in to access the dashboard and company resources.
         </p>

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useSignIn, useAuth } from "@clerk/clerk-react";
@@ -127,9 +128,9 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
           <img 
-            src="https://images.squarespace-cdn.com/content/v1/66dfede09053481feac2a1aa/1725951490906-BM3OIHGXHDGQNEZRAU74/SA_whitegb.png?format=1500w" 
-            alt="Studio Anatomy Logo" 
-            className="h-8 w-auto"
+            src="/gains-logo.svg" 
+            alt="Gains Logo" 
+            className="h-12 w-auto"
           />
         </div>
         
