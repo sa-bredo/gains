@@ -34,7 +34,7 @@ export function AppSidebar() {
           <img 
             src="/gains-logo.svg" 
             alt="Gains Logo" 
-            className="h-12 w-auto"
+            className="h-16 w-auto"
           />
         </div>
       </SidebarHeader>

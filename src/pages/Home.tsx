@@ -25,11 +25,11 @@ export default function Home() {
   } else {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center p-4">
-        <div className="flex flex-col items-start mb-6 w-full max-w-md">
+        <div className="flex flex-col items-center mb-6">
           <img 
             src="/gains-logo.svg" 
             alt="Gains Logo" 
-            className="h-72 w-auto mb-6"
+            className="h-54 w-auto mb-6"
           />
         </div>
         <p className="text-muted-foreground text-center max-w-md mb-8">
