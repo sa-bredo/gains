@@ -23,7 +23,7 @@ export default function LoginPage() {
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [companySlug, setCompanySlug] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -49,8 +49,8 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password || !companySlug) {
-      setError("Please enter email, password, and company slug");
+    if (!email || !password || !companyName) {
+      setError("Please enter email, password, and company name");
       return;
     }
     
@@ -62,24 +62,24 @@ export default function LoginPage() {
         throw new Error("Sign in not available");
       }
 
-      // Use a simplified approach to query company data
+      // Query company data using name instead of slug
       const { data, error: companyError } = await supabase
         .from('companies')
-        .select('id')
-        .eq('slug', companySlug)
+        .select('id, name')
+        .eq('name', companyName)
         .limit(1);
 
       // Check for query errors
       if (companyError) {
         console.error("Company lookup error:", companyError);
-        setError("Error checking company slug. Please try again.");
+        setError("Error checking company name. Please try again.");
         setIsSubmitting(false);
         return;
       }
       
       // Check if company exists by checking if data array has any items
       if (!data || data.length === 0) {
-        setError(`Company with slug "${companySlug}" not found. Please check and try again.`);
+        setError(`Company "${companyName}" not found. Please check and try again.`);
         setIsSubmitting(false);
         return;
       }
@@ -96,8 +96,8 @@ export default function LoginPage() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         
-        // Store company slug in local storage
-        localStorage.setItem('currentCompanySlug', companySlug);
+        // Store company name in local storage instead of slug
+        localStorage.setItem('currentCompanyName', companyName);
         
         toast({
           title: "Login successful",
@@ -155,17 +155,17 @@ export default function LoginPage() {
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="companySlug" className="text-sm font-medium">
-                Company Slug
+              <label htmlFor="companyName" className="text-sm font-medium">
+                Company Name
               </label>
               <div className="relative">
                 <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="companySlug"
+                  id="companyName"
                   type="text"
-                  placeholder="your-company"
-                  value={companySlug}
-                  onChange={(e) => setCompanySlug(e.target.value)}
+                  placeholder="Studio Anatomy"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
                   className="pl-10"
                   disabled={isSubmitting}
                 />
