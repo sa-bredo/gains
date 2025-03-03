@@ -1,6 +1,6 @@
 
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Loader2 } from "lucide-react";
 
@@ -9,12 +9,12 @@ type ProtectedRouteProps = {
 };
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isAuthenticated, isLoading: isLoadingAuth } = useAuth();
   const { currentCompany, isLoadingCompanies } = useCompany();
   const location = useLocation();
 
-  // Show loading state while Clerk is initializing or companies are loading
-  if (!isLoaded || isLoadingCompanies) {
+  // Show loading state while auth is initializing or companies are loading
+  if (isLoadingAuth || isLoadingCompanies) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -24,7 +24,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   // Redirect to login if not authenticated
-  if (!isSignedIn) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

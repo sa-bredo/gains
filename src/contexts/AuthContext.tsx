@@ -1,6 +1,10 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { useAuth as useClerkAuth, useUser } from "@clerk/clerk-react";
+import { supabase } from "@/integrations/supabase/client";
+
+// Define the available user roles
+export type UserRole = 'admin' | 'manager' | 'front_of_house' | 'founder' | 'instructor';
 
 // Define the shape of our auth context
 type AuthContextType = {
@@ -11,7 +15,11 @@ type AuthContextType = {
     name: string;
     email: string;
     avatar: string | null;
+    role?: UserRole;
   };
+  userRole: UserRole | null;
+  hasRole: (roles: UserRole | UserRole[]) => boolean;
+  isLoading: boolean;
 };
 
 // Create the context with a default value
@@ -23,20 +31,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { user: clerkUser } = useUser();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<AuthContextType['user']>();
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch the user's role from your database
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('role')
+        .eq('auth_id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching user role:', error);
+        return null;
+      }
+      
+      // Validate that the role is one of our defined roles
+      const role = data?.role as UserRole;
+      if (role && ['admin', 'manager', 'front_of_house', 'founder', 'instructor'].includes(role)) {
+        return role;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error in fetchUserRole:', error);
+      return null;
+    }
+  };
   
   // Sync the authentication state with Clerk
   useEffect(() => {
-    if (isLoaded) {
-      setIsAuthenticated(!!isSignedIn);
+    const syncAuthState = async () => {
+      setIsLoading(true);
       
-      if (isSignedIn && clerkUser) {
-        setUser({
-          name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || "User",
-          email: clerkUser.primaryEmailAddress?.emailAddress || "",
-          avatar: clerkUser.imageUrl || null
-        });
+      if (isLoaded) {
+        setIsAuthenticated(!!isSignedIn);
+        
+        if (isSignedIn && clerkUser) {
+          const userInfo = {
+            name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || "User",
+            email: clerkUser.primaryEmailAddress?.emailAddress || "",
+            avatar: clerkUser.imageUrl || null
+          };
+          
+          setUser(userInfo);
+          
+          // Fetch the user's role
+          const role = await fetchUserRole(clerkUser.id);
+          setUserRole(role);
+        } else {
+          setUserRole(null);
+        }
       }
-    }
+      
+      setIsLoading(false);
+    };
+    
+    syncAuthState();
   }, [isLoaded, isSignedIn, clerkUser]);
 
   // Login function - this is just a wrapper around Clerk's sign-in
@@ -52,11 +105,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log("Logout function called - using Clerk for authentication");
   };
 
+  // Check if the user has a specific role or one of several roles
+  const hasRole = (roles: UserRole | UserRole[]): boolean => {
+    if (!userRole) return false;
+    
+    if (Array.isArray(roles)) {
+      return roles.includes(userRole);
+    }
+    
+    return roles === userRole;
+  };
+
   const contextValue = {
     isAuthenticated,
     login,
     logout,
-    user
+    user,
+    userRole,
+    hasRole,
+    isLoading
   };
 
   return (

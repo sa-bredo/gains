@@ -10,12 +10,16 @@ import { Location } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCompany } from "@/contexts/CompanyContext";
+import { usePermissions } from "@/hooks/usePermissions";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function LocationsPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { currentCompany } = useCompany();
+  const { canView, canCreate, canEdit, canDelete } = usePermissions();
 
   const fetchLocations = async () => {
     if (!currentCompany) return;
@@ -76,6 +80,11 @@ export default function LocationsPage() {
   };
 
   const handleUpdateLocation = async (id: string, data: Partial<Location>): Promise<void> => {
+    if (!canEdit('locations')) {
+      toast.error('You do not have permission to edit locations');
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('locations')
@@ -93,6 +102,11 @@ export default function LocationsPage() {
   };
 
   const handleDeleteLocation = async (id: string): Promise<void> => {
+    if (!canDelete('locations')) {
+      toast.error('You do not have permission to delete locations');
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('locations')
@@ -109,6 +123,34 @@ export default function LocationsPage() {
     }
   };
 
+  if (!canView('locations')) {
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <AppSidebar />
+          <SidebarInset className="bg-background">
+            <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
+              <div className="flex items-center gap-2">
+                <SidebarTrigger className="mr-2" />
+                <Separator orientation="vertical" className="h-4" />
+                <span className="font-medium">Settings / Locations</span>
+              </div>
+            </header>
+            <div className="container mx-auto p-6">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Access Denied</AlertTitle>
+                <AlertDescription>
+                  You do not have permission to view locations.
+                </AlertDescription>
+              </Alert>
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    );
+  }
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -124,9 +166,11 @@ export default function LocationsPage() {
           <div className="container mx-auto p-6">
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-3xl font-bold">Locations</h1>
-              <Button onClick={() => setIsAddDialogOpen(true)}>
-                Add Location
-              </Button>
+              {canCreate('locations') && (
+                <Button onClick={() => setIsAddDialogOpen(true)}>
+                  Add Location
+                </Button>
+              )}
               <AddLocationDialog 
                 open={isAddDialogOpen}
                 onOpenChange={setIsAddDialogOpen}
@@ -138,6 +182,8 @@ export default function LocationsPage() {
               isLoading={isLoading}
               onUpdate={handleUpdateLocation}
               onDelete={handleDeleteLocation}
+              canEdit={canEdit('locations')}
+              canDelete={canDelete('locations')}
             />
           </div>
         </SidebarInset>
