@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { motion } from "framer-motion";
@@ -344,30 +343,29 @@ export default function Transactions() {
 
   return (
     <ProtectedRoute>
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full">
-          <AppSidebar />
-          <SidebarInset className="bg-background">
-            <motion.header 
-              initial="hidden"
-              animate="visible"
-              variants={fadeIn}
-              className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out"
-            >
-              <div className="flex items-center gap-2">
-                <SidebarTrigger className="mr-2" />
-                <Separator orientation="vertical" className="h-4" />
-                <span className="font-medium">Bank Transactions</span>
-              </div>
-            </motion.header>
-            
-            <motion.div 
-              className="p-6"
-              initial="hidden"
-              animate="visible"
-              variants={slideUp}
-            >
-              <div className="flex flex-col gap-6">
+      <div className="min-h-screen flex w-full">
+        <AppSidebar />
+        <SidebarInset className="bg-background">
+          <motion.header 
+            initial="hidden"
+            animate="visible"
+            variants={fadeIn}
+            className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out"
+          >
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="mr-2" />
+              <Separator orientation="vertical" className="h-4" />
+              <span className="font-medium">Bank Transactions</span>
+            </div>
+          </motion.header>
+          
+          <motion.div 
+            className="p-6"
+            initial="hidden"
+            animate="visible"
+            variants={slideUp}
+          >
+            <div className="flex flex-col gap-6">
                 <div>
                   <div className="flex items-center justify-between">
                     <div>
@@ -533,15 +531,14 @@ export default function Transactions() {
                   </div>
                 </div>
               </div>
-            </motion.div>
-          </SidebarInset>
-        </div>
-        <GoCardlessLink 
-          isOpen={isGoCardlessLinkOpen}
-          onSuccess={handleGoCardlessSuccess}
-          onExit={handleGoCardlessExit}
-        />
-      </SidebarProvider>
+          </motion.div>
+        </SidebarInset>
+      </div>
+      <GoCardlessLink 
+        isOpen={isGoCardlessLinkOpen}
+        onSuccess={handleGoCardlessSuccess}
+        onExit={handleGoCardlessExit}
+      />
     </ProtectedRoute>
   );
 }
