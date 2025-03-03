@@ -80,8 +80,8 @@ export default function LoginPage() {
         password: password
       };
       
-      // Pass the explicitly typed credentials object to signIn.create
-      const result = await signIn.create(credentials);
+      // Use explicit typing for the result from signIn.create
+      const result: Awaited<ReturnType<typeof signIn.create>> = await signIn.create(credentials);
       
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
