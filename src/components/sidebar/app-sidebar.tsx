@@ -30,7 +30,7 @@ export function AppSidebar() {
   return (
     <Sidebar variant="sidebar" collapsible="icon">
       <SidebarHeader>
-        <div className="flex flex-col items-center px-2">
+        <div className="flex justify-start px-2">
           <img 
             src="/gains-logo.svg" 
             alt="Gains Logo" 

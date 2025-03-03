@@ -179,11 +179,11 @@ export default function SignUpPage() {
   return (
     <div className="flex min-h-screen w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-md">
-        <div className="flex justify-center mb-8">
+        <div className="flex justify-start mb-8">
           <img 
             src="/gains-logo.svg" 
             alt="Gains Logo" 
-            className="h-54 w-auto"
+            className="h-72 w-auto"
           />
         </div>
         
