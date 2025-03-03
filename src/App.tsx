@@ -1,6 +1,7 @@
+
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from "@/components/theme-provider";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import SignUpPage from "@/pages/SignUp";
@@ -27,17 +28,17 @@ function App() {
           <Route path="/signup" element={<SignUpPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
         
-        {/* Protected routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/select-company" element={<SelectCompany />} />
-          <Route path="/plaid" element={<PlaidPage />} />
-          <Route path="/rota" element={<RotaPage />} />
-          <Route path="/rota/shifts" element={<ShiftsPage />} />
-        </Route>
+          {/* Protected routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/select-company" element={<SelectCompany />} />
+            <Route path="/plaid" element={<PlaidPage />} />
+            <Route path="/rota" element={<RotaPage />} />
+            <Route path="/rota/shifts" element={<ShiftsPage />} />
+          </Route>
         
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Router>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Router>
     </ThemeProvider>
   );
 }

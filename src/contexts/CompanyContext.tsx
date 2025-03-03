@@ -52,38 +52,48 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       }
       
       console.log("Companies data:", companiesData);
-      setUserCompanies(companiesData || []);
+      
+      // Ensure all company records have a slug property
+      const companiesWithSlug = companiesData?.map(company => {
+        if (!company.slug) {
+          // Generate a slug if it doesn't exist
+          company.slug = company.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        }
+        return company as Company;
+      }) || [];
+      
+      setUserCompanies(companiesWithSlug);
       
       // If we have companies but no current company selected, select the first one
-      if (companiesData && companiesData.length > 0 && !currentCompany) {
-        setCurrentCompany(companiesData[0]);
+      if (companiesWithSlug.length > 0 && !currentCompany) {
+        setCurrentCompany(companiesWithSlug[0]);
         // Store the selected company in localStorage
-        localStorage.setItem('currentCompanyId', companiesData[0].id);
-        localStorage.setItem('currentCompanySlug', companiesData[0].slug || '');
-      } else if (companiesData && companiesData.length > 0) {
+        localStorage.setItem('currentCompanyId', companiesWithSlug[0].id);
+        localStorage.setItem('currentCompanySlug', companiesWithSlug[0].slug || '');
+      } else if (companiesWithSlug.length > 0) {
         // Check if the stored company is still valid
         const storedCompanyId = localStorage.getItem('currentCompanyId');
         const storedCompanySlug = localStorage.getItem('currentCompanySlug');
         
         if (storedCompanyId) {
-          const storedCompany = companiesData.find(c => c.id === storedCompanyId);
+          const storedCompany = companiesWithSlug.find(c => c.id === storedCompanyId);
           if (storedCompany) {
             setCurrentCompany(storedCompany);
           } else if (storedCompanySlug) {
             // Try to find by slug if ID doesn't match
-            const companyBySlug = companiesData.find(c => c.slug === storedCompanySlug);
+            const companyBySlug = companiesWithSlug.find(c => c.slug === storedCompanySlug);
             if (companyBySlug) {
               setCurrentCompany(companyBySlug);
               localStorage.setItem('currentCompanyId', companyBySlug.id);
             } else {
-              setCurrentCompany(companiesData[0]);
-              localStorage.setItem('currentCompanyId', companiesData[0].id);
-              localStorage.setItem('currentCompanySlug', companiesData[0].slug || '');
+              setCurrentCompany(companiesWithSlug[0]);
+              localStorage.setItem('currentCompanyId', companiesWithSlug[0].id);
+              localStorage.setItem('currentCompanySlug', companiesWithSlug[0].slug || '');
             }
           } else {
-            setCurrentCompany(companiesData[0]);
-            localStorage.setItem('currentCompanyId', companiesData[0].id);
-            localStorage.setItem('currentCompanySlug', companiesData[0].slug || '');
+            setCurrentCompany(companiesWithSlug[0]);
+            localStorage.setItem('currentCompanyId', companiesWithSlug[0].id);
+            localStorage.setItem('currentCompanySlug', companiesWithSlug[0].slug || '');
           }
         }
       }

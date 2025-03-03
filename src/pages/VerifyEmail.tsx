@@ -58,11 +58,25 @@ export default function VerifyEmailPage() {
           description: "Your email has been verified successfully.",
         });
         
-        // Set the newly created session as active
-        await signUp.setActive({ session: result.createdSessionId });
-        
-        // Redirect to company selection
-        navigate("/select-company");
+        try {
+          // Create a session (this replaced the old setActive method)
+          if (result.createdSessionId) {
+            await signUp.createSession({
+              sessionId: result.createdSessionId,
+            });
+          }
+          
+          // Redirect to company selection
+          navigate("/select-company");
+        } catch (sessionError) {
+          console.error("Session creation error:", sessionError);
+          toast({
+            title: "Session error",
+            description: "Your email was verified, but we had trouble creating your session. Please try logging in.",
+            variant: "destructive",
+          });
+          navigate("/login");
+        }
       } else {
         setError("Verification failed. Please try again.");
       }

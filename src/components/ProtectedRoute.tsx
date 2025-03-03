@@ -1,11 +1,11 @@
 
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Loader2 } from "lucide-react";
 
-type ProtectedRouteProps = {
-  children: React.ReactNode;
+export type ProtectedRouteProps = {
+  children?: React.ReactNode;
 };
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
@@ -33,5 +33,5 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/select-company" state={{ from: location }} replace />;
   }
 
-  return <>{children}</>;
+  return children ? <>{children}</> : <Outlet />;
 };
