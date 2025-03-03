@@ -7,7 +7,7 @@ import Login from "@/pages/Login";
 import SignUpPage from "@/pages/SignUp";
 import VerifyEmailPage from "@/pages/VerifyEmail";
 import SelectCompany from "@/pages/SelectCompany";
-import PlaidPage from "@/pages/plaid"; // Fixed casing to lowercase 'plaid'
+import PlaidPage from "./pages/plaid"; // Fixed: Direct relative path to avoid case sensitivity issues
 import RotaPage from "@/pages/rota";
 import ShiftsPage from "@/pages/rota/shifts";
 import NotFound from "@/pages/NotFound";

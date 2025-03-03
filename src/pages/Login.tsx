@@ -8,6 +8,12 @@ import { Loader2, Mail, Lock, Building, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+// Define the sign-in parameters type explicitly to avoid infinite type instantiation
+interface SignInParams {
+  identifier: string;
+  password: string;
+}
+
 export default function LoginPage() {
   const { isSignedIn, isLoaded } = useAuth();
   const { signIn, setActive, isLoaded: isSignInLoaded } = useSignIn();
@@ -68,8 +74,8 @@ export default function LoginPage() {
         return;
       }
       
-      // Explicitly type the parameters to avoid infinite type instantiation
-      const signInParams = {
+      // Use explicitly typed parameters to avoid infinite type instantiation
+      const signInParams: SignInParams = {
         identifier: email,
         password: password
       };
