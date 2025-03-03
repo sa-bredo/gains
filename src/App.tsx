@@ -1,13 +1,13 @@
 
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "./components/theme-provider";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import SignUpPage from "@/pages/SignUp";
 import VerifyEmailPage from "@/pages/VerifyEmail";
 import SelectCompany from "@/pages/SelectCompany";
-import PlaidPage from "@/pages/Plaid";
+import PlaidPage from "@/pages/plaid"; // Fixed casing to lowercase 'plaid'
 import RotaPage from "@/pages/rota";
 import ShiftsPage from "@/pages/rota/shifts";
 import NotFound from "@/pages/NotFound";

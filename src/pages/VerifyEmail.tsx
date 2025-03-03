@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSignUp } from "@clerk/clerk-react";
@@ -59,11 +58,9 @@ export default function VerifyEmailPage() {
         });
         
         try {
-          // Create a session (this replaced the old setActive method)
+          // Fixed: Use setActive instead of createSession
           if (result.createdSessionId) {
-            await signUp.createSession({
-              sessionId: result.createdSessionId,
-            });
+            await signUp.setActive({ session: result.createdSessionId });
           }
           
           // Redirect to company selection

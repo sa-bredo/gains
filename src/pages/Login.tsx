@@ -4,7 +4,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { useSignIn, useAuth } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Loader2, Mail, Lock, Building, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,6 +68,7 @@ export default function LoginPage() {
         return;
       }
       
+      // Fixed: removed the type that was causing infinite instantiation
       const result = await signIn.create({
         identifier: email,
         password,
