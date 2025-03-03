@@ -32,8 +32,8 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center px-2">
           <img 
-            src="https://images.squarespace-cdn.com/content/v1/66dfede09053481feac2a1aa/1725951490906-BM3OIHGXHDGQNEZRAU74/SA_whitegb.png?format=1500w" 
-            alt="Studio Anatomy Logo" 
+            src="/gains-logo.svg" 
+            alt="Gains Logo" 
             className="h-8 w-auto"
           />
           <span className="ml-2 font-semibold text-lg">{currentCompany?.name}</span>
