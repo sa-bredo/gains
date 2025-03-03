@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from "react";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -55,7 +54,6 @@ export default function LocationsPage() {
     }
     
     try {
-      // Add company_id to the location data
       const locationWithCompany = {
         ...data,
         company_id: currentCompany.id
@@ -125,34 +123,6 @@ export default function LocationsPage() {
 
   if (!canView('locations')) {
     return (
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full">
-          <AppSidebar />
-          <SidebarInset className="bg-background">
-            <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
-              <div className="flex items-center gap-2">
-                <SidebarTrigger className="mr-2" />
-                <Separator orientation="vertical" className="h-4" />
-                <span className="font-medium">Settings / Locations</span>
-              </div>
-            </header>
-            <div className="container mx-auto p-6">
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Access Denied</AlertTitle>
-                <AlertDescription>
-                  You do not have permission to view locations.
-                </AlertDescription>
-              </Alert>
-            </div>
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
-    );
-  }
-
-  return (
-    <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <SidebarInset className="bg-background">
@@ -164,30 +134,54 @@ export default function LocationsPage() {
             </div>
           </header>
           <div className="container mx-auto p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-3xl font-bold">Locations</h1>
-              {canCreate('locations') && (
-                <Button onClick={() => setIsAddDialogOpen(true)}>
-                  Add Location
-                </Button>
-              )}
-              <AddLocationDialog 
-                open={isAddDialogOpen}
-                onOpenChange={setIsAddDialogOpen}
-                onAdd={handleAddLocation}
-              />
-            </div>
-            <LocationsTable 
-              locations={locations}
-              isLoading={isLoading}
-              onUpdate={handleUpdateLocation}
-              onDelete={handleDeleteLocation}
-              canEdit={canEdit('locations')}
-              canDelete={canDelete('locations')}
-            />
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Access Denied</AlertTitle>
+              <AlertDescription>
+                You do not have permission to view locations.
+              </AlertDescription>
+            </Alert>
           </div>
         </SidebarInset>
       </div>
-    </SidebarProvider>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex w-full">
+      <AppSidebar />
+      <SidebarInset className="bg-background">
+        <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="mr-2" />
+            <Separator orientation="vertical" className="h-4" />
+            <span className="font-medium">Settings / Locations</span>
+          </div>
+        </header>
+        <div className="container mx-auto p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold">Locations</h1>
+            {canCreate('locations') && (
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                Add Location
+              </Button>
+            )}
+            <AddLocationDialog 
+              open={isAddDialogOpen}
+              onOpenChange={setIsAddDialogOpen}
+              onAdd={handleAddLocation}
+            />
+          </div>
+          <LocationsTable 
+            locations={locations}
+            isLoading={isLoading}
+            onUpdate={handleUpdateLocation}
+            onDelete={handleDeleteLocation}
+            canEdit={canEdit('locations')}
+            canDelete={canDelete('locations')}
+          />
+        </div>
+      </SidebarInset>
+    </div>
   );
 }

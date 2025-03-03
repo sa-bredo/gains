@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from '@/components/ui/button';
@@ -326,69 +326,67 @@ export default function ShiftTemplatesPage() {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AppSidebar />
-        <SidebarInset className="bg-background">
-          <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="mr-2" />
-              <Separator orientation="vertical" className="h-4" />
-              <span className="font-medium">Rota / Shift Templates</span>
-            </div>
-          </header>
-          <div className="container mx-auto p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-4">
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={handleBackToMaster}
-                  className="mr-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <h1 className="text-3xl font-bold">{getPageTitle()}</h1>
-              </div>
-              <Button 
-                onClick={() => setIsDialogOpen(true)}
-                className="flex items-center gap-2"
-                disabled={isUpdating || locations.length === 0 || !selectedLocationId || !selectedVersion}
-              >
-                <PlusIcon className="h-4 w-4" />
-                Add Shift Template
-              </Button>
-            </div>
-
-            {locations.length === 0 && !isLoading && (
-              <div className="bg-muted/50 p-4 rounded-md mb-6">
-                <p className="text-sm">
-                  You need to add locations before creating shift templates. Go to Settings &gt; Locations to add them.
-                </p>
-              </div>
-            )}
-            
-            <ShiftTemplatesTable 
-              templates={shiftTemplates}
-              locations={locations}
-              staffMembers={staffMembers as any}
-              isLoading={isLoading || isUpdating}
-              onUpdate={updateShiftTemplate}
-              onDelete={deleteShiftTemplate}
-              onClone={cloneShiftTemplate}
-              selectedLocationId={selectedLocationId}
-            />
-            
-            <AddShiftTemplateDialog 
-              open={isDialogOpen}
-              onOpenChange={setIsDialogOpen}
-              onAdd={addShiftTemplate}
-              locations={locations}
-              selectedLocationId={selectedLocationId}
-            />
+    <div className="min-h-screen flex w-full">
+      <AppSidebar />
+      <SidebarInset className="bg-background">
+        <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="mr-2" />
+            <Separator orientation="vertical" className="h-4" />
+            <span className="font-medium">Rota / Shift Templates</span>
           </div>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+        </header>
+        <div className="container mx-auto p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handleBackToMaster}
+                className="mr-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <h1 className="text-3xl font-bold">{getPageTitle()}</h1>
+            </div>
+            <Button 
+              onClick={() => setIsDialogOpen(true)}
+              className="flex items-center gap-2"
+              disabled={isUpdating || locations.length === 0 || !selectedLocationId || !selectedVersion}
+            >
+              <PlusIcon className="h-4 w-4" />
+              Add Shift Template
+            </Button>
+          </div>
+
+          {locations.length === 0 && !isLoading && (
+            <div className="bg-muted/50 p-4 rounded-md mb-6">
+              <p className="text-sm">
+                You need to add locations before creating shift templates. Go to Settings &gt; Locations to add them.
+              </p>
+            </div>
+          )}
+          
+          <ShiftTemplatesTable 
+            templates={shiftTemplates}
+            locations={locations}
+            staffMembers={staffMembers as any}
+            isLoading={isLoading || isUpdating}
+            onUpdate={updateShiftTemplate}
+            onDelete={deleteShiftTemplate}
+            onClone={cloneShiftTemplate}
+            selectedLocationId={selectedLocationId}
+          />
+          
+          <AddShiftTemplateDialog 
+            open={isDialogOpen}
+            onOpenChange={setIsDialogOpen}
+            onAdd={addShiftTemplate}
+            locations={locations}
+            selectedLocationId={selectedLocationId}
+          />
+        </div>
+      </SidebarInset>
+    </div>
   );
 }

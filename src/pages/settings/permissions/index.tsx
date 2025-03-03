@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from "react";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +18,6 @@ export default function PermissionsPage() {
   const { canView } = usePermissions();
   const navigate = useNavigate();
 
-  // Redirect if user doesn't have permission to view this page
   useEffect(() => {
     if (!canView('config')) {
       toast.error('You do not have permission to access this page');
@@ -30,7 +28,6 @@ export default function PermissionsPage() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Fetch resources
       const { data: resourcesData, error: resourcesError } = await supabase
         .from('resources')
         .select('*')
@@ -38,7 +35,6 @@ export default function PermissionsPage() {
 
       if (resourcesError) throw resourcesError;
       
-      // Fetch permissions
       const { data: permissionsData, error: permissionsError } = await supabase
         .from('role_permissions')
         .select('*')
@@ -50,7 +46,6 @@ export default function PermissionsPage() {
       setResources(resourcesData as Resource[]);
       setRolePermissions(permissionsData as RolePermission[]);
 
-      // Check for any roles in AVAILABLE_ROLES that don't have permissions for all resources
       const existingRoleResourcePairs = permissionsData.map(
         (p: RolePermission) => `${p.role}-${p.resource}`
       );
@@ -73,7 +68,6 @@ export default function PermissionsPage() {
         }
       }
 
-      // Add any missing permissions
       if (missingPermissions.length > 0) {
         const { error: insertError } = await supabase
           .from('role_permissions')
@@ -82,7 +76,6 @@ export default function PermissionsPage() {
         if (insertError) {
           console.error('Error inserting missing permissions:', insertError);
         } else {
-          // Refresh permissions after insert
           const { data: refreshedData, error: refreshError } = await supabase
             .from('role_permissions')
             .select('*')
@@ -121,7 +114,6 @@ export default function PermissionsPage() {
 
       if (error) throw error;
       
-      // Update local state
       setRolePermissions(prev => 
         prev.map(p => 
           p.role === role && p.resource === resource
@@ -139,54 +131,52 @@ export default function PermissionsPage() {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AppSidebar />
-        <SidebarInset className="bg-background">
-          <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="mr-2" />
-              <Separator orientation="vertical" className="h-4" />
-              <span className="font-medium">Settings / Permissions</span>
-            </div>
-          </header>
-          <div className="container mx-auto p-6">
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-3xl font-bold">Role Permissions</h1>
-                <p className="text-muted-foreground mt-2">
-                  Manage what different user roles can access
-                </p>
-              </div>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Permissions Matrix</CardTitle>
-                  <CardDescription>
-                    Configure which roles have permissions to view, edit, create, and delete resources.
-                    Use the toggles to grant or revoke permissions for each action.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <div className="flex justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                  ) : (
-                    <RolePermissionTable
-                      rolePermissions={rolePermissions}
-                      resources={resources}
-                      roles={AVAILABLE_ROLES}
-                      onPermissionChange={handlePermissionChange}
-                      isLoading={isLoading}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+    <div className="min-h-screen flex w-full">
+      <AppSidebar />
+      <SidebarInset className="bg-background">
+        <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="mr-2" />
+            <Separator orientation="vertical" className="h-4" />
+            <span className="font-medium">Settings / Permissions</span>
           </div>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+        </header>
+        <div className="container mx-auto p-6">
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-3xl font-bold">Role Permissions</h1>
+              <p className="text-muted-foreground mt-2">
+                Manage what different user roles can access
+              </p>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Permissions Matrix</CardTitle>
+                <CardDescription>
+                  Configure which roles have permissions to view, edit, create, and delete resources.
+                  Use the toggles to grant or revoke permissions for each action.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <RolePermissionTable
+                    rolePermissions={rolePermissions}
+                    resources={resources}
+                    roles={AVAILABLE_ROLES}
+                    onPermissionChange={handlePermissionChange}
+                    isLoading={isLoading}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </SidebarInset>
+    </div>
   );
 }

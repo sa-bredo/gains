@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from '@/components/ui/button';
@@ -197,54 +197,52 @@ export default function ShiftTemplatesMasterPage() {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AppSidebar />
-        <SidebarInset className="bg-background">
-          <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="mr-2" />
-              <Separator orientation="vertical" className="h-4" />
-              <span className="font-medium">Rota / Shift Templates</span>
-            </div>
-          </header>
-          <div className="container mx-auto p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold">Shift Templates</h1>
-              <Button 
-                onClick={() => setIsDialogOpen(true)}
-                className="flex items-center gap-2"
-                disabled={locations.length === 0}
-              >
-                <PlusIcon className="h-4 w-4" />
-                New Shift Template
-              </Button>
-            </div>
-
-            {locations.length === 0 && !isLoading && (
-              <div className="bg-muted/50 p-4 rounded-md mb-6">
-                <p className="text-sm">
-                  You need to add locations before creating shift templates. Go to Settings &gt; Locations to add them.
-                </p>
-              </div>
-            )}
-            
-            <ShiftTemplateMasterTable 
-              templateMasters={templateMasters}
-              isLoading={isLoading}
-              onViewTemplates={handleViewTemplates}
-              onCloneTemplates={handleCloneTemplates}
-            />
-            
-            <NewTemplateVersionDialog 
-              open={isDialogOpen}
-              onOpenChange={setIsDialogOpen}
-              locations={locations}
-              onConfirm={handleCreateNewVersion}
-            />
+    <div className="min-h-screen flex w-full">
+      <AppSidebar />
+      <SidebarInset className="bg-background">
+        <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="mr-2" />
+            <Separator orientation="vertical" className="h-4" />
+            <span className="font-medium">Rota / Shift Templates</span>
           </div>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+        </header>
+        <div className="container mx-auto p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold">Shift Templates</h1>
+            <Button 
+              onClick={() => setIsDialogOpen(true)}
+              className="flex items-center gap-2"
+              disabled={locations.length === 0}
+            >
+              <PlusIcon className="h-4 w-4" />
+              New Shift Template
+            </Button>
+          </div>
+
+          {locations.length === 0 && !isLoading && (
+            <div className="bg-muted/50 p-4 rounded-md mb-6">
+              <p className="text-sm">
+                You need to add locations before creating shift templates. Go to Settings &gt; Locations to add them.
+              </p>
+            </div>
+          )}
+          
+          <ShiftTemplateMasterTable 
+            templateMasters={templateMasters}
+            isLoading={isLoading}
+            onViewTemplates={handleViewTemplates}
+            onCloneTemplates={handleCloneTemplates}
+          />
+          
+          <NewTemplateVersionDialog 
+            open={isDialogOpen}
+            onOpenChange={setIsDialogOpen}
+            locations={locations}
+            onConfirm={handleCreateNewVersion}
+          />
+        </div>
+      </SidebarInset>
+    </div>
   );
 }
