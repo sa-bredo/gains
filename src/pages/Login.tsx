@@ -1,11 +1,13 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useSignIn, useAuth } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Mail, Lock, AlertCircle } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Loader2, Mail, Lock, Building, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function LoginPage() {
   const { isSignedIn, isLoaded } = useAuth();
@@ -15,6 +17,7 @@ export default function LoginPage() {
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [companySlug, setCompanySlug] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -40,8 +43,8 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
-      setError("Please enter both email and password");
+    if (!email || !password || !companySlug) {
+      setError("Please enter email, password, and company slug");
       return;
     }
     
@@ -53,6 +56,19 @@ export default function LoginPage() {
         throw new Error("Sign in not available");
       }
       
+      // First check if company exists with this slug
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('slug', companySlug.toLowerCase())
+        .single();
+        
+      if (companyError || !companyData) {
+        setError(`Company with slug "${companySlug}" not found. Please check and try again.`);
+        setIsSubmitting(false);
+        return;
+      }
+      
       const result = await signIn.create({
         identifier: email,
         password,
@@ -60,6 +76,10 @@ export default function LoginPage() {
       
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
+        
+        // Store company slug in local storage
+        localStorage.setItem('currentCompanySlug', companySlug);
+        
         toast({
           title: "Login successful",
           description: "You have been logged in successfully.",
@@ -116,6 +136,24 @@ export default function LoginPage() {
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
+              <label htmlFor="companySlug" className="text-sm font-medium">
+                Company Slug
+              </label>
+              <div className="relative">
+                <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="companySlug"
+                  type="text"
+                  placeholder="your-company"
+                  value={companySlug}
+                  onChange={(e) => setCompanySlug(e.target.value)}
+                  className="pl-10"
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">
                 Email
               </label>
@@ -171,9 +209,9 @@ export default function LoginPage() {
           <div className="mt-6 text-center text-sm">
             <p className="text-muted-foreground">
               Don't have an account?{" "}
-              <a href="#" className="text-primary hover:underline">
-                Contact your administrator
-              </a>
+              <Link to="/signup" className="text-primary hover:underline">
+                Create a new account
+              </Link>
             </p>
           </div>
         </div>
