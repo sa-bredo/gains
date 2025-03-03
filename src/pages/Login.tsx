@@ -130,7 +130,7 @@ export default function LoginPage() {
           <img 
             src="/gains-logo.svg" 
             alt="Gains Logo" 
-            className="h-36 w-auto"
+            className="h-54 w-auto"
           />
         </div>
         

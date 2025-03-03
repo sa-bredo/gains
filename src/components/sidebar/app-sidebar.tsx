@@ -34,9 +34,8 @@ export function AppSidebar() {
           <img 
             src="/gains-logo.svg" 
             alt="Gains Logo" 
-            className="h-8 w-auto"
+            className="h-12 w-auto"
           />
-          <span className="font-semibold text-lg">Welcome</span>
         </div>
       </SidebarHeader>
       <SidebarContent>
