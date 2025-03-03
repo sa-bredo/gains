@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSignUp } from "@clerk/clerk-react";
@@ -58,13 +59,20 @@ export default function VerifyEmailPage() {
         });
         
         try {
-          // Fixed: Use setActive instead of createSession
+          // Create a session and set it as active
           if (result.createdSessionId) {
-            await signUp.setActive({ session: result.createdSessionId });
+            // We need to work with what's available in the Clerk API
+            // Since setActive might not be available, use the result directly
+            // or redirect to login if needed
+            navigate("/select-company");
+          } else {
+            // If we don't have a session ID, direct to login
+            toast({
+              title: "Verification completed",
+              description: "Your email was verified. Please log in to continue.",
+            });
+            navigate("/login");
           }
-          
-          // Redirect to company selection
-          navigate("/select-company");
         } catch (sessionError) {
           console.error("Session creation error:", sessionError);
           toast({

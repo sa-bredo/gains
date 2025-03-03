@@ -55,15 +55,18 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       
       // Ensure all company records have a slug property
       const companiesWithSlug = companiesData?.map(company => {
-        // Check if company has a slug property before using it
-        if (!company.slug) {
-          // Generate a slug if it doesn't exist
-          return {
-            ...company,
-            slug: company.name.toLowerCase().replace(/[^a-z0-9]/g, '-')
-          } as Company;
-        }
-        return company as Company;
+        // Create a proper Company object with all needed properties
+        const companyWithSlug: Company = {
+          id: company.id,
+          name: company.name,
+          slug: (company as any).slug || company.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+          logo_url: company.logo_url,
+          created_at: company.created_at,
+          updated_at: company.updated_at,
+          address: (company as any).address
+        };
+        
+        return companyWithSlug;
       }) || [];
       
       setUserCompanies(companiesWithSlug);

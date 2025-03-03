@@ -68,11 +68,13 @@ export default function LoginPage() {
         return;
       }
       
-      // Fixed: removed the type that was causing infinite instantiation
-      const result = await signIn.create({
+      // Explicitly type the parameters to avoid infinite type instantiation
+      const signInParams = {
         identifier: email,
-        password,
-      });
+        password: password
+      };
+      
+      const result = await signIn.create(signInParams);
       
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
