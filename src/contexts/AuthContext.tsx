@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { useAuth as useClerkAuth, useUser } from "@clerk/clerk-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +36,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Fetch the user's role from your database
   const fetchUserRole = async (userId: string) => {
     try {
+      // First, check the role_permissions table to see all available roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('role_permissions')
+        .select('role')
+        .eq('active', true)
+        .limit(1);
+
+      if (rolesError) {
+        console.log('No role_permissions table yet, falling back to employees table');
+      }
+      
+      // Fetch the user's role from the employees table
       const { data, error } = await supabase
         .from('employees')
         .select('role')

@@ -1,5 +1,9 @@
 
+import { useEffect, useState } from "react";
 import { useAuth, UserRole } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+
+type PermissionAction = 'view' | 'edit' | 'create' | 'delete';
 
 type PermissionCheck = {
   canView: (resource: string) => boolean;
@@ -11,8 +15,8 @@ type PermissionCheck = {
   isFrontOfHouse: boolean;
 };
 
-// Define permission rules for each role and resource
-const permissionRules = {
+// Fallback permission rules in case DB fetch fails
+const fallbackPermissionRules = {
   admin: {
     view: ['*'],
     edit: ['*'],
@@ -45,10 +49,77 @@ const permissionRules = {
   }
 };
 
+type PermissionRules = {
+  [key in UserRole]?: {
+    [key in PermissionAction]: string[];
+  };
+};
+
 export function usePermissions(): PermissionCheck {
   const { userRole } = useAuth();
+  const [permissionRules, setPermissionRules] = useState<PermissionRules>(fallbackPermissionRules);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPermissions = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('role_permissions')
+          .select('*');
+
+        if (error) {
+          console.error('Error fetching permissions:', error);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          // Transform the flat DB records into our permission rules structure
+          const dbPermissions: PermissionRules = {};
+          
+          data.forEach(item => {
+            if (!dbPermissions[item.role]) {
+              dbPermissions[item.role] = {
+                view: [],
+                edit: [],
+                create: [],
+                delete: []
+              };
+            }
+            
+            if (item.can_view) dbPermissions[item.role].view.push(item.resource);
+            if (item.can_edit) dbPermissions[item.role].edit.push(item.resource);
+            if (item.can_create) dbPermissions[item.role].create.push(item.resource);
+            if (item.can_delete) dbPermissions[item.role].delete.push(item.resource);
+          });
+
+          // Add wildcard permissions for admin and founder
+          if (dbPermissions.admin) {
+            dbPermissions.admin.view = ['*'];
+            dbPermissions.admin.edit = ['*'];
+            dbPermissions.admin.create = ['*'];
+            dbPermissions.admin.delete = ['*'];
+          }
+          
+          if (dbPermissions.founder) {
+            dbPermissions.founder.view = ['*'];
+            dbPermissions.founder.edit = ['*'];
+            dbPermissions.founder.create = ['*'];
+            dbPermissions.founder.delete = ['*'];
+          }
+
+          setPermissionRules(dbPermissions);
+        }
+      } catch (error) {
+        console.error('Unexpected error fetching permissions:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPermissions();
+  }, []);
   
-  const hasPermission = (action: 'view' | 'edit' | 'create' | 'delete', resource: string): boolean => {
+  const hasPermission = (action: PermissionAction, resource: string): boolean => {
     if (!userRole) return false;
     
     const rolePermissions = permissionRules[userRole] || { view: [], edit: [], create: [], delete: [] };
