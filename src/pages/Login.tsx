@@ -30,7 +30,7 @@ export default function LoginPage() {
   // Redirect if user is already signed in
   if (isLoaded && isSignedIn) {
     setIsRedirecting(true);
-    navigate("/select-company");
+    navigate("/settings/locations");
     return null;
   }
   
@@ -38,7 +38,7 @@ export default function LoginPage() {
     return (
       <div className="flex min-h-screen w-full items-center justify-center p-6 md:p-10">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Redirecting to dashboard...</h1>
+          <h1 className="text-2xl font-bold mb-4">Redirecting to locations...</h1>
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
         </div>
       </div>
@@ -93,7 +93,7 @@ export default function LoginPage() {
           title: "Login successful",
           description: "You have been logged in successfully.",
         });
-        navigate("/select-company");
+        navigate("/settings/locations");
       } else {
         // This shouldn't happen with email/password auth
         setError("Something went wrong. Please try again.");
