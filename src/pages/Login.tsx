@@ -62,10 +62,10 @@ export default function LoginPage() {
         throw new Error("Sign in not available");
       }
 
-      // Query company data using name instead of slug
+      // Query company data using name
       const { data, error: companyError } = await supabase
         .from('companies')
-        .select('id, name')
+        .select('id, name, slug')
         .eq('name', companyName)
         .limit(1);
 
@@ -96,8 +96,8 @@ export default function LoginPage() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         
-        // Store company name in local storage instead of slug
-        localStorage.setItem('currentCompanyName', companyName);
+        // Store company slug in local storage for persistence
+        localStorage.setItem('currentCompanySlug', data[0].slug);
         
         toast({
           title: "Login successful",

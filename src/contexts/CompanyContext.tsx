@@ -10,7 +10,7 @@ type CompanyContextType = {
   userCompanies: Company[];
   isLoadingCompanies: boolean;
   switchCompany: (companyId: string) => void;
-  switchCompanyByName: (name: string) => boolean;
+  switchCompanyBySlug: (slug: string) => boolean;
   refreshCompanies: () => Promise<void>;
 };
 
@@ -60,31 +60,31 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         setCurrentCompany(companiesData[0]);
         // Store the selected company in localStorage
         localStorage.setItem('currentCompanyId', companiesData[0].id);
-        localStorage.setItem('currentCompanyName', companiesData[0].name || '');
+        localStorage.setItem('currentCompanySlug', companiesData[0].slug || '');
       } else if (companiesData && companiesData.length > 0) {
         // Check if the stored company is still valid
         const storedCompanyId = localStorage.getItem('currentCompanyId');
-        const storedCompanyName = localStorage.getItem('currentCompanyName');
+        const storedCompanySlug = localStorage.getItem('currentCompanySlug');
         
         if (storedCompanyId) {
           const storedCompany = companiesData.find(c => c.id === storedCompanyId);
           if (storedCompany) {
             setCurrentCompany(storedCompany);
-          } else if (storedCompanyName) {
-            // Try to find by name if ID doesn't match
-            const companyByName = companiesData.find(c => c.name === storedCompanyName);
-            if (companyByName) {
-              setCurrentCompany(companyByName);
-              localStorage.setItem('currentCompanyId', companyByName.id);
+          } else if (storedCompanySlug) {
+            // Try to find by slug if ID doesn't match
+            const companyBySlug = companiesData.find(c => c.slug === storedCompanySlug);
+            if (companyBySlug) {
+              setCurrentCompany(companyBySlug);
+              localStorage.setItem('currentCompanyId', companyBySlug.id);
             } else {
               setCurrentCompany(companiesData[0]);
               localStorage.setItem('currentCompanyId', companiesData[0].id);
-              localStorage.setItem('currentCompanyName', companiesData[0].name || '');
+              localStorage.setItem('currentCompanySlug', companiesData[0].slug || '');
             }
           } else {
             setCurrentCompany(companiesData[0]);
             localStorage.setItem('currentCompanyId', companiesData[0].id);
-            localStorage.setItem('currentCompanyName', companiesData[0].name || '');
+            localStorage.setItem('currentCompanySlug', companiesData[0].slug || '');
           }
         }
       }
@@ -118,16 +118,16 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     if (company) {
       setCurrentCompany(company);
       localStorage.setItem('currentCompanyId', company.id);
-      localStorage.setItem('currentCompanyName', company.name || '');
+      localStorage.setItem('currentCompanySlug', company.slug || '');
     }
   };
 
-  const switchCompanyByName = (name: string): boolean => {
-    const company = userCompanies.find(c => c.name === name);
+  const switchCompanyBySlug = (slug: string): boolean => {
+    const company = userCompanies.find(c => c.slug === slug);
     if (company) {
       setCurrentCompany(company);
       localStorage.setItem('currentCompanyId', company.id);
-      localStorage.setItem('currentCompanyName', company.name);
+      localStorage.setItem('currentCompanySlug', company.slug);
       return true;
     }
     return false;
@@ -144,7 +144,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         userCompanies, 
         isLoadingCompanies,
         switchCompany,
-        switchCompanyByName,
+        switchCompanyBySlug,
         refreshCompanies
       }}
     >
