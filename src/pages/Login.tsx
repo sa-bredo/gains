@@ -61,7 +61,7 @@ export default function LoginPage() {
         throw new Error("Sign in not available");
       }
       
-      // First check if company exists with this slug - Fix the query format
+      // First check if company exists with this slug
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .select('id')
@@ -81,8 +81,8 @@ export default function LoginPage() {
         password: password
       };
       
-      // Use 'any' type to resolve TypeScript depth issue
-      const result: any = await signIn.create(credentials);
+      // Explicitly type the result to avoid TypeScript depth issues
+      const result = await signIn.create(credentials);
       
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });

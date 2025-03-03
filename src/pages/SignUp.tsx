@@ -92,13 +92,25 @@ export default function SignUpPage() {
         return;
       }
       
-      // Create user account with Clerk - Fix parameter names
+      // Create user account with Clerk - Using ONLY the accepted parameters
       const result = await signUp.create({
-        firstName: firstName, 
-        lastName: lastName,
         emailAddress: email,
         password: password,
       });
+      
+      // Set the first and last name after creating the account
+      if (result.status === "complete" || result.status === "missing_requirements") {
+        try {
+          // Try to update the user's name if possible
+          await result.update({
+            firstName,
+            lastName,
+          });
+        } catch (nameError) {
+          console.error("Error setting user names:", nameError);
+          // Continue anyway, as this is not critical
+        }
+      }
       
       // Prepare for email verification
       await result.prepareEmailAddressVerification({ strategy: "email_code" });
@@ -311,6 +323,9 @@ export default function SignUpPage() {
                   disabled={isSubmitting}
                 />
               </div>
+              <p className="text-xs text-muted-foreground">
+                Password must not have been found in any data breaches.
+              </p>
             </div>
             
             <Button type="submit" className="w-full" disabled={isSubmitting}>
