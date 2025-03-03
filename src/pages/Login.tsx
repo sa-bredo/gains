@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useSignIn, useAuth } from "@clerk/clerk-react";
@@ -130,7 +129,7 @@ export default function LoginPage() {
           <img 
             src="/gains-logo.svg" 
             alt="Gains Logo" 
-            className="h-54 w-auto"
+            className="h-36 w-auto"
           />
         </div>
         
