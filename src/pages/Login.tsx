@@ -62,6 +62,7 @@ export default function LoginPage() {
       }
       
       // First check if company exists with this slug
+      // @ts-ignore - Bypassing TypeScript excessive depth error
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .select('id')
