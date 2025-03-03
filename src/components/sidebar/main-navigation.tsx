@@ -1,5 +1,6 @@
 
 import { FC } from "react";
+import { useLocation } from "react-router-dom";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -26,13 +27,12 @@ interface MainNavigationProps {
   items?: NavItem[];
 }
 
-// Updated navigation items to match actual application routes with detailed sub-items
+// Navigation items to match actual application routes with detailed sub-items
 const defaultNavItems: NavItem[] = [
   {
     title: "Dashboard",
     icon: Activity,
     url: "/",
-    isActive: true,
     items: []
   },
   {
@@ -96,11 +96,25 @@ const defaultNavItems: NavItem[] = [
 ];
 
 export const MainNavigation: FC<MainNavigationProps> = ({ items = defaultNavItems }) => {
+  const location = useLocation();
+  
+  // Mark items as active based on current location
+  const navItems = items.map(item => {
+    // Check if this item or any of its subitems match the current path
+    const isActive = location.pathname === item.url || 
+                    (item.items?.some(subItem => location.pathname === subItem.url) || false);
+    
+    return {
+      ...item,
+      isActive
+    };
+  });
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Main Navigation</SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) => (
+        {navItems.map((item) => (
           <SidebarNavItem key={item.title} item={item} />
         ))}
       </SidebarMenu>

@@ -56,7 +56,7 @@ export const SidebarNavItem: FC<SidebarNavItemProps> = ({ item }) => {
             {item.items?.map((subItem) => (
               <SidebarMenuSubItem key={subItem.title}>
                 <SidebarMenuSubButton asChild>
-                  <Link to={subItem.url}>
+                  <Link to={subItem.url} preventScrollReset={true}>
                     <span>{subItem.title}</span>
                   </Link>
                 </SidebarMenuSubButton>
