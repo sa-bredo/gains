@@ -74,13 +74,13 @@ export default function LoginPage() {
         return;
       }
       
-      // Use the explicit interface to type the credentials object
+      // Important: Create the credentials object with explicit typing to avoid deep type inference
       const credentials: LoginCredentials = {
         identifier: email,
         password: password
       };
       
-      // Pass the credentials object to signIn.create
+      // Pass the explicitly typed credentials object to signIn.create
       const result = await signIn.create(credentials);
       
       if (result.status === "complete") {
