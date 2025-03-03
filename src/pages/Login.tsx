@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useSignIn, useAuth } from "@clerk/clerk-react";
@@ -12,6 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 interface LoginCredentials {
   identifier: string;
   password: string;
+}
+
+// Define a simple interface for the company data response
+interface CompanyData {
+  id: string;
 }
 
 export default function LoginPage() {
@@ -81,7 +85,7 @@ export default function LoginPage() {
         password: password
       };
       
-      // Explicitly type the result to avoid TypeScript depth issues
+      // Use the explicit interface for the result type
       const result = await signIn.create(credentials);
       
       if (result.status === "complete") {

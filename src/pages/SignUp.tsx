@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useSignUp, useAuth } from "@clerk/clerk-react";
@@ -32,7 +31,6 @@ export default function SignUpPage() {
   const [error, setError] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
   
-  // Redirect if user is already signed in
   if (isLoaded && isSignedIn) {
     setIsRedirecting(true);
     navigate("/select-company");
@@ -50,12 +48,10 @@ export default function SignUpPage() {
     );
   }
   
-  // Auto-generate slug from company name
   const handleCompanyNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
     setCompanyName(name);
     
-    // Generate slug from company name (lowercase, replace spaces with hyphens, remove special chars)
     const slug = name.toLowerCase()
       .replace(/[^\w\s-]/g, '')
       .replace(/\s+/g, '-');
@@ -79,7 +75,6 @@ export default function SignUpPage() {
         throw new Error("Sign up not available");
       }
       
-      // Check if company slug already exists
       const { data: existingCompany, error: slugCheckError } = await supabase
         .from('companies')
         .select('id')
@@ -92,34 +87,27 @@ export default function SignUpPage() {
         return;
       }
       
-      // Create user account with Clerk - Using ONLY the accepted parameters
       const result = await signUp.create({
         emailAddress: email,
         password: password,
       });
       
-      // Set the first and last name after creating the account
       if (result.status === "complete" || result.status === "missing_requirements") {
         try {
-          // Try to update the user's name if possible
           await result.update({
             firstName,
             lastName,
           });
         } catch (nameError) {
           console.error("Error setting user names:", nameError);
-          // Continue anyway, as this is not critical
         }
       }
       
-      // Prepare for email verification
       await result.prepareEmailAddressVerification({ strategy: "email_code" });
       
       if (result.status === "complete") {
-        // User is created and verified
         await setActive({ session: result.createdSessionId });
         
-        // Create company in Supabase
         const { data: companyData, error: companyError } = await supabase
           .from('companies')
           .insert([{ 
@@ -140,7 +128,6 @@ export default function SignUpPage() {
           return;
         }
         
-        // Link user to company as admin
         const { error: userCompanyError } = await supabase
           .from('user_companies')
           .insert([{
@@ -153,7 +140,6 @@ export default function SignUpPage() {
           console.error("Error linking user to company:", userCompanyError);
         }
         
-        // Store company slug in local storage
         localStorage.setItem('currentCompanySlug', companySlug);
         
         toast({
@@ -163,7 +149,6 @@ export default function SignUpPage() {
         
         navigate("/select-company");
       } else {
-        // User needs to verify email
         navigate(`/verify-email?email=${encodeURIComponent(email)}`);
       }
     } catch (err: any) {
@@ -212,7 +197,6 @@ export default function SignUpPage() {
           )}
           
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Company Information */}
             <div className="space-y-2">
               <Label htmlFor="companyName" className="text-sm font-medium">
                 Company Name
@@ -251,7 +235,6 @@ export default function SignUpPage() {
               </p>
             </div>
             
-            {/* Personal Information */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName" className="text-sm font-medium">
