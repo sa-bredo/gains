@@ -67,16 +67,17 @@ export default function LoginPage() {
       }
       
       // First check if company exists with this slug
+      // Use a more direct typing approach to avoid deep inference
       const { data, error: companyError } = await supabase
         .from('companies')
         .select('id')
         .eq('slug', companySlug.toLowerCase())
         .maybeSingle();
-        
-      // Explicitly cast the data to our CompanyData type or null
-      const companyData: CompanyData | null = data;
-        
-      if (companyError || !companyData) {
+      
+      // Type guard to check if data exists and has the expected structure
+      const companyExists = data !== null && typeof data === 'object' && 'id' in data;
+      
+      if (companyError || !companyExists) {
         console.error("Company lookup error:", companyError);
         setError(`Company with slug "${companySlug}" not found. Please check and try again.`);
         setIsSubmitting(false);
