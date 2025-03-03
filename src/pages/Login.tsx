@@ -8,7 +8,7 @@ import { Loader2, Mail, Lock, Building, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-// Define an explicit interface for login credentials
+// Define an explicit interface for login credentials to avoid TypeScript issues
 interface LoginCredentials {
   identifier: string;
   password: string;
@@ -74,13 +74,13 @@ export default function LoginPage() {
         return;
       }
       
-      // Create an explicitly typed credentials object
+      // Use the explicit interface to type the credentials object
       const credentials: LoginCredentials = {
         identifier: email,
         password: password
       };
       
-      // Pass the explicitly typed credentials to signIn.create
+      // Pass the credentials object to signIn.create
       const result = await signIn.create(credentials);
       
       if (result.status === "complete") {

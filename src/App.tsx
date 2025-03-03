@@ -35,6 +35,7 @@ function App() {
           <Route path="/rota/shifts" element={<ShiftsPage />} />
         </Route>
       
+        {/* This is crucial - catch all unmatched routes */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </ThemeProvider>
