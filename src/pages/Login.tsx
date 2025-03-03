@@ -14,11 +14,6 @@ interface LoginCredentials {
   password: string;
 }
 
-// Define a simple interface for the company data response
-interface CompanyData {
-  id: string;
-}
-
 export default function LoginPage() {
   const { isSignedIn, isLoaded } = useAuth();
   const { signIn, setActive, isLoaded: isSignInLoaded } = useSignIn();
@@ -66,19 +61,23 @@ export default function LoginPage() {
         throw new Error("Sign in not available");
       }
       
-      // First check if company exists with this slug
-      // Use a more direct typing approach to avoid deep inference
+      // Instead of using maybeSingle which causes typing issues,
+      // use a simpler query approach
       const { data, error: companyError } = await supabase
         .from('companies')
         .select('id')
-        .eq('slug', companySlug.toLowerCase())
-        .maybeSingle();
+        .eq('slug', companySlug.toLowerCase());
       
-      // Type guard to check if data exists and has the expected structure
-      const companyExists = data !== null && typeof data === 'object' && 'id' in data;
-      
-      if (companyError || !companyExists) {
+      // Check if we got any company back
+      if (companyError) {
         console.error("Company lookup error:", companyError);
+        setError("Error checking company slug. Please try again.");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Check if company exists by checking if data array has any items
+      if (!data || data.length === 0) {
         setError(`Company with slug "${companySlug}" not found. Please check and try again.`);
         setIsSubmitting(false);
         return;
