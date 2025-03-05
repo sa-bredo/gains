@@ -18,6 +18,7 @@ import DocumentsPage from "@/pages/documents";
 import EmployeesPage from "@/pages/employees";
 import TeamPage from "@/pages/team";
 import SettingsConfigPage from "@/pages/settings/config";
+import LocationsPage from "@/pages/settings/locations";
 import AboutPage from "@/pages/About";
 import NotFound from "@/pages/NotFound";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -50,6 +51,7 @@ function App() {
           <Route path="/employees" element={<EmployeesPage />} />
           <Route path="/team" element={<TeamPage />} />
           <Route path="/settings/config" element={<SettingsConfigPage />} />
+          <Route path="/settings/locations" element={<LocationsPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/knowledge" element={<NotFound />} />
         </Route>

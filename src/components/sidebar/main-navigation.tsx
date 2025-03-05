@@ -14,7 +14,8 @@ import {
   DollarSign, 
   FileText, 
   Settings, 
-  Users 
+  Users,
+  MapPin
 } from "lucide-react";
 
 interface MainNavigationProps {
