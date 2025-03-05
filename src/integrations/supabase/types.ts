@@ -45,6 +45,30 @@ export type Database = {
         }
         Relationships: []
       }
+      clerk_user_mapping: {
+        Row: {
+          clerk_user_id: string
+          created_at: string | null
+          email: string | null
+          id: string
+          supabase_user_id: string
+        }
+        Insert: {
+          clerk_user_id: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          supabase_user_id: string
+        }
+        Update: {
+          clerk_user_id?: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          supabase_user_id?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           created_at: string | null

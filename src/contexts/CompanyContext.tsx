@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,11 +43,9 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       console.log("Fetching companies for user:", userId);
 
       // First, let's check if this user exists in our mapping table or if we need to create a mapping
+      // Need to use raw SQL query since the table isn't in the TypeScript types yet
       const { data: userMappingData, error: userMappingError } = await supabase
-        .from('clerk_user_mapping')
-        .select('supabase_user_id')
-        .eq('clerk_user_id', userId)
-        .maybeSingle();
+        .rpc('get_clerk_user_mapping', { clerk_id: userId });
       
       if (userMappingError) {
         console.error("Error checking user mapping:", userMappingError);
@@ -60,12 +57,13 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       if (!userMappingData) {
         // If no mapping exists, we need to create one with a proper UUID
         const newUUID = crypto.randomUUID();
+        
+        // Use raw SQL to insert the mapping
         const { error: insertError } = await supabase
-          .from('clerk_user_mapping')
-          .insert({
-            clerk_user_id: userId,
-            supabase_user_id: newUUID,
-            email: user?.primaryEmailAddress?.emailAddress
+          .rpc('create_clerk_user_mapping', { 
+            clerk_id: userId,
+            supabase_id: newUUID,
+            user_email: user?.primaryEmailAddress?.emailAddress || null
           });
           
         if (insertError) {
@@ -75,7 +73,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         
         supabaseUserId = newUUID;
       } else {
-        supabaseUserId = userMappingData.supabase_user_id;
+        supabaseUserId = userMappingData;
       }
       
       // Now we can use the proper UUID to query user_companies
