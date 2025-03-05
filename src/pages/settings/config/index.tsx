@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { ConfigTable } from "./components/config-table";
@@ -34,10 +33,10 @@ export default function ConfigPage() {
       
       console.log('Fetching config for company:', currentCompany.id);
       
-      // Using explicit column selection to avoid type issues
+      // Use only the fields that exist in the config table
       const { data, error } = await supabase
         .from('config')
-        .select('id, key, value, company_id, created_at, updated_at')
+        .select('id, key, value, display_name, created_at, updated_at')
         .eq('company_id', currentCompany.id)
         .order('key');
 
@@ -52,7 +51,8 @@ export default function ConfigPage() {
         id: item.id,
         key: item.key,
         value: item.value,
-        company_id: item.company_id,
+        display_name: item.display_name,
+        company_id: currentCompany.id, // Use the current company ID
         created_at: item.created_at,
         updated_at: item.updated_at
       }));

@@ -27,15 +27,23 @@ function ShiftsPage() {
   const { currentCompany } = useCompany();
   const shiftService = useShiftService();
 
-  // Fetch locations and staff members when component mounts
+  // Fetch locations and staff members when component mounts or company changes
   useEffect(() => {
     const fetchInitialData = async () => {
+      if (!currentCompany) {
+        console.log('No company selected, skipping data fetch');
+        return;
+      }
+      
       try {
+        console.log('Fetching locations and staff for company:', currentCompany.id);
         const locationsData = await shiftService.fetchLocations();
         setLocations(locationsData);
         
         const staffData = await shiftService.fetchStaffMembers();
         setStaffMembers(staffData);
+        
+        console.log('Fetched locations:', locationsData.length, 'staff members:', staffData.length);
       } catch (error) {
         console.error('Error fetching initial data:', error);
         toast({
@@ -47,24 +55,28 @@ function ShiftsPage() {
     };
     
     fetchInitialData();
-  }, [currentCompany]);
+  }, [currentCompany, shiftService, toast]);
 
-  // Using fetchShiftsWithDateRange with company filtering
+  // Using react-query to fetch shifts with company filtering
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['shifts', currentCompany?.id],
-    queryFn: () => shiftService.fetchShifts(null, null, null),
+    queryFn: () => {
+      console.log('Fetching shifts for company:', currentCompany?.id);
+      return shiftService.fetchShifts(null, null, null);
+    },
     enabled: !!currentCompany
   });
 
   // Update the shifts state when data is fetched
-  React.useEffect(() => {
+  useEffect(() => {
     if (data) {
+      console.log('Setting shifts from query data:', data.length);
       setShifts(data);
     }
   }, [data]);
 
   // Handle error with useEffect
-  React.useEffect(() => {
+  useEffect(() => {
     if (error) {
       console.error('Error fetching shifts:', error);
       toast({
@@ -78,6 +90,8 @@ function ShiftsPage() {
   const handleAddComplete = () => {
     refetch();
   };
+
+  console.log('Rendering ShiftsPage with shifts:', shifts.length);
 
   return (
     <div className="min-h-screen flex w-full">
