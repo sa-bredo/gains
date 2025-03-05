@@ -40,10 +40,10 @@ export function AppSidebar() {
           <img 
             src="/gains-logo.svg" 
             alt="Gains Logo" 
-            className="h-16 w-auto" 
+            className="h-24 w-auto" 
           />
           {currentCompany && (
-            <span className="font-medium text-sm text-primary mt-1 mb-0.5 text-left group-data-[collapsible=icon]:hidden">
+            <span className="font-medium text-lg text-primary mt-1 mb-0.5 text-left group-data-[collapsible=icon]:hidden">
               {currentCompany.name}
             </span>
           )}
