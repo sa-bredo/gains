@@ -47,7 +47,6 @@ export function AppSidebar() {
               {currentCompany.name}
             </span>
           )}
-          <span className="font-semibold text-lg">Welcome</span>
         </div>
       </SidebarHeader>
       <SidebarContent>
