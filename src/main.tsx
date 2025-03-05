@@ -3,6 +3,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { ClerkProvider } from "@clerk/clerk-react";
 import { BrowserRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from "./App";
 import "./index.css";
 import { CompanyProvider } from "./contexts/CompanyContext";
@@ -17,15 +18,20 @@ if (!CLERK_PUBLISHABLE_KEY) {
   console.warn("Missing VITE_CLERK_PUBLISHABLE_KEY environment variable");
 }
 
+// Create a client
+const queryClient = new QueryClient();
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY || ""}>
       <BrowserRouter>
         <AuthProvider>
           <CompanyProvider>
-            <SidebarProvider>
-              <App />
-            </SidebarProvider>
+            <QueryClientProvider client={queryClient}>
+              <SidebarProvider>
+                <App />
+              </SidebarProvider>
+            </QueryClientProvider>
           </CompanyProvider>
         </AuthProvider>
       </BrowserRouter>

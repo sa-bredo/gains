@@ -28,22 +28,36 @@ export default function ConfigPage() {
       if (!currentCompany) {
         console.log('No company selected');
         setConfigItems([]);
+        setIsLoading(false);
         return;
       }
       
       console.log('Fetching config for company:', currentCompany.id);
       
-      // Fix for the type instantiation error - using a different approach
-      let { data, error } = await supabase
+      // Using explicit column selection to avoid type issues
+      const { data, error } = await supabase
         .from('config')
-        .select('id, key, value, description, company_id, created_at, updated_at')
+        .select('id, key, value, company_id, created_at, updated_at')
         .eq('company_id', currentCompany.id)
         .order('key');
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       
       console.log('Fetched config items:', data);
-      setConfigItems(data || []);
+      
+      // Map the data to match the ConfigItem type
+      const formattedData: ConfigItem[] = data.map(item => ({
+        id: item.id,
+        key: item.key,
+        value: item.value,
+        company_id: item.company_id,
+        created_at: item.created_at,
+        updated_at: item.updated_at
+      }));
+      
+      setConfigItems(formattedData);
     } catch (error) {
       console.error('Error fetching config items:', error);
       toast.error('Failed to load configuration items');
