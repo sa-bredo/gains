@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { ConfigTable } from "./components/config-table";
@@ -8,6 +9,10 @@ import { ConfigItem } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/sidebar";
+import { Separator } from "@/components/ui/separator";
+import { useCompany } from "@/contexts/CompanyContext";
 
 export default function ConfigPage() {
   const [configItems, setConfigItems] = useState<ConfigItem[]>([]);
@@ -15,14 +20,21 @@ export default function ConfigPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingConfig, setEditingConfig] = useState<ConfigItem | null>(null);
   const [deletingConfig, setDeletingConfig] = useState<ConfigItem | null>(null);
+  const { currentCompany } = useCompany();
 
   const fetchConfigItems = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('config')
         .select('*')
         .order('key', { ascending: true });
+      
+      if (currentCompany) {
+        query = query.eq('company_id', currentCompany.id);
+      }
+      
+      const { data, error } = await query;
 
       if (error) throw error;
       setConfigItems(data || []);
@@ -35,8 +47,10 @@ export default function ConfigPage() {
   };
 
   useEffect(() => {
-    fetchConfigItems();
-  }, []);
+    if (currentCompany) {
+      fetchConfigItems();
+    }
+  }, [currentCompany]);
 
   const handleEdit = (config: ConfigItem) => {
     setEditingConfig(config);
@@ -62,41 +76,53 @@ export default function ConfigPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Configuration</h1>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Config
-        </Button>
-      </div>
-      <ConfigTable 
-        configItems={configItems}
-        isLoading={isLoading}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
-      <AddConfigDialog 
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        onSuccess={handleAddSuccess}
-      />
-      {editingConfig && (
-        <EditConfigDialog
-          open={!!editingConfig}
-          onOpenChange={(open) => !open && setEditingConfig(null)}
-          onSuccess={handleEditSuccess}
-          config={editingConfig}
-        />
-      )}
-      {deletingConfig && (
-        <DeleteConfigDialog
-          open={!!deletingConfig}
-          onOpenChange={(open) => !open && setDeletingConfig(null)}
-          onSuccess={handleDeleteSuccess}
-          config={deletingConfig}
-        />
-      )}
+    <div className="min-h-screen flex w-full">
+      <AppSidebar />
+      <SidebarInset className="bg-background">
+        <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="mr-2" />
+            <Separator orientation="vertical" className="h-4" />
+            <span className="font-medium">Settings / Configuration</span>
+          </div>
+        </header>
+        <div className="container mx-auto p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold">Configuration</h1>
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Config
+            </Button>
+          </div>
+          <ConfigTable 
+            configItems={configItems}
+            isLoading={isLoading}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+          <AddConfigDialog 
+            open={isAddDialogOpen}
+            onOpenChange={setIsAddDialogOpen}
+            onSuccess={handleAddSuccess}
+          />
+          {editingConfig && (
+            <EditConfigDialog
+              open={!!editingConfig}
+              onOpenChange={(open) => !open && setEditingConfig(null)}
+              onSuccess={handleEditSuccess}
+              config={editingConfig}
+            />
+          )}
+          {deletingConfig && (
+            <DeleteConfigDialog
+              open={!!deletingConfig}
+              onOpenChange={(open) => !open && setDeletingConfig(null)}
+              onSuccess={handleDeleteSuccess}
+              config={deletingConfig}
+            />
+          )}
+        </div>
+      </SidebarInset>
     </div>
   );
 }

@@ -26,6 +26,7 @@ export default function LocationsPage() {
     
     setIsLoading(true);
     try {
+      console.log('Fetching locations for company:', currentCompany.id);
       const { data, error } = await supabase
         .from('locations')
         .select('*')
@@ -33,6 +34,8 @@ export default function LocationsPage() {
         .order('name', { ascending: true });
 
       if (error) throw error;
+      
+      console.log('Fetched locations:', data);
       setLocations(data || []);
     } catch (error) {
       console.error('Error fetching locations:', error);
