@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,10 +43,12 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
       console.log("Fetching companies for user:", userId);
 
-      // First, let's check if this user exists in our mapping table or if we need to create a mapping
-      // Need to use raw SQL query since the table isn't in the TypeScript types yet
+      // First, check if this user exists in our mapping table
       const { data: userMappingData, error: userMappingError } = await supabase
-        .rpc('get_clerk_user_mapping', { clerk_id: userId });
+        .from('clerk_user_mapping')
+        .select('supabase_user_id')
+        .eq('clerk_user_id', userId)
+        .maybeSingle();
       
       if (userMappingError) {
         console.error("Error checking user mapping:", userMappingError);
@@ -55,15 +58,16 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       let supabaseUserId;
       
       if (!userMappingData) {
-        // If no mapping exists, we need to create one with a proper UUID
+        // If no mapping exists, create one with a proper UUID
         const newUUID = crypto.randomUUID();
         
-        // Use raw SQL to insert the mapping
+        // Insert the mapping directly
         const { error: insertError } = await supabase
-          .rpc('create_clerk_user_mapping', { 
-            clerk_id: userId,
-            supabase_id: newUUID,
-            user_email: user?.primaryEmailAddress?.emailAddress || null
+          .from('clerk_user_mapping')
+          .insert({
+            clerk_user_id: userId,
+            supabase_user_id: newUUID,
+            email: user?.primaryEmailAddress?.emailAddress || null
           });
           
         if (insertError) {
@@ -73,7 +77,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         
         supabaseUserId = newUUID;
       } else {
-        supabaseUserId = userMappingData;
+        supabaseUserId = userMappingData.supabase_user_id;
       }
       
       // Now we can use the proper UUID to query user_companies
@@ -90,7 +94,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       if (!userCompanyData || userCompanyData.length === 0) {
         console.log("No company associations found for user");
         
-        // For demo purposes, let's provide a default company if none exists
+        // For demo purposes, provide a default company if none exists
         const { data: demoCompany, error: demoCompanyError } = await supabase
           .from('companies')
           .select('*')
