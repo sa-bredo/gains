@@ -10,10 +10,10 @@ export type ProtectedRouteProps = {
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { isAuthenticated, isLoading: isLoadingAuth } = useAuth();
-  const { currentCompany, isLoadingCompanies } = useCompany();
+  const { currentCompany, isLoadingCompanies, refreshCompanies } = useCompany();
   const location = useLocation();
 
-  // Show loading state while auth is initializing or companies are loading
+  // If auth or companies are still loading, show loading state
   if (isLoadingAuth || isLoadingCompanies) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
@@ -23,17 +23,29 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Redirect to login if not authenticated
+  // If not authenticated, redirect to login with current location for future redirect
   if (!isAuthenticated) {
-    console.log("User not authenticated, redirecting to login");
+    console.log("User not authenticated, redirecting to login from:", location.pathname);
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Redirect to company selection if authenticated but no company selected
+  // If authenticated but no company selected and not already on select-company page
   if (!currentCompany && !location.pathname.includes('/select-company')) {
     console.log("No company selected, redirecting to company selection");
     return <Navigate to="/select-company" state={{ from: location }} replace />;
   }
 
-  return children ? <>{children}</> : <Outlet />;
+  // If we have a company selected, try to refresh company data if needed
+  if (isAuthenticated && !isLoadingCompanies && currentCompany) {
+    // We're good to proceed with the protected route
+    return children ? <>{children}</> : <Outlet />;
+  }
+
+  // This is a fallback that shouldn't normally be reached
+  return (
+    <div className="h-screen w-full flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <span className="ml-2">Preparing your dashboard...</span>
+    </div>
+  );
 };

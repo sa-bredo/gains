@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useSignIn, useAuth } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ export default function LoginPage() {
   const { signIn, setActive, isLoaded: isSignInLoaded } = useSignIn();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,11 +28,16 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
   
-  if (isLoaded && isSignedIn) {
-    setIsRedirecting(true);
-    navigate("/dashboard");
-    return null;
-  }
+  // Get the intended destination from location state or default to dashboard
+  const from = location.state?.from?.pathname || "/dashboard";
+  
+  useEffect(() => {
+    // If user is already signed in, redirect them
+    if (isLoaded && isSignedIn) {
+      setIsRedirecting(true);
+      navigate(from, { replace: true });
+    }
+  }, [isLoaded, isSignedIn, navigate, from]);
   
   if (isRedirecting) {
     return (
@@ -90,12 +96,15 @@ export default function LoginPage() {
         await setActive({ session: result.createdSessionId });
         
         localStorage.setItem('currentCompanySlug', data[0].slug);
+        localStorage.setItem('currentCompanyId', data[0].id);
         
         toast({
           title: "Login successful",
           description: "You have been logged in successfully.",
         });
-        navigate("/dashboard");
+        
+        // Redirect to the intended destination or dashboard
+        navigate(from, { replace: true });
       } else {
         setError("Something went wrong. Please try again.");
       }
@@ -130,7 +139,8 @@ export default function LoginPage() {
           <img 
             src="/gains-logo.svg" 
             alt="Gains Logo" 
-            className="h-36 w-auto"
+            className="h-36 w-auto" 
+            style={{ maxWidth: '50%' }}
           />
         </div>
         
