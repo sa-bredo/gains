@@ -11,6 +11,8 @@ import Dashboard from "@/pages/Dashboard";
 import PlaidPage from "./pages/plaid"; 
 import RotaPage from "@/pages/rota";
 import ShiftsPage from "@/pages/rota/shifts";
+import ShiftTemplatesPage from "@/pages/rota/shift-templates";
+import ShiftTemplatesMasterPage from "@/pages/rota/shift-templates-master";
 import DocumentSigningPage from "@/pages/document-signing";
 import DocumentsPage from "@/pages/documents";
 import EmployeesPage from "@/pages/employees";
@@ -41,6 +43,8 @@ function App() {
           <Route path="/plaid" element={<PlaidPage />} />
           <Route path="/rota" element={<RotaPage />} />
           <Route path="/rota/shifts" element={<ShiftsPage />} />
+          <Route path="/rota/shift-templates" element={<ShiftTemplatesPage />} />
+          <Route path="/rota/shift-templates-master" element={<ShiftTemplatesMasterPage />} />
           <Route path="/document-signing/*" element={<DocumentSigningPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/employees" element={<EmployeesPage />} />
