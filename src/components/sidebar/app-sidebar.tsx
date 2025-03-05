@@ -36,6 +36,11 @@ export function AppSidebar() {
             alt="Gains Logo" 
             className="h-8 w-auto"
           />
+          {currentCompany && (
+            <span className="font-medium text-sm text-primary mt-1 mb-0.5">
+              {currentCompany.name}
+            </span>
+          )}
           <span className="font-semibold text-lg">Welcome</span>
         </div>
       </SidebarHeader>
