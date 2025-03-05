@@ -25,18 +25,24 @@ export default function ConfigPage() {
   const fetchConfigItems = async () => {
     setIsLoading(true);
     try {
-      let query = supabase
-        .from('config')
-        .select('*')
-        .order('key', { ascending: true });
-      
-      if (currentCompany) {
-        query = query.eq('company_id', currentCompany.id);
+      if (!currentCompany) {
+        console.log('No company selected');
+        setConfigItems([]);
+        return;
       }
       
-      const { data, error } = await query;
+      console.log('Fetching config for company:', currentCompany.id);
+      
+      // Fix for the type instantiation error - making the query more explicit
+      const { data, error } = await supabase
+        .from('config')
+        .select('*')
+        .eq('company_id', currentCompany.id)
+        .order('key', { ascending: true });
 
       if (error) throw error;
+      
+      console.log('Fetched config items:', data);
       setConfigItems(data || []);
     } catch (error) {
       console.error('Error fetching config items:', error);
