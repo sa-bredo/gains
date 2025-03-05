@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Resource, RolePermission, AVAILABLE_ROLES } from "./types";
@@ -7,6 +8,8 @@ import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { PermissionsSidebar } from "./components/permissions-sidebar";
 
 export default function PermissionsPage() {
   const [resources, setResources] = useState<Resource[]>([]);
@@ -128,40 +131,45 @@ export default function PermissionsPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Role Permissions</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage what different user roles can access
-          </p>
-        </div>
+    <SidebarProvider defaultOpen={true}>
+      <div className="flex w-full min-h-screen">
+        <PermissionsSidebar />
+        <div className="flex-1 p-6">
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-3xl font-bold">Role Permissions</h1>
+              <p className="text-muted-foreground mt-2">
+                Manage what different user roles can access
+              </p>
+            </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Permissions Matrix</CardTitle>
-            <CardDescription>
-              Configure which roles have permissions to view, edit, create, and delete resources.
-              Use the toggles to grant or revoke permissions for each action.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : (
-              <RolePermissionTable
-                rolePermissions={rolePermissions}
-                resources={resources}
-                roles={AVAILABLE_ROLES}
-                onPermissionChange={handlePermissionChange}
-                isLoading={isLoading}
-              />
-            )}
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Permissions Matrix</CardTitle>
+                <CardDescription>
+                  Configure which roles have permissions to view, edit, create, and delete resources.
+                  Use the toggles to grant or revoke permissions for each action.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <RolePermissionTable
+                    rolePermissions={rolePermissions}
+                    resources={resources}
+                    roles={AVAILABLE_ROLES}
+                    onPermissionChange={handlePermissionChange}
+                    isLoading={isLoading}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

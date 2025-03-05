@@ -3,7 +3,7 @@ import React from "react";
 import { MainNavigation } from "./main-navigation";
 import { SidebarContent, SidebarFooter, SidebarHeader, Sidebar, SidebarGroup, SidebarGroupLabel, SidebarMenu } from "@/components/ui/sidebar";
 import { UserProfile } from "./user-profile";
-import { Lightbulb, Search } from "lucide-react";
+import { Lightbulb, Search, Shield } from "lucide-react";
 import { SidebarNavItem } from "./nav-item";
 import { NavItem } from "./types";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -20,6 +20,12 @@ const discoverNavItems: NavItem[] = [
     title: "Learn About Us",
     url: "/about",
     icon: Lightbulb,
+    items: []
+  },
+  {
+    title: "Permissions",
+    url: "/settings/permissions",
+    icon: Shield,
     items: []
   }
 ];
