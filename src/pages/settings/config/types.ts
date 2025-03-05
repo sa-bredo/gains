@@ -6,6 +6,7 @@ export interface ConfigItem {
   key: string;
   display_name: string;
   value: string;
+  company_id: string;
   created_at?: string;
   updated_at?: string;
 }

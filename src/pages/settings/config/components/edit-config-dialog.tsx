@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useCompany } from '@/contexts/CompanyContext';
 
 interface EditConfigDialogProps {
   config: ConfigItem | null;
@@ -38,6 +39,7 @@ export function EditConfigDialog({
   onOpenChange,
   onSuccess,
 }: EditConfigDialogProps) {
+  const { currentCompany } = useCompany();
   const form = useForm<ConfigFormValues>({
     resolver: zodResolver(configFormSchema),
     defaultValues: {
@@ -59,7 +61,7 @@ export function EditConfigDialog({
   }, [config, form]);
 
   const onSubmit = async (values: ConfigFormValues) => {
-    if (!config) return;
+    if (!config || !currentCompany) return;
 
     try {
       const { error } = await supabase
@@ -70,7 +72,8 @@ export function EditConfigDialog({
           value: values.value,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', config.id);
+        .eq('id', config.id)
+        .eq('company_id', currentCompany.id);
 
       if (error) throw error;
 

@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useCompany } from '@/contexts/CompanyContext';
 
 interface AddConfigDialogProps {
   open: boolean;
@@ -36,6 +37,7 @@ export function AddConfigDialog({
   onOpenChange,
   onSuccess,
 }: AddConfigDialogProps) {
+  const { currentCompany } = useCompany();
   const form = useForm<ConfigFormValues>({
     resolver: zodResolver(configFormSchema),
     defaultValues: {
@@ -46,6 +48,11 @@ export function AddConfigDialog({
   });
 
   const onSubmit = async (values: ConfigFormValues) => {
+    if (!currentCompany) {
+      toast.error('No company selected');
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('config')
@@ -53,6 +60,7 @@ export function AddConfigDialog({
           key: values.key,
           display_name: values.display_name,
           value: values.value,
+          company_id: currentCompany.id,
         }])
         .select();
 

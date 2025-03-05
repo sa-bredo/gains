@@ -33,10 +33,9 @@ export default function ConfigPage() {
       
       console.log('Fetching config for company:', currentCompany.id);
       
-      // Use only the fields that exist in the config table
       const { data, error } = await supabase
         .from('config')
-        .select('id, key, value, display_name, created_at, updated_at')
+        .select('id, key, value, display_name, company_id, created_at, updated_at')
         .eq('company_id', currentCompany.id)
         .order('key');
 
@@ -45,19 +44,7 @@ export default function ConfigPage() {
       }
       
       console.log('Fetched config items:', data);
-      
-      // Map the data to match the ConfigItem type
-      const formattedData: ConfigItem[] = data.map(item => ({
-        id: item.id,
-        key: item.key,
-        value: item.value,
-        display_name: item.display_name,
-        company_id: currentCompany.id, // Use the current company ID
-        created_at: item.created_at,
-        updated_at: item.updated_at
-      }));
-      
-      setConfigItems(formattedData);
+      setConfigItems(data);
     } catch (error) {
       console.error('Error fetching config items:', error);
       toast.error('Failed to load configuration items');
