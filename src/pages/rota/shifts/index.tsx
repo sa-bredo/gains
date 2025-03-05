@@ -1,10 +1,16 @@
 
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchShiftsWithDateRange } from './services/shift-service';
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/sidebar";
+import { Separator } from "@/components/ui/separator";
+import { useShiftService } from './services/shift-service';
 import { AddShiftDialog } from './components/add-shift-dialog';
 import { ShiftsTable } from './components/shifts-table';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import { useCompany } from '@/contexts/CompanyContext';
 
 // Create a memoized component to break potential recursive render cycles
 export const MemoizedShiftComponent = memo(function MemoizedShiftComponent(props: any) {
@@ -18,11 +24,36 @@ function ShiftsPage() {
   const [isAddShiftDialogOpen, setIsAddShiftDialogOpen] = useState(false);
   const [locations, setLocations] = useState([]);
   const [staffMembers, setStaffMembers] = useState([]);
+  const { currentCompany } = useCompany();
+  const shiftService = useShiftService();
 
-  // Using fetchShiftsWithDateRange with no parameters will fetch all shifts
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['shifts'],
-    queryFn: () => fetchShiftsWithDateRange(null, null, null, null)
+  // Fetch locations and staff members when component mounts
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const locationsData = await shiftService.fetchLocations();
+        setLocations(locationsData);
+        
+        const staffData = await shiftService.fetchStaffMembers();
+        setStaffMembers(staffData);
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load initial data. Please try again later.',
+          variant: 'destructive',
+        });
+      }
+    };
+    
+    fetchInitialData();
+  }, [currentCompany]);
+
+  // Using fetchShiftsWithDateRange with company filtering
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['shifts', currentCompany?.id],
+    queryFn: () => shiftService.fetchShifts(null, null, null),
+    enabled: !!currentCompany
   });
 
   // Update the shifts state when data is fetched
@@ -45,41 +76,51 @@ function ShiftsPage() {
   }, [error, toast]);
 
   const handleAddComplete = () => {
-    // The query will be invalidated and refetched automatically
+    refetch();
   };
 
   return (
-    <div className="container mx-auto p-6 py-10">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Shifts</h1>
-        <button
-          onClick={() => setIsAddShiftDialogOpen(true)}
-          className="bg-primary text-primary-foreground shadow hover:bg-primary/90 px-4 py-2 rounded-md"
-        >
-          Add Shift
-        </button>
-      </div>
+    <div className="min-h-screen flex w-full">
+      <AppSidebar />
+      <SidebarInset className="bg-background">
+        <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="mr-2" />
+            <Separator orientation="vertical" className="h-4" />
+            <span className="font-medium">Rota / Shifts</span>
+          </div>
+        </header>
+        <div className="container mx-auto p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold">Shifts</h1>
+            <Button onClick={() => setIsAddShiftDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Shift
+            </Button>
+          </div>
 
-      {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <p>Loading shifts...</p>
-        </div>
-      ) : (
-        <MemoizedShiftComponent>
-          <ShiftsTable 
-            shifts={shifts} 
-            isLoading={isLoading} 
-            locations={locations} 
-            staffMembers={staffMembers} 
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <p>Loading shifts...</p>
+            </div>
+          ) : (
+            <MemoizedShiftComponent>
+              <ShiftsTable 
+                shifts={shifts} 
+                isLoading={isLoading} 
+                locations={locations} 
+                staffMembers={staffMembers} 
+              />
+            </MemoizedShiftComponent>
+          )}
+
+          <AddShiftDialog
+            open={isAddShiftDialogOpen}
+            onOpenChange={setIsAddShiftDialogOpen}
+            onAddComplete={handleAddComplete}
           />
-        </MemoizedShiftComponent>
-      )}
-
-      <AddShiftDialog
-        open={isAddShiftDialogOpen}
-        onOpenChange={setIsAddShiftDialogOpen}
-        onAddComplete={handleAddComplete}
-      />
+        </div>
+      </SidebarInset>
     </div>
   );
 }

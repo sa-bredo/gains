@@ -33,12 +33,12 @@ export default function ConfigPage() {
       
       console.log('Fetching config for company:', currentCompany.id);
       
-      // Fix for the type instantiation error - making the query more explicit
-      const { data, error } = await supabase
+      // Fix for the type instantiation error - using a different approach
+      let { data, error } = await supabase
         .from('config')
-        .select('*')
+        .select('id, key, value, description, company_id, created_at, updated_at')
         .eq('company_id', currentCompany.id)
-        .order('key', { ascending: true });
+        .order('key');
 
       if (error) throw error;
       
