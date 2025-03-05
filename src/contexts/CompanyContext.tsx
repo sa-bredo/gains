@@ -23,9 +23,18 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const [currentCompany, setCurrentCompany] = useState<Company | null>(null);
   const [userCompanies, setUserCompanies] = useState<Company[]>([]);
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(true);
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
 
   const fetchUserCompanies = async () => {
     try {
+      // Avoid excessive fetching by checking if we've fetched recently (within 2 seconds)
+      const now = Date.now();
+      if (now - lastFetchTime < 2000 && userCompanies.length > 0) {
+        console.log("Skipping fetch, retrieved companies recently");
+        return;
+      }
+      
+      setLastFetchTime(now);
       setIsLoadingCompanies(true);
       
       if (!isLoaded) {
@@ -88,6 +97,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         
       if (userCompaniesError) {
         console.error("Error fetching user companies:", userCompaniesError);
+        throw userCompaniesError;
       }
       
       let companies: Company[] = [];
@@ -109,27 +119,35 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         }
         
         companies = companiesData || [];
-      } 
-      // Fallback to getting any company in the system if no relationship exists yet
-      else {
-        console.log("No user companies found, fetching all available companies");
+      } else {
+        // Check if there's a company stored in localStorage
+        const storedCompanySlug = localStorage.getItem('currentCompanySlug');
         
-        const { data: demoCompany, error: demoCompanyError } = await supabase
-          .from('companies')
-          .select('*')
-          .limit(1)
-          .single();
-          
-        if (demoCompanyError || !demoCompany) {
-          console.log("No demo company found");
-          setUserCompanies([]);
-          setCurrentCompany(null);
-          setIsLoadingCompanies(false);
-          return;
+        if (storedCompanySlug) {
+          // If we have a slug in localStorage, try to find that company
+          const { data: companyData, error: companyError } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('slug', storedCompanySlug)
+            .maybeSingle();
+            
+          if (!companyError && companyData) {
+            // If we found the company, connect the user to it
+            const { error: connectError } = await supabase
+              .from('user_companies')
+              .insert({
+                user_id: supabaseUserId,
+                company_id: companyData.id,
+                role: 'admin'
+              });
+              
+            if (connectError) {
+              console.error("Error connecting user to company:", connectError);
+            } else {
+              companies = [companyData];
+            }
+          }
         }
-        
-        console.log("Found demo company:", demoCompany.name);
-        companies = [demoCompany];
       }
       
       setUserCompanies(companies);

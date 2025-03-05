@@ -15,6 +15,12 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { currentCompany, isLoadingCompanies, refreshCompanies, userCompanies } = useCompany();
   const location = useLocation();
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
+  const [isInCreateCompany, setIsInCreateCompany] = useState(false);
+
+  // Set flag for current location
+  useEffect(() => {
+    setIsInCreateCompany(location.pathname === '/create-company');
+  }, [location.pathname]);
 
   // Attempt to refresh companies if none are loaded after authentication
   useEffect(() => {
@@ -22,6 +28,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       if (isLoaded && isSignedIn && !currentCompany && !isLoadingCompanies && !hasAttemptedRefresh) {
         setHasAttemptedRefresh(true);
         try {
+          console.log("Attempting to refresh companies for authenticated user");
           await refreshCompanies();
         } catch (error) {
           console.error("Error refreshing companies in ProtectedRoute:", error);
@@ -32,6 +39,18 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
     attemptRefresh();
   }, [isLoaded, isSignedIn, currentCompany, isLoadingCompanies, refreshCompanies, hasAttemptedRefresh]);
+
+  // Debug logging on company state changes
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      console.log("Company state changed:", {
+        hasCompanies: userCompanies.length > 0,
+        companyCount: userCompanies.length,
+        currentCompany: currentCompany?.name || "None",
+        currentPath: location.pathname
+      });
+    }
+  }, [isLoaded, isSignedIn, userCompanies, currentCompany, location.pathname]);
 
   // If auth or companies are still loading, show loading state
   if (!isLoaded || isLoadingCompanies) {
@@ -58,7 +77,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   console.log("Current company:", currentCompany ? currentCompany.name : "None");
 
   // If we're already on create-company page, just render the page
-  if (location.pathname === '/create-company') {
+  if (isInCreateCompany) {
     return children ? <>{children}</> : <Outlet />;
   }
 
