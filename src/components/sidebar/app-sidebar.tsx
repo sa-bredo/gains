@@ -43,7 +43,7 @@ export function AppSidebar() {
             className="h-16 w-auto" 
           />
           {currentCompany && (
-            <span className="font-medium text-sm text-primary mt-1 mb-0.5 text-left">
+            <span className="font-medium text-sm text-primary mt-1 mb-0.5 text-left group-data-[collapsible=icon]:hidden">
               {currentCompany.name}
             </span>
           )}
