@@ -52,11 +52,15 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  useEffect(() => {
+    console.log("User Companies:", userCompanies);
+  }, [userCompanies]);
+
   // If authenticated but no company selected and not already on select-company page
   if (!currentCompany && !location.pathname.includes('/select-company')) {
     if (userCompanies.length === 0) {
       console.log("No companies available, redirecting to create company page");
-      return <Navigate to="/create-company" state={{ from: location }} replace />;
+      return <Navigate to="/any" state={{ from: location }} replace />;
     } else {
       console.log("No company selected, redirecting to company selection");
       return <Navigate to="/select-company" state={{ from: location }} replace />;
