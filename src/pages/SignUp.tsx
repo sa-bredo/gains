@@ -109,6 +109,28 @@ export default function SignUpPage() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         
+        // Generate a UUID for the user in our Supabase system
+        const newSupabaseUUID = crypto.randomUUID();
+        
+        // Create mapping between Clerk user ID and our Supabase UUID
+        const { error: mappingError } = await supabase
+          .from('clerk_user_mapping')
+          .insert({
+            clerk_user_id: result.createdUserId,
+            supabase_user_id: newSupabaseUUID,
+            email: email
+          });
+          
+        if (mappingError) {
+          console.error("Error creating user mapping:", mappingError);
+          toast({
+            title: "Error setting up user",
+            description: "Your account was created but we couldn't set up your user profile.",
+            variant: "destructive",
+          });
+        }
+        
+        // Create company
         const { data: companyData, error: companyError } = await supabase
           .from('companies')
           .insert([{ 
@@ -129,16 +151,22 @@ export default function SignUpPage() {
           return;
         }
         
+        // Connect user to company using the Supabase UUID
         const { error: userCompanyError } = await supabase
           .from('user_companies')
           .insert([{
-            user_id: result.createdUserId,
+            user_id: newSupabaseUUID,
             company_id: companyData.id,
             role: 'admin'
           }]);
           
         if (userCompanyError) {
           console.error("Error linking user to company:", userCompanyError);
+          toast({
+            title: "Error linking account",
+            description: "Your company was created but we couldn't link it to your account.",
+            variant: "destructive",
+          });
         }
         
         localStorage.setItem('currentCompanySlug', companySlug);
@@ -337,3 +365,4 @@ export default function SignUpPage() {
     </div>
   );
 }
+
