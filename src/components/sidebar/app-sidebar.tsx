@@ -36,14 +36,14 @@ export function AppSidebar() {
   return (
     <Sidebar variant="sidebar" collapsible="icon">
       <SidebarHeader>
-        <div className="flex flex-col items-center px-2">
+        <div className="flex flex-col items-start px-4">
           <img 
             src="/gains-logo.svg" 
             alt="Gains Logo" 
-            className="h-8 w-auto"
+            className="h-16 w-auto" 
           />
           {currentCompany && (
-            <span className="font-medium text-sm text-primary mt-1 mb-0.5">
+            <span className="font-medium text-sm text-primary mt-1 mb-0.5 text-left">
               {currentCompany.name}
             </span>
           )}
