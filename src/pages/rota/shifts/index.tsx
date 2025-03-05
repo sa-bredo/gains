@@ -4,9 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useShiftService } from './services/shift-service';
 import { AddShiftDialog } from './components/add-shift-dialog';
 import { ShiftsTable } from './components/shifts-table';
+import { AddShiftsFromTemplate } from './components/add-shifts-from-template';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -24,6 +26,7 @@ function ShiftsPage() {
   const [isAddShiftDialogOpen, setIsAddShiftDialogOpen] = useState(false);
   const [locations, setLocations] = useState([]);
   const [staffMembers, setStaffMembers] = useState([]);
+  const [currentView, setCurrentView] = useState<'view' | 'add'>('view');
   const { currentCompany } = useCompany();
   const shiftService = useShiftService();
 
@@ -88,6 +91,7 @@ function ShiftsPage() {
   }, [error, toast]);
 
   const handleAddComplete = () => {
+    setCurrentView('view');
     refetch();
   };
 
@@ -107,25 +111,59 @@ function ShiftsPage() {
         <div className="container mx-auto p-6">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-3xl font-bold">Shifts</h1>
-            <Button onClick={() => setIsAddShiftDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Shift
-            </Button>
+            {currentView === 'view' && (
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline"
+                  onClick={() => setIsAddShiftDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Single Shift
+                </Button>
+                <Button onClick={() => setCurrentView('add')}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Shifts from Template
+                </Button>
+              </div>
+            )}
           </div>
 
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <p>Loading shifts...</p>
-            </div>
+          {currentView === 'add' ? (
+            <AddShiftsFromTemplate 
+              onBack={() => setCurrentView('view')}
+              onComplete={handleAddComplete}
+            />
           ) : (
-            <MemoizedShiftComponent>
-              <ShiftsTable 
-                shifts={shifts} 
-                isLoading={isLoading} 
-                locations={locations} 
-                staffMembers={staffMembers} 
-              />
-            </MemoizedShiftComponent>
+            <Tabs defaultValue="view">
+              <TabsList className="mb-6">
+                <TabsTrigger value="view">View Shifts</TabsTrigger>
+                <TabsTrigger value="add">Add Shifts</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="view">
+                {isLoading ? (
+                  <div className="flex justify-center items-center h-64">
+                    <p>Loading shifts...</p>
+                  </div>
+                ) : (
+                  <MemoizedShiftComponent>
+                    <ShiftsTable 
+                      shifts={shifts} 
+                      isLoading={isLoading} 
+                      locations={locations} 
+                      staffMembers={staffMembers} 
+                    />
+                  </MemoizedShiftComponent>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="add">
+                <AddShiftsFromTemplate 
+                  onBack={() => setCurrentView('view')}
+                  onComplete={handleAddComplete}
+                />
+              </TabsContent>
+            </Tabs>
           )}
 
           <AddShiftDialog
