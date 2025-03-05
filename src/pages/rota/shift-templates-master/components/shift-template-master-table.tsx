@@ -55,6 +55,11 @@ export function ShiftTemplateMasterTable({
   };
 
   console.log('ShiftTemplateMasterTable - templateMasters:', templateMasters.length);
+  
+  // Debug individual items if any exist
+  if (templateMasters.length > 0) {
+    console.log('First template master:', templateMasters[0]);
+  }
 
   return (
     <div className="space-y-4">

@@ -12,6 +12,7 @@ import { ShiftTemplateMaster, Location } from '../shift-templates/types';
 import { ShiftTemplateMasterTable } from './components/shift-template-master-table';
 import { NewTemplateVersionDialog } from './components/new-template-version-dialog';
 import { useCompany } from "@/contexts/CompanyContext";
+import { useShiftService } from '../shifts/services/shift-service';
 
 export default function ShiftTemplatesMasterPage() {
   const { toast } = useToast();
@@ -21,15 +22,48 @@ export default function ShiftTemplatesMasterPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { currentCompany } = useCompany();
+  const shiftService = useShiftService();
 
-  const fetchShiftTemplateVersions = async () => {
+  const fetchData = async () => {
     try {
       setIsLoading(true);
       
       if (!currentCompany) {
-        console.log('No company selected, cannot fetch templates');
+        console.log('No company selected, cannot fetch data');
         setIsLoading(false);
         return;
+      }
+      
+      console.log('Fetching data for company:', currentCompany.id);
+      
+      // Fetch both locations and template masters
+      const [locationsData, templateMastersData] = await Promise.all([
+        shiftService.fetchLocations(),
+        fetchShiftTemplateVersions()
+      ]);
+      
+      console.log('Fetched locations:', locationsData.length);
+      console.log('Fetched template masters:', templateMastersData.length);
+      
+      setLocations(locationsData);
+      setTemplateMasters(templateMastersData);
+    } catch (error) {
+      console.error('Error in fetchData:', error);
+      toast({
+        title: "Failed to load data",
+        description: "There was a problem loading the template data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchShiftTemplateVersions = async () => {
+    try {
+      if (!currentCompany) {
+        console.log('No company selected, cannot fetch templates');
+        return [];
       }
       
       console.log('Fetching shift templates for company:', currentCompany.id);
@@ -48,17 +82,17 @@ export default function ShiftTemplatesMasterPage() {
       console.log('Locations found:', locationsData?.length || 0);
       
       if (!locationsData || locationsData.length === 0) {
-        setTemplateMasters([]);
-        setIsLoading(false);
-        return;
+        return [];
       }
       
       const locationIds = locationsData.map(loc => loc.id);
+      console.log('Location IDs:', locationIds);
       
       // Then get templates for these locations
       const { data, error } = await supabase
         .from('shift_templates')
         .select(`
+          id,
           location_id,
           locations:location_id (id, name, company_id),
           version,
@@ -72,24 +106,30 @@ export default function ShiftTemplatesMasterPage() {
         throw error;
       }
       
-      console.log('Templates found:', data?.length || 0);
+      console.log('Raw templates found:', data?.length || 0, data);
       
+      // Only process templates that belong to the current company
+      const filteredData = data?.filter(template => 
+        template.locations?.company_id === currentCompany.id
+      );
+      
+      console.log('Filtered templates:', filteredData?.length || 0);
+      
+      // Group templates by location and version
       const uniqueTemplates = new Map<string, ShiftTemplateMaster>();
       
-      data?.forEach(template => {
-        if (template.locations?.company_id === currentCompany.id) {
-          const locationId = template.location_id;
-          const version = template.version;
-          const key = `${locationId}-${version}`;
-          
-          if (!uniqueTemplates.has(key)) {
-            uniqueTemplates.set(key, {
-              location_id: locationId,
-              location_name: template.locations?.name || 'Unknown',
-              version: version,
-              created_at: template.created_at,
-            });
-          }
+      filteredData?.forEach(template => {
+        const locationId = template.location_id;
+        const version = template.version;
+        const key = `${locationId}-${version}`;
+        
+        if (!uniqueTemplates.has(key)) {
+          uniqueTemplates.set(key, {
+            location_id: locationId,
+            location_name: template.locations?.name || 'Unknown',
+            version: version,
+            created_at: template.created_at,
+          });
         }
       });
       
@@ -100,8 +140,8 @@ export default function ShiftTemplatesMasterPage() {
         return b.version - a.version;
       });
       
-      console.log('Unique template masters:', templates.length);
-      setTemplateMasters(templates);
+      console.log('Unique template masters after grouping:', templates.length, templates);
+      return templates;
     } catch (error) {
       console.error('Error in fetchShiftTemplateVersions:', error);
       toast({
@@ -109,48 +149,14 @@ export default function ShiftTemplatesMasterPage() {
         description: "There was a problem loading the template data.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchLocations = async () => {
-    try {
-      if (!currentCompany) {
-        console.log('No company selected, cannot fetch locations');
-        return;
-      }
-      
-      console.log('Fetching locations for company:', currentCompany.id);
-      
-      const { data, error } = await supabase
-        .from('locations')
-        .select('*')
-        .eq('company_id', currentCompany.id)
-        .order('name');
-      
-      if (error) {
-        console.error('Error fetching locations:', error);
-        throw error;
-      }
-      
-      console.log('Locations found:', data?.length || 0);
-      setLocations(data || []);
-    } catch (error) {
-      console.error('Error in fetchLocations:', error);
-      toast({
-        title: "Failed to load locations",
-        description: "There was a problem loading the locations data.",
-        variant: "destructive",
-      });
+      return [];
     }
   };
 
   useEffect(() => {
     if (currentCompany) {
       console.log('Company changed, fetching data');
-      fetchLocations();
-      fetchShiftTemplateVersions();
+      fetchData();
     } else {
       console.log('No company selected yet');
     }
@@ -188,6 +194,7 @@ export default function ShiftTemplatesMasterPage() {
       if (templatesError) throw templatesError;
       
       if (templatesData && templatesData.length > 0) {
+        console.log('Cloning templates for location', locationId, 'from version', version, 'to version', newVersion);
         const newTemplates = templatesData.map(template => ({
           ...template,
           id: undefined,
@@ -206,7 +213,7 @@ export default function ShiftTemplatesMasterPage() {
           description: `Created version ${newVersion} based on version ${version}`,
         });
         
-        fetchShiftTemplateVersions();
+        fetchData();
       } else {
         toast({
           title: "No templates to clone",
