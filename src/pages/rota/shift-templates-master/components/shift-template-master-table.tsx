@@ -42,15 +42,19 @@ export function ShiftTemplateMasterTable({
       const date = new Date(dateString);
       return formatDistanceToNow(date, { addSuffix: true });
     } catch (error) {
+      console.error('Error formatting date:', error, dateString);
       return dateString;
     }
   };
 
   // Handle opening the add shift dialog with prefilled location and version
   const handleAddShift = (locationId: string, version: number) => {
+    console.log('Opening add shift dialog for:', { locationId, version });
     setSelectedTemplate({ locationId, version });
     setAddShiftDialogOpen(true);
   };
+
+  console.log('ShiftTemplateMasterTable - templateMasters:', templateMasters.length);
 
   return (
     <div className="space-y-4">
@@ -151,6 +155,10 @@ export function ShiftTemplateMasterTable({
           onOpenChange={setAddShiftDialogOpen}
           defaultLocationId={selectedTemplate.locationId}
           defaultVersion={selectedTemplate.version}
+          onAddComplete={() => {
+            console.log('AddShiftDialog completed');
+            setAddShiftDialogOpen(false);
+          }}
         />
       )}
     </div>

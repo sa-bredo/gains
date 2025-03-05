@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -22,17 +23,29 @@ export default function ShiftTemplatesMasterPage() {
   const { currentCompany } = useCompany();
 
   const fetchShiftTemplateVersions = async () => {
-    if (!currentCompany) return;
-    
     try {
       setIsLoading(true);
       
+      if (!currentCompany) {
+        console.log('No company selected, cannot fetch templates');
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('Fetching shift templates for company:', currentCompany.id);
+      
+      // First get locations for this company
       const { data: locationsData, error: locationsError } = await supabase
         .from('locations')
-        .select('id')
+        .select('id, name')
         .eq('company_id', currentCompany.id);
         
-      if (locationsError) throw locationsError;
+      if (locationsError) {
+        console.error('Error fetching locations:', locationsError);
+        throw locationsError;
+      }
+      
+      console.log('Locations found:', locationsData?.length || 0);
       
       if (!locationsData || locationsData.length === 0) {
         setTemplateMasters([]);
@@ -42,6 +55,7 @@ export default function ShiftTemplatesMasterPage() {
       
       const locationIds = locationsData.map(loc => loc.id);
       
+      // Then get templates for these locations
       const { data, error } = await supabase
         .from('shift_templates')
         .select(`
@@ -54,8 +68,11 @@ export default function ShiftTemplatesMasterPage() {
         .order('created_at', { ascending: false });
       
       if (error) {
+        console.error('Error fetching shift templates:', error);
         throw error;
       }
+      
+      console.log('Templates found:', data?.length || 0);
       
       const uniqueTemplates = new Map<string, ShiftTemplateMaster>();
       
@@ -83,9 +100,10 @@ export default function ShiftTemplatesMasterPage() {
         return b.version - a.version;
       });
       
+      console.log('Unique template masters:', templates.length);
       setTemplateMasters(templates);
     } catch (error) {
-      console.error('Error fetching shift templates:', error);
+      console.error('Error in fetchShiftTemplateVersions:', error);
       toast({
         title: "Failed to load shift templates",
         description: "There was a problem loading the template data.",
@@ -97,9 +115,14 @@ export default function ShiftTemplatesMasterPage() {
   };
 
   const fetchLocations = async () => {
-    if (!currentCompany) return;
-    
     try {
+      if (!currentCompany) {
+        console.log('No company selected, cannot fetch locations');
+        return;
+      }
+      
+      console.log('Fetching locations for company:', currentCompany.id);
+      
       const { data, error } = await supabase
         .from('locations')
         .select('*')
@@ -107,12 +130,14 @@ export default function ShiftTemplatesMasterPage() {
         .order('name');
       
       if (error) {
+        console.error('Error fetching locations:', error);
         throw error;
       }
       
+      console.log('Locations found:', data?.length || 0);
       setLocations(data || []);
     } catch (error) {
-      console.error('Error fetching locations:', error);
+      console.error('Error in fetchLocations:', error);
       toast({
         title: "Failed to load locations",
         description: "There was a problem loading the locations data.",
@@ -123,8 +148,11 @@ export default function ShiftTemplatesMasterPage() {
 
   useEffect(() => {
     if (currentCompany) {
+      console.log('Company changed, fetching data');
       fetchLocations();
       fetchShiftTemplateVersions();
+    } else {
+      console.log('No company selected yet');
     }
   }, [currentCompany]);
 
