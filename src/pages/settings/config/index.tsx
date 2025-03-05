@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { ConfigTable } from "./components/config-table";
@@ -33,7 +34,6 @@ export default function ConfigPage() {
       
       console.log('Fetching config for company:', currentCompany.id);
       
-      // Use only the fields that exist in the config table
       const { data, error } = await supabase
         .from('config')
         .select('id, key, value, display_name, created_at, updated_at')
@@ -46,13 +46,13 @@ export default function ConfigPage() {
       
       console.log('Fetched config items:', data);
       
-      // Map the data to match the ConfigItem type
+      // Map the data to the ConfigItem type
       const formattedData: ConfigItem[] = data.map(item => ({
         id: item.id,
         key: item.key,
         value: item.value,
         display_name: item.display_name,
-        company_id: currentCompany.id, // Use the current company ID
+        company_id: currentCompany.id,
         created_at: item.created_at,
         updated_at: item.updated_at
       }));
