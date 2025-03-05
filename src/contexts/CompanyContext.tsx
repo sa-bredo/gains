@@ -80,28 +80,73 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         supabaseUserId = userMappingData.supabase_user_id;
       }
       
-      // Now fetch companies directly without relying on user_companies table
-      // Just get all companies for now, as a fallback
-      const { data: demoCompany, error: demoCompanyError } = await supabase
-        .from('companies')
-        .select('*')
-        .limit(1)
-        .single();
+      // First try to get companies via user_companies relationship
+      const { data: userCompaniesData, error: userCompaniesError } = await supabase
+        .from('user_companies')
+        .select('company_id')
+        .eq('user_id', supabaseUserId);
         
-      if (demoCompanyError || !demoCompany) {
-        console.log("No demo company found");
-        setUserCompanies([]);
-        setCurrentCompany(null);
-        setIsLoadingCompanies(false);
-        return;
+      if (userCompaniesError) {
+        console.error("Error fetching user companies:", userCompaniesError);
       }
       
-      console.log("Found demo company:", demoCompany.name);
+      let companies: Company[] = [];
       
-      setUserCompanies([demoCompany]);
-      setCurrentCompany(demoCompany);
-      localStorage.setItem('currentCompanyId', demoCompany.id);
-      localStorage.setItem('currentCompanySlug', demoCompany.slug || '');
+      // If we found company relationships
+      if (userCompaniesData && userCompaniesData.length > 0) {
+        console.log("Found user companies:", userCompaniesData);
+        
+        const companyIds = userCompaniesData.map(uc => uc.company_id);
+        
+        const { data: companiesData, error: companiesError } = await supabase
+          .from('companies')
+          .select('*')
+          .in('id', companyIds);
+          
+        if (companiesError) {
+          console.error("Error fetching companies by IDs:", companiesError);
+          throw companiesError;
+        }
+        
+        companies = companiesData || [];
+      } 
+      // Fallback to getting any company in the system if no relationship exists yet
+      else {
+        console.log("No user companies found, fetching all available companies");
+        
+        const { data: demoCompany, error: demoCompanyError } = await supabase
+          .from('companies')
+          .select('*')
+          .limit(1)
+          .single();
+          
+        if (demoCompanyError || !demoCompany) {
+          console.log("No demo company found");
+          setUserCompanies([]);
+          setCurrentCompany(null);
+          setIsLoadingCompanies(false);
+          return;
+        }
+        
+        console.log("Found demo company:", demoCompany.name);
+        companies = [demoCompany];
+      }
+      
+      setUserCompanies(companies);
+      
+      // If we have at least one company
+      if (companies.length > 0) {
+        // Try to restore the previously selected company from localStorage
+        const savedCompanyId = localStorage.getItem('currentCompanyId');
+        let selectedCompany = companies.find(c => c.id === savedCompanyId) || companies[0];
+        
+        console.log("Setting current company to:", selectedCompany.name);
+        setCurrentCompany(selectedCompany);
+        localStorage.setItem('currentCompanyId', selectedCompany.id);
+        localStorage.setItem('currentCompanySlug', selectedCompany.slug || '');
+      } else {
+        setCurrentCompany(null);
+      }
       
     } catch (error) {
       console.error('Error fetching companies:', error);

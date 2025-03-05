@@ -1,6 +1,6 @@
 
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth as useClerkAuth, useUser } from "@clerk/clerk-react";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -11,8 +11,8 @@ export type ProtectedRouteProps = {
 };
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { isSignedIn, isLoaded } = useAuth();
-  const { currentCompany, isLoadingCompanies, refreshCompanies } = useCompany();
+  const { isSignedIn, isLoaded } = useClerkAuth();
+  const { currentCompany, isLoadingCompanies, refreshCompanies, userCompanies } = useCompany();
   const location = useLocation();
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
 
@@ -54,8 +54,13 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // If authenticated but no company selected and not already on select-company page
   if (!currentCompany && !location.pathname.includes('/select-company')) {
-    console.log("No company selected, redirecting to company selection");
-    return <Navigate to="/select-company" state={{ from: location }} replace />;
+    if (userCompanies.length === 0) {
+      console.log("No companies available, redirecting to create company page");
+      return <Navigate to="/create-company" state={{ from: location }} replace />;
+    } else {
+      console.log("No company selected, redirecting to company selection");
+      return <Navigate to="/select-company" state={{ from: location }} replace />;
+    }
   }
 
   // If we have a company selected, proceed with the protected route
