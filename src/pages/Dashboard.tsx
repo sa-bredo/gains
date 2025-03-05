@@ -6,9 +6,10 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
+import { toast } from "sonner";
 
 const Dashboard = () => {
-  const { currentCompany, isLoadingCompanies } = useCompany();
+  const { currentCompany, isLoadingCompanies, refreshCompanies } = useCompany();
   const { isSignedIn, isLoaded } = useAuth();
   const navigate = useNavigate();
 
@@ -16,8 +17,25 @@ const Dashboard = () => {
     // Redirect to login if not signed in and Clerk is loaded
     if (isLoaded && !isSignedIn) {
       navigate("/login");
+      return;
     }
-  }, [isLoaded, isSignedIn, navigate]);
+
+    // If no company and we're not currently loading, try one refresh
+    if (isLoaded && isSignedIn && !currentCompany && !isLoadingCompanies) {
+      const attemptRefresh = async () => {
+        console.log("Dashboard attempting to refresh companies");
+        try {
+          await refreshCompanies();
+        } catch (error) {
+          console.error("Error refreshing companies in Dashboard:", error);
+          toast("Please select a company to continue");
+          navigate("/select-company");
+        }
+      };
+      
+      attemptRefresh();
+    }
+  }, [isLoaded, isSignedIn, navigate, currentCompany, isLoadingCompanies, refreshCompanies]);
 
   if (!isLoaded || isLoadingCompanies) {
     return (
@@ -28,7 +46,7 @@ const Dashboard = () => {
     );
   }
 
-  // If no current company, show error and link to select company
+  // If no current company, redirect to select company
   if (!currentCompany) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center p-4">

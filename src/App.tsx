@@ -7,7 +7,6 @@ import Login from "@/pages/Login";
 import SignUpPage from "@/pages/SignUp";
 import VerifyEmailPage from "@/pages/VerifyEmail";
 import SelectCompany from "@/pages/SelectCompany";
-import CreateCompanyPage from "@/pages/CreateCompany";
 import Dashboard from "@/pages/Dashboard";
 import PlaidPage from "./pages/plaid"; 
 import RotaPage from "@/pages/rota";
@@ -42,7 +41,6 @@ function App() {
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/select-company" element={<SelectCompany />} />
-          <Route path="/create-company" element={<CreateCompanyPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/plaid" element={<PlaidPage />} />
           <Route path="/rota" element={<RotaPage />} />

@@ -119,32 +119,57 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         }
         
         companies = companiesData || [];
-      } else {
-        // Check if there's a company stored in localStorage
-        const storedCompanySlug = localStorage.getItem('currentCompanySlug');
+      }
+      
+      // Check if there's a company stored in localStorage - even if we already have companies
+      const storedCompanyId = localStorage.getItem('currentCompanyId');
+      const storedCompanySlug = localStorage.getItem('currentCompanySlug');
+      
+      if (storedCompanyId || storedCompanySlug) {
+        // Always attempt to connect the user to the company from localStorage
         
-        if (storedCompanySlug) {
-          // If we have a slug in localStorage, try to find that company
-          const { data: companyData, error: companyError } = await supabase
-            .from('companies')
-            .select('*')
-            .eq('slug', storedCompanySlug)
-            .maybeSingle();
+        let storedCompany = null;
+        
+        // First, try to find the stored company among the user's companies
+        if (companies.length > 0) {
+          if (storedCompanyId) {
+            storedCompany = companies.find(c => c.id === storedCompanyId);
+          } else if (storedCompanySlug) {
+            storedCompany = companies.find(c => c.slug === storedCompanySlug);
+          }
+        }
+        
+        // If not found among user's companies, fetch it from the database
+        if (!storedCompany) {
+          const query = supabase.from('companies').select('*');
+          
+          if (storedCompanyId) {
+            query.eq('id', storedCompanyId);
+          } else if (storedCompanySlug) {
+            query.eq('slug', storedCompanySlug);
+          }
+          
+          const { data: companyData, error: companyError } = await query.maybeSingle();
             
           if (!companyError && companyData) {
-            // If we found the company, connect the user to it
-            const { error: connectError } = await supabase
-              .from('user_companies')
-              .insert({
-                user_id: supabaseUserId,
-                company_id: companyData.id,
-                role: 'admin'
-              });
-              
-            if (connectError) {
-              console.error("Error connecting user to company:", connectError);
-            } else {
-              companies = [companyData];
+            storedCompany = companyData;
+            
+            // Connect user to this company if not already connected
+            if (!companies.find(c => c.id === companyData.id)) {
+              const { error: connectError } = await supabase
+                .from('user_companies')
+                .insert({
+                  user_id: supabaseUserId,
+                  company_id: companyData.id,
+                  role: 'admin'
+                });
+                
+              if (connectError) {
+                console.error("Error connecting user to company:", connectError);
+              } else {
+                // Add the company to our local list
+                companies.push(companyData);
+              }
             }
           }
         }

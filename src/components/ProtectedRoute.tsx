@@ -15,12 +15,6 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { currentCompany, isLoadingCompanies, refreshCompanies, userCompanies } = useCompany();
   const location = useLocation();
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
-  const [isInCreateCompany, setIsInCreateCompany] = useState(false);
-
-  // Set flag for current location
-  useEffect(() => {
-    setIsInCreateCompany(location.pathname === '/create-company');
-  }, [location.pathname]);
 
   // Attempt to refresh companies if none are loaded after authentication
   useEffect(() => {
@@ -43,7 +37,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   // Debug logging on company state changes
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      console.log("Company state changed:", {
+      console.log("Company state in ProtectedRoute:", {
         hasCompanies: userCompanies.length > 0,
         companyCount: userCompanies.length,
         currentCompany: currentCompany?.name || "None",
@@ -71,25 +65,10 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Debug logging outside conditional logic
-  console.log("Current path:", location.pathname);
-  console.log("User companies count:", userCompanies.length);
-  console.log("Current company:", currentCompany ? currentCompany.name : "None");
-
-  // If we're already on create-company page, just render the page
-  if (isInCreateCompany) {
-    return children ? <>{children}</> : <Outlet />;
-  }
-
   // If authenticated but no company selected and not already on select-company page
   if (!currentCompany && !location.pathname.includes('/select-company')) {
-    if (userCompanies.length === 0) {
-      console.log("No companies available, redirecting to create company page");
-      return <Navigate to="/create-company" state={{ from: location }} replace />;
-    } else {
-      console.log("No company selected, redirecting to company selection");
-      return <Navigate to="/select-company" state={{ from: location }} replace />;
-    }
+    console.log("No company selected, redirecting to company selection");
+    return <Navigate to="/select-company" state={{ from: location }} replace />;
   }
 
   // If we have a company selected, proceed with the protected route

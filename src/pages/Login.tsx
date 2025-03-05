@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useSignIn, useAuth } from "@clerk/clerk-react";
@@ -7,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Mail, Lock, Building, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Company } from "@/types/company";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface LoginCredentials {
   identifier: string;
@@ -20,6 +19,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  const { refreshCompanies } = useCompany();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,7 +66,8 @@ export default function LoginPage() {
         throw new Error("Sign in not available");
       }
 
-      const { data, error: companyError } = await supabase
+      // First, look up the company
+      const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .select('id, name, slug')
         .eq('name', companyName)
@@ -79,12 +80,15 @@ export default function LoginPage() {
         return;
       }
       
-      if (!data || data.length === 0) {
+      if (!companyData || companyData.length === 0) {
         setError(`Company "${companyName}" not found. Please check and try again.`);
         setIsSubmitting(false);
         return;
       }
       
+      const company = companyData[0];
+      
+      // Then try to login with Clerk
       const credentials: LoginCredentials = {
         identifier: email,
         password: password
@@ -95,16 +99,22 @@ export default function LoginPage() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         
-        localStorage.setItem('currentCompanySlug', data[0].slug);
-        localStorage.setItem('currentCompanyId', data[0].id);
+        // Store the company info in localStorage for CompanyContext to pick up
+        localStorage.setItem('currentCompanySlug', company.slug);
+        localStorage.setItem('currentCompanyId', company.id);
+        
+        console.log("Login successful, set company:", company.name);
+        
+        // Refresh companies to ensure the selected company is loaded
+        await refreshCompanies();
         
         toast({
           title: "Login successful",
-          description: "You have been logged in successfully.",
+          description: `You have been logged in to ${company.name} successfully.`,
         });
         
-        // Redirect to the intended destination or dashboard
-        navigate(from, { replace: true });
+        // Navigate to dashboard
+        navigate("/dashboard", { replace: true });
       } else {
         setError("Something went wrong. Please try again.");
       }
