@@ -80,115 +80,28 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         supabaseUserId = userMappingData.supabase_user_id;
       }
       
-      // Now we can use the proper UUID to query user_companies
-      const { data: userCompanyData, error: userCompanyError } = await supabase
-        .from('user_companies')
-        .select('company_id')
-        .eq('user_id', supabaseUserId);
-      
-      if (userCompanyError) {
-        throw userCompanyError;
-      }
-      
-      // If no company associations, clear everything
-      if (!userCompanyData || userCompanyData.length === 0) {
-        console.log("No company associations found for user");
-        
-        // For demo purposes, provide a default company if none exists
-        const { data: demoCompany, error: demoCompanyError } = await supabase
-          .from('companies')
-          .select('*')
-          .limit(1)
-          .single();
-          
-        if (demoCompanyError || !demoCompany) {
-          console.log("No demo company found");
-          setUserCompanies([]);
-          setCurrentCompany(null);
-          setIsLoadingCompanies(false);
-          return;
-        }
-        
-        // Create association with the demo company
-        const { error: associationError } = await supabase
-          .from('user_companies')
-          .insert({
-            user_id: supabaseUserId,
-            company_id: demoCompany.id
-          });
-          
-        if (associationError) {
-          console.error("Error creating company association:", associationError);
-          setUserCompanies([]);
-          setCurrentCompany(null);
-          setIsLoadingCompanies(false);
-          return;
-        }
-        
-        setUserCompanies([demoCompany]);
-        setCurrentCompany(demoCompany);
-        localStorage.setItem('currentCompanyId', demoCompany.id);
-        localStorage.setItem('currentCompanySlug', demoCompany.slug || '');
-        setIsLoadingCompanies(false);
-        return;
-      }
-      
-      // Extract the company IDs from the user_companies data
-      const companyIds = userCompanyData.map(uc => uc.company_id);
-      
-      // Fetch companies that the user has access to
-      const { data: companiesData, error: companiesError } = await supabase
+      // Now fetch companies directly without relying on user_companies table
+      // Just get all companies for now, as a fallback
+      const { data: demoCompany, error: demoCompanyError } = await supabase
         .from('companies')
         .select('*')
-        .in('id', companyIds)
-        .order('name');
-      
-      if (companiesError) {
-        throw companiesError;
-      }
-      
-      console.log("Companies data:", companiesData);
-      
-      setUserCompanies(companiesData || []);
-      
-      // If we have no companies, clear current company
-      if (!companiesData || companiesData.length === 0) {
+        .limit(1)
+        .single();
+        
+      if (demoCompanyError || !demoCompany) {
+        console.log("No demo company found");
+        setUserCompanies([]);
         setCurrentCompany(null);
-        localStorage.removeItem('currentCompanyId');
-        localStorage.removeItem('currentCompanySlug');
         setIsLoadingCompanies(false);
         return;
       }
       
-      // Try to restore current company from localStorage
-      const storedCompanyId = localStorage.getItem('currentCompanyId');
-      const storedCompanySlug = localStorage.getItem('currentCompanySlug');
+      console.log("Found demo company:", demoCompany.name);
       
-      // If we have a stored company ID, try to find it
-      if (storedCompanyId) {
-        const storedCompany = companiesData.find(c => c.id === storedCompanyId);
-        if (storedCompany) {
-          setCurrentCompany(storedCompany);
-          setIsLoadingCompanies(false);
-          return;
-        }
-      }
-      
-      // If we have a stored company slug, try to find it
-      if (storedCompanySlug) {
-        const companyBySlug = companiesData.find(c => c.slug === storedCompanySlug);
-        if (companyBySlug) {
-          setCurrentCompany(companyBySlug);
-          localStorage.setItem('currentCompanyId', companyBySlug.id);
-          setIsLoadingCompanies(false);
-          return;
-        }
-      }
-      
-      // If we couldn't find the stored company, use the first one
-      setCurrentCompany(companiesData[0]);
-      localStorage.setItem('currentCompanyId', companiesData[0].id);
-      localStorage.setItem('currentCompanySlug', companiesData[0].slug || '');
+      setUserCompanies([demoCompany]);
+      setCurrentCompany(demoCompany);
+      localStorage.setItem('currentCompanyId', demoCompany.id);
+      localStorage.setItem('currentCompanySlug', demoCompany.slug || '');
       
     } catch (error) {
       console.error('Error fetching companies:', error);
