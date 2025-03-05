@@ -42,9 +42,8 @@ const defaultNavItems: NavItem[] = [
   {
     title: "Documents",
     icon: FileText,
-    url: "/documents",
+    url: "/document-signing",
     items: [
-      { title: "All Documents", url: "/documents" },
       { title: "Templates", url: "/document-signing" },
       { title: "Sent Documents", url: "/document-signing/sent" }
     ]

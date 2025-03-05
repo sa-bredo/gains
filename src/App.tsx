@@ -14,7 +14,6 @@ import ShiftsPage from "@/pages/rota/shifts";
 import ShiftTemplatesPage from "@/pages/rota/shift-templates";
 import ShiftTemplatesMasterPage from "@/pages/rota/shift-templates-master";
 import DocumentSigningPage from "@/pages/document-signing";
-import DocumentsPage from "@/pages/documents";
 import EmployeesPage from "@/pages/employees";
 import TeamPage from "@/pages/team";
 import SettingsConfigPage from "@/pages/settings/config";
@@ -48,7 +47,6 @@ function App() {
           <Route path="/rota/shift-templates" element={<ShiftTemplatesPage />} />
           <Route path="/rota/shift-templates-master" element={<ShiftTemplatesMasterPage />} />
           <Route path="/document-signing/*" element={<DocumentSigningPage />} />
-          <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/employees" element={<EmployeesPage />} />
           <Route path="/team" element={<TeamPage />} />
           <Route path="/settings/config" element={<SettingsConfigPage />} />
