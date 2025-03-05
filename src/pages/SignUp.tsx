@@ -10,10 +10,71 @@ import {
   Mail, 
   Lock, 
   User, 
+  Building, 
   AlertCircle 
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
+// Add this new function to manually connect a user to a company
+export async function connectUserToCompany(clerkUserId: string, companyId: string) {
+  try {
+    // First, check if the user exists in our mapping table
+    const { data: userMappingData, error: userMappingError } = await supabase
+      .from('clerk_user_mapping')
+      .select('supabase_user_id')
+      .eq('clerk_user_id', clerkUserId)
+      .maybeSingle();
+    
+    if (userMappingError) {
+      console.error("Error checking user mapping:", userMappingError);
+      throw userMappingError;
+    }
+    
+    let supabaseUserId;
+    
+    if (!userMappingData) {
+      // If no mapping exists, create one with a UUID
+      const newUUID = crypto.randomUUID();
+      
+      // Insert the mapping
+      const { error: insertError } = await supabase
+        .from('clerk_user_mapping')
+        .insert({
+          clerk_user_id: clerkUserId,
+          supabase_user_id: newUUID,
+        });
+        
+      if (insertError) {
+        console.error("Error creating user mapping:", insertError);
+        throw insertError;
+      }
+      
+      supabaseUserId = newUUID;
+    } else {
+      supabaseUserId = userMappingData.supabase_user_id;
+    }
+    
+    // Now create the user-company relationship
+    const { error: userCompanyError } = await supabase
+      .from('user_companies')
+      .insert([{
+        user_id: supabaseUserId,
+        company_id: companyId,
+        role: 'admin'
+      }]);
+      
+    if (userCompanyError) {
+      console.error("Error linking user to company:", userCompanyError);
+      throw userCompanyError;
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Error connecting user to company:", error);
+    return { success: false, error };
+  }
+}
 
 export default function SignUpPage() {
   const { isSignedIn, isLoaded } = useAuth();
@@ -25,6 +86,8 @@ export default function SignUpPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [companySlug, setCompanySlug] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -39,17 +102,28 @@ export default function SignUpPage() {
     return (
       <div className="flex min-h-screen w-full items-center justify-center p-6 md:p-10">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Redirecting...</h1>
+          <h1 className="text-2xl font-bold mb-4">Redirecting to dashboard...</h1>
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
         </div>
       </div>
     );
   }
   
+  const handleCompanyNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value;
+    setCompanyName(name);
+    
+    const slug = name.toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-');
+      
+    setCompanySlug(slug);
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!firstName || !lastName || !email || !password) {
+    if (!firstName || !lastName || !email || !password || !companyName || !companySlug) {
       setError("Please fill out all fields");
       return;
     }
@@ -60,6 +134,18 @@ export default function SignUpPage() {
       
       if (!signUp) {
         throw new Error("Sign up not available");
+      }
+      
+      const { data: existingCompany, error: slugCheckError } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('slug', companySlug.toLowerCase())
+        .maybeSingle();
+        
+      if (existingCompany) {
+        setError(`Company slug "${companySlug}" is already taken. Please choose another.`);
+        setIsSubmitting(false);
+        return;
       }
       
       const result = await signUp.create({
@@ -104,9 +190,50 @@ export default function SignUpPage() {
           });
         }
         
+        // Create company
+        const { data: companyData, error: companyError } = await supabase
+          .from('companies')
+          .insert([{ 
+            name: companyName, 
+            slug: companySlug.toLowerCase(),
+          }])
+          .select()
+          .single();
+          
+        if (companyError) {
+          console.error("Error creating company:", companyError);
+          toast({
+            title: "Error creating company",
+            description: "Your account was created but we couldn't create your company.",
+            variant: "destructive",
+          });
+          navigate("/select-company");
+          return;
+        }
+        
+        // Connect user to company using the Supabase UUID
+        const { error: userCompanyError } = await supabase
+          .from('user_companies')
+          .insert([{
+            user_id: newSupabaseUUID,
+            company_id: companyData.id,
+            role: 'admin'
+          }]);
+          
+        if (userCompanyError) {
+          console.error("Error linking user to company:", userCompanyError);
+          toast({
+            title: "Error linking account",
+            description: "Your company was created but we couldn't link it to your account.",
+            variant: "destructive",
+          });
+        }
+        
+        localStorage.setItem('currentCompanySlug', companySlug);
+        
         toast({
           title: "Account created successfully",
-          description: "Please select or join a company to continue.",
+          description: `Your company "${companyName}" has been set up.`,
         });
         
         navigate("/select-company");
@@ -159,6 +286,44 @@ export default function SignUpPage() {
           )}
           
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="companyName" className="text-sm font-medium">
+                Company Name
+              </Label>
+              <div className="relative">
+                <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="companyName"
+                  type="text"
+                  placeholder="Your Company Name"
+                  value={companyName}
+                  onChange={handleCompanyNameChange}
+                  className="pl-10"
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="companySlug" className="text-sm font-medium">
+                Company URL Slug
+              </Label>
+              <div className="relative">
+                <Input
+                  id="companySlug"
+                  type="text"
+                  placeholder="your-company"
+                  value={companySlug}
+                  onChange={(e) => setCompanySlug(e.target.value.toLowerCase().replace(/[^\w-]/g, ''))}
+                  className="pl-3"
+                  disabled={isSubmitting}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                This will be used in your company URL: app.domain.com/{companySlug}
+              </p>
+            </div>
+            
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName" className="text-sm font-medium">
