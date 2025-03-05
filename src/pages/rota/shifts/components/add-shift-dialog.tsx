@@ -1,225 +1,162 @@
+
 import React, { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { ShiftTemplate } from '../../shift-templates/types';
-import { useShiftService } from '../services/shift-service';
-import { AddShiftForm } from './add-shift-form';
-import { DateRangeSelector } from './date-range-selector';
-import { ShiftPreview } from './shift-preview';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Location } from '../../shift-templates/types';
+import { StaffMember } from '../../shift-templates/types';
+import { useShiftService } from '../../shifts/services/shift-service';
+import { useCompany } from '@/contexts/CompanyContext';
 
 interface AddShiftDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddComplete?: () => void;
+  onConfirm?: (data: any) => void;
   defaultLocationId?: string;
   defaultVersion?: number;
+  onAddComplete?: () => void;
 }
 
-export function AddShiftDialog({
-  open,
-  onOpenChange,
-  onAddComplete,
-  defaultLocationId,
-  defaultVersion
+export function AddShiftDialog({ 
+  open, 
+  onOpenChange, 
+  onConfirm, 
+  defaultLocationId, 
+  defaultVersion,
+  onAddComplete 
 }: AddShiftDialogProps) {
-  const { toast } = useToast();
-  const shiftService = useShiftService();
-  
-  const [dialogMode, setDialogMode] = useState<'form' | 'date-selector' | 'preview'>('form');
-  const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
-  const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null);
-  const [selectedWeeks, setSelectedWeeks] = useState<number>(1);
-  const [previewShifts, setPreviewShifts] = useState<any[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [locations, setLocations] = useState<any[]>([]);
-  const [locationName, setLocationName] = useState<string>('');
-  
-  // Fetch templates if default location and version are provided
+  const [location, setLocation] = useState<string>(defaultLocationId || '');
+  const [employee, setEmployee] = useState<string>('');
+  const [startTime, setStartTime] = useState<string>('');
+  const [endTime, setEndTime] = useState<string>('');
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
+  const { fetchLocations, fetchStaffMembers } = useShiftService();
+  const { currentCompany } = useCompany();
+
   useEffect(() => {
-    const fetchTemplatesFromLocationAndVersion = async () => {
-      if (defaultLocationId && defaultVersion) {
-        try {
-          const fetchedTemplates = await shiftService.fetchTemplatesForLocationAndVersion(
-            defaultLocationId,
-            defaultVersion
-          );
-          setTemplates(fetchedTemplates);
-          
-          // Get locations to find the location name
-          const fetchedLocations = await shiftService.fetchLocations();
-          setLocations(fetchedLocations);
-          
-          const location = fetchedLocations.find(loc => loc.id === defaultLocationId);
-          if (location) {
-            setLocationName(location.name);
-          }
-          
-          // Set dialog mode to date selector
-          setDialogMode('date-selector');
-        } catch (error) {
-          console.error('Error fetching templates:', error);
-          toast({
-            title: 'Error',
-            description: 'Failed to load shift templates.',
-            variant: 'destructive',
-          });
-        }
-      }
+    if (open) {
+      fetchLocations();
+      fetchStaffMembers();
+    }
+  }, [open, fetchLocations, fetchStaffMembers, currentCompany]);
+
+  useEffect(() => {
+    const loadLocations = async () => {
+      const locationsData = await fetchLocations();
+      setLocations(locationsData);
+    };
+
+    const loadStaffMembers = async () => {
+      const staffMembersData = await fetchStaffMembers();
+      setStaffMembers(staffMembersData);
+    };
+
+    loadLocations();
+    loadStaffMembers();
+  }, [fetchLocations, fetchStaffMembers, currentCompany]);
+
+  const handleConfirm = () => {
+    const data = {
+      location,
+      employee,
+      startTime,
+      endTime,
+      version: defaultVersion,
     };
     
-    if (open) {
-      fetchTemplatesFromLocationAndVersion();
-    } else {
-      // Reset state when dialog closes
-      setDialogMode(defaultLocationId && defaultVersion ? 'date-selector' : 'form');
-      setPreviewShifts([]);
-      setIsSubmitting(false);
+    if (onConfirm) {
+      onConfirm(data);
     }
-  }, [open, defaultLocationId, defaultVersion, shiftService, toast]);
-  
-  const handleDateRangeContinue = async (startDate: Date, weeks: number) => {
-    try {
-      setSelectedStartDate(startDate);
-      setSelectedWeeks(weeks);
-      
-      if (!templates.length) {
-        toast({
-          title: 'No templates',
-          description: 'No shift templates found for this location and version.',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
-      // Generate shift previews from templates
-      const shiftPreviews = shiftService.generateShiftsPreview(templates, startDate, weeks);
-      
-      // Map shifts to preview format
-      const mappedShifts = shiftService.mapShiftsToPreview(shiftPreviews, locations);
-      setPreviewShifts(mappedShifts);
-      
-      // Switch to preview mode
-      setDialogMode('preview');
-    } catch (error) {
-      console.error('Error generating shift previews:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to generate shift previews.',
-        variant: 'destructive',
-      });
+    
+    if (onAddComplete) {
+      onAddComplete();
     }
+    
+    onOpenChange(false);
   };
-  
-  const handleSaveShifts = async () => {
-    try {
-      setIsSubmitting(true);
-      
-      if (!previewShifts.length) {
-        toast({
-          title: 'No shifts',
-          description: 'No shifts to save.',
-          variant: 'warning',
-        });
-        return;
-      }
-      
-      // Format shifts for database insertion
-      const shiftsToCreate = shiftService.formatShiftsForCreation(
-        previewShifts.map(shift => ({
-          date: format(shift.date, 'yyyy-MM-dd'),
-          day_of_week: shift.day_of_week,
-          start_time: shift.start_time,
-          end_time: shift.end_time,
-          location_id: shift.location_id,
-          employee_id: shift.employee_id,
-          employee_name: shift.employee_name,
-          version: templates[0]?.version || 1,
-        }))
-      );
-      
-      // Create shifts in database
-      await shiftService.createShifts(shiftsToCreate);
-      
-      toast({
-        title: 'Success',
-        description: `${shiftsToCreate.length} shifts created successfully.`,
-        variant: 'default',
-      });
-      
-      // Close dialog and notify parent
-      onOpenChange(false);
-      if (onAddComplete) {
-        onAddComplete();
-      }
-    } catch (error) {
-      console.error('Error saving shifts:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save shifts.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  const handleBackToDateSelector = () => {
-    setDialogMode('date-selector');
-  };
-  
-  const getDialogContent = () => {
-    switch (dialogMode) {
-      case 'date-selector':
-        return (
-          <DateRangeSelector
-            open={open}
-            onOpenChange={onOpenChange}
-            onContinue={handleDateRangeContinue}
-            templateInfo={
-              defaultLocationId && defaultVersion
-                ? { locationName, version: defaultVersion }
-                : undefined
-            }
-          />
-        );
-      case 'preview':
-        return (
-          <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                <DialogTitle>Preview Shifts</DialogTitle>
-                <DialogDescription>
-                  Review the shifts that will be created based on the template.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <ShiftPreview
-                shifts={previewShifts}
-                onSave={handleSaveShifts}
-                onBack={handleBackToDateSelector}
-                isSubmitting={isSubmitting}
-              />
-            </DialogContent>
-          </Dialog>
-        );
-      case 'form':
-      default:
-        return (
-          <AddShiftForm
-            open={open}
-            onOpenChange={onOpenChange}
-            onAddComplete={onAddComplete}
-          />
-        );
-    }
-  };
-  
-  return getDialogContent();
+
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogTrigger asChild>
+        <Button variant="outline">Add Shift</Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Add a new shift</AlertDialogTitle>
+          <AlertDialogDescription>
+            Specify the details for the new shift.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="location" className="text-right">
+              Location
+            </Label>
+            <Select onValueChange={setLocation} value={location}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a location" />
+              </SelectTrigger>
+              <SelectContent>
+                {locations.map((location) => (
+                  <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="employee" className="text-right">
+              Employee
+            </Label>
+            <Select onValueChange={setEmployee} value={employee}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select an employee" />
+              </SelectTrigger>
+              <SelectContent>
+                {staffMembers.map((staffMember) => (
+                  <SelectItem key={staffMember.id} value={staffMember.id}>{staffMember.first_name} {staffMember.last_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="start-time" className="text-right">
+              Start Time
+            </Label>
+            <Input id="start-time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="end-time" className="text-right">
+              End Time
+            </Label>
+            <Input id="end-time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="col-span-3" />
+          </div>
+          {defaultVersion && (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="version" className="text-right">
+                Template Version
+              </Label>
+              <Input id="version" value={defaultVersion} readOnly className="col-span-3 bg-gray-100" />
+            </div>
+          )}
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirm}>Confirm</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
 }
