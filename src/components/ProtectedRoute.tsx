@@ -18,18 +18,20 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return (
       <div className="h-screen w-full flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading...</span>
+        <span className="ml-2">Loading authentication...</span>
       </div>
     );
   }
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
+    console.log("User not authenticated, redirecting to login");
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Redirect to company selection if authenticated but no company selected
   if (!currentCompany && !location.pathname.includes('/select-company')) {
+    console.log("No company selected, redirecting to company selection");
     return <Navigate to="/select-company" state={{ from: location }} replace />;
   }
 

@@ -36,6 +36,8 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         setUserCompanies([]);
         setCurrentCompany(null);
         setIsLoadingCompanies(false);
+        localStorage.removeItem('currentCompanyId');
+        localStorage.removeItem('currentCompanySlug');
         return;
       }
 
@@ -55,39 +57,45 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       
       setUserCompanies(companiesData || []);
       
-      // If we have companies but no current company selected, select the first one
-      if (companiesData && companiesData.length > 0 && !currentCompany) {
-        setCurrentCompany(companiesData[0]);
-        // Store the selected company in localStorage
-        localStorage.setItem('currentCompanyId', companiesData[0].id);
-        localStorage.setItem('currentCompanySlug', companiesData[0].slug || '');
-      } else if (companiesData && companiesData.length > 0) {
-        // Check if the stored company is still valid
-        const storedCompanyId = localStorage.getItem('currentCompanyId');
-        const storedCompanySlug = localStorage.getItem('currentCompanySlug');
-        
-        if (storedCompanyId) {
-          const storedCompany = companiesData.find(c => c.id === storedCompanyId);
-          if (storedCompany) {
-            setCurrentCompany(storedCompany);
-          } else if (storedCompanySlug) {
-            // Try to find by slug if ID doesn't match
-            const companyBySlug = companiesData.find(c => c.slug === storedCompanySlug);
-            if (companyBySlug) {
-              setCurrentCompany(companyBySlug);
-              localStorage.setItem('currentCompanyId', companyBySlug.id);
-            } else {
-              setCurrentCompany(companiesData[0]);
-              localStorage.setItem('currentCompanyId', companiesData[0].id);
-              localStorage.setItem('currentCompanySlug', companiesData[0].slug || '');
-            }
-          } else {
-            setCurrentCompany(companiesData[0]);
-            localStorage.setItem('currentCompanyId', companiesData[0].id);
-            localStorage.setItem('currentCompanySlug', companiesData[0].slug || '');
-          }
+      // If we have no companies, clear current company
+      if (!companiesData || companiesData.length === 0) {
+        setCurrentCompany(null);
+        localStorage.removeItem('currentCompanyId');
+        localStorage.removeItem('currentCompanySlug');
+        setIsLoadingCompanies(false);
+        return;
+      }
+      
+      // Try to restore current company from localStorage
+      const storedCompanyId = localStorage.getItem('currentCompanyId');
+      const storedCompanySlug = localStorage.getItem('currentCompanySlug');
+      
+      // If we have a stored company ID, try to find it
+      if (storedCompanyId) {
+        const storedCompany = companiesData.find(c => c.id === storedCompanyId);
+        if (storedCompany) {
+          setCurrentCompany(storedCompany);
+          setIsLoadingCompanies(false);
+          return;
         }
       }
+      
+      // If we have a stored company slug, try to find it
+      if (storedCompanySlug) {
+        const companyBySlug = companiesData.find(c => c.slug === storedCompanySlug);
+        if (companyBySlug) {
+          setCurrentCompany(companyBySlug);
+          localStorage.setItem('currentCompanyId', companyBySlug.id);
+          setIsLoadingCompanies(false);
+          return;
+        }
+      }
+      
+      // If we couldn't find the stored company, use the first one
+      setCurrentCompany(companiesData[0]);
+      localStorage.setItem('currentCompanyId', companiesData[0].id);
+      localStorage.setItem('currentCompanySlug', companiesData[0].slug || '');
+      
     } catch (error) {
       console.error('Error fetching companies:', error);
       toast({
@@ -101,7 +109,6 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Only try to fetch companies when Clerk is fully loaded and user is signed in
     if (isLoaded) {
       if (isSignedIn) {
         fetchUserCompanies();
@@ -109,6 +116,8 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         setUserCompanies([]);
         setCurrentCompany(null);
         setIsLoadingCompanies(false);
+        localStorage.removeItem('currentCompanyId');
+        localStorage.removeItem('currentCompanySlug');
       }
     }
   }, [isLoaded, isSignedIn, userId]);

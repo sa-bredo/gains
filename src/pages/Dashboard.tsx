@@ -1,18 +1,50 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@clerk/clerk-react";
 
 const Dashboard = () => {
   const { currentCompany, isLoadingCompanies } = useCompany();
+  const { isSignedIn, isLoaded } = useAuth();
+  const navigate = useNavigate();
 
-  if (isLoadingCompanies) {
+  useEffect(() => {
+    // Redirect to login if not signed in and Clerk is loaded
+    if (isLoaded && !isSignedIn) {
+      navigate("/login");
+    }
+  }, [isLoaded, isSignedIn, navigate]);
+
+  if (!isLoaded || isLoadingCompanies) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading...</span>
+        <span className="ml-2">Loading dashboard...</span>
+      </div>
+    );
+  }
+
+  // If no current company, show error and link to select company
+  if (!currentCompany) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-2">No Company Selected</h1>
+          <p className="text-muted-foreground mb-6">
+            Please select a company to continue using the dashboard.
+          </p>
+          <button 
+            onClick={() => navigate("/select-company")}
+            className="bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition-colors"
+          >
+            Select Company
+          </button>
+        </div>
       </div>
     );
   }
