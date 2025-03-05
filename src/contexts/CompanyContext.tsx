@@ -43,11 +43,46 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
       console.log("Fetching companies for user:", userId);
 
-      // First get the user_companies associations to see which companies the user has access to
+      // First, let's check if this user exists in our mapping table or if we need to create a mapping
+      const { data: userMappingData, error: userMappingError } = await supabase
+        .from('clerk_user_mapping')
+        .select('supabase_user_id')
+        .eq('clerk_user_id', userId)
+        .maybeSingle();
+      
+      if (userMappingError) {
+        console.error("Error checking user mapping:", userMappingError);
+        throw userMappingError;
+      }
+      
+      let supabaseUserId;
+      
+      if (!userMappingData) {
+        // If no mapping exists, we need to create one with a proper UUID
+        const newUUID = crypto.randomUUID();
+        const { error: insertError } = await supabase
+          .from('clerk_user_mapping')
+          .insert({
+            clerk_user_id: userId,
+            supabase_user_id: newUUID,
+            email: user?.primaryEmailAddress?.emailAddress
+          });
+          
+        if (insertError) {
+          console.error("Error creating user mapping:", insertError);
+          throw insertError;
+        }
+        
+        supabaseUserId = newUUID;
+      } else {
+        supabaseUserId = userMappingData.supabase_user_id;
+      }
+      
+      // Now we can use the proper UUID to query user_companies
       const { data: userCompanyData, error: userCompanyError } = await supabase
         .from('user_companies')
         .select('company_id')
-        .eq('user_id', userId);
+        .eq('user_id', supabaseUserId);
       
       if (userCompanyError) {
         throw userCompanyError;
@@ -55,10 +90,43 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       
       // If no company associations, clear everything
       if (!userCompanyData || userCompanyData.length === 0) {
-        setUserCompanies([]);
-        setCurrentCompany(null);
-        localStorage.removeItem('currentCompanyId');
-        localStorage.removeItem('currentCompanySlug');
+        console.log("No company associations found for user");
+        
+        // For demo purposes, let's provide a default company if none exists
+        const { data: demoCompany, error: demoCompanyError } = await supabase
+          .from('companies')
+          .select('*')
+          .limit(1)
+          .single();
+          
+        if (demoCompanyError || !demoCompany) {
+          console.log("No demo company found");
+          setUserCompanies([]);
+          setCurrentCompany(null);
+          setIsLoadingCompanies(false);
+          return;
+        }
+        
+        // Create association with the demo company
+        const { error: associationError } = await supabase
+          .from('user_companies')
+          .insert({
+            user_id: supabaseUserId,
+            company_id: demoCompany.id
+          });
+          
+        if (associationError) {
+          console.error("Error creating company association:", associationError);
+          setUserCompanies([]);
+          setCurrentCompany(null);
+          setIsLoadingCompanies(false);
+          return;
+        }
+        
+        setUserCompanies([demoCompany]);
+        setCurrentCompany(demoCompany);
+        localStorage.setItem('currentCompanyId', demoCompany.id);
+        localStorage.setItem('currentCompanySlug', demoCompany.slug || '');
         setIsLoadingCompanies(false);
         return;
       }
