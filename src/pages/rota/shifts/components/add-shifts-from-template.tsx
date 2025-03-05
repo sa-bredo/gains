@@ -40,7 +40,7 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
         const locationsData = await shiftService.fetchLocations();
         setLocations(locationsData);
         
-        const mastersData = await shiftService.fetchCompanyTemplateMasters();
+        const mastersData = await shiftService.fetchTemplateMasters();
         setTemplateMasters(mastersData);
       } catch (error) {
         console.error('Error loading data:', error);
