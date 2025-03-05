@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -5,15 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function SelectCompany() {
-  const { userCompanies, switchCompany, isLoadingCompanies, currentCompany } = useCompany();
+  const { userCompanies, switchCompany, isLoadingCompanies, currentCompany, refreshCompanies } = useCompany();
   const { user } = useUser();
   const { isLoaded, isSignedIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
   const from = location.state?.from?.pathname || "/dashboard";
+  
+  // Refresh companies when the component mounts
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      refreshCompanies();
+    }
+  }, [isLoaded, isSignedIn, refreshCompanies]);
   
   useEffect(() => {
     if (!isLoaded) return;
@@ -23,15 +32,22 @@ export default function SelectCompany() {
       return;
     }
     
-    if (userCompanies.length === 1 && !currentCompany) {
+    // If there's only one company, automatically select it and redirect
+    if (userCompanies.length === 1) {
+      console.log("Only one company found, auto-selecting", userCompanies[0].name);
       switchCompany(userCompanies[0].id);
+      toast.success(`Logged in to ${userCompanies[0].name}`);
       navigate("/dashboard", { replace: true });
+      return;
     }
     
+    // If we already have a current company selected, go to dashboard
     if (currentCompany) {
+      console.log("Company already selected, navigating to dashboard", currentCompany.name);
       navigate("/dashboard", { replace: true });
+      return;
     }
-  }, [userCompanies, currentCompany, navigate, switchCompany, isLoaded, isSignedIn]);
+  }, [userCompanies, currentCompany, navigate, switchCompany, isLoaded, isSignedIn, from]);
   
   if (!isLoaded) {
     return (
@@ -47,7 +63,8 @@ export default function SelectCompany() {
   if (isLoadingCompanies) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+        <span>Loading your companies...</span>
       </div>
     );
   }
@@ -102,6 +119,7 @@ export default function SelectCompany() {
             <CardFooter className="pt-2">
               <Button className="w-full" onClick={() => {
                 switchCompany(company.id);
+                toast.success(`Switched to ${company.name}`);
                 navigate("/dashboard", { replace: true });
               }}>
                 Select

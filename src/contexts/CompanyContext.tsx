@@ -43,14 +43,38 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
       console.log("Fetching companies for user:", userId);
 
-      // Fetch companies from the database
-      const { data: companiesData, error } = await supabase
+      // First get the user_companies associations to see which companies the user has access to
+      const { data: userCompanyData, error: userCompanyError } = await supabase
+        .from('user_companies')
+        .select('company_id')
+        .eq('user_id', userId);
+      
+      if (userCompanyError) {
+        throw userCompanyError;
+      }
+      
+      // If no company associations, clear everything
+      if (!userCompanyData || userCompanyData.length === 0) {
+        setUserCompanies([]);
+        setCurrentCompany(null);
+        localStorage.removeItem('currentCompanyId');
+        localStorage.removeItem('currentCompanySlug');
+        setIsLoadingCompanies(false);
+        return;
+      }
+      
+      // Extract the company IDs from the user_companies data
+      const companyIds = userCompanyData.map(uc => uc.company_id);
+      
+      // Fetch companies that the user has access to
+      const { data: companiesData, error: companiesError } = await supabase
         .from('companies')
         .select('*')
+        .in('id', companyIds)
         .order('name');
       
-      if (error) {
-        throw error;
+      if (companiesError) {
+        throw companiesError;
       }
       
       console.log("Companies data:", companiesData);
