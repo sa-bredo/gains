@@ -2,6 +2,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { FormConfig, Form, FormSubmission } from '../types';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 // Create a cache for recently fetched forms
 let formsCache: Form[] | null = null;
@@ -58,11 +59,12 @@ export const useFormService = () => {
   const fetchFormById = async (id: string): Promise<Form> => {
     try {
       console.log(`Fetching form with ID: ${id}`);
+      // Using maybeSingle() instead of single() to handle case where form doesn't exist
       const { data, error } = await supabase
         .from('forms')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error(`Supabase error fetching form with ID ${id}:`, error);
@@ -88,14 +90,19 @@ export const useFormService = () => {
   // Fetch a form by its public URL
   const fetchFormByPublicUrl = async (publicUrl: string): Promise<Form> => {
     try {
+      // Using maybeSingle() instead of single() to handle case where form doesn't exist
       const { data, error } = await supabase
         .from('forms')
         .select('*')
         .eq('public_url', publicUrl)
-        .single();
+        .maybeSingle();
 
       if (error) {
         throw error;
+      }
+      
+      if (!data) {
+        throw new Error('Form not found with the provided public URL');
       }
 
       return {
@@ -111,6 +118,7 @@ export const useFormService = () => {
   // Create a new form
   const createForm = async (formData: Omit<Form, 'id' | 'created_at' | 'updated_at'>): Promise<Form> => {
     try {
+      console.log('Creating new form with data:', formData);
       const { data, error } = await supabase
         .from('forms')
         .insert({
@@ -120,12 +128,20 @@ export const useFormService = () => {
           json_config: formData.json_config as unknown as any
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
+        console.error('Error creating form:', error);
         throw error;
       }
 
+      if (!data) {
+        console.error('No data returned after form creation');
+        throw new Error('Failed to create form - no data returned');
+      }
+
+      console.log('Form created successfully:', data);
+      
       // Clear cache after creating a new form
       clearFormsCache();
 
@@ -142,6 +158,7 @@ export const useFormService = () => {
   // Update an existing form
   const updateForm = async (id: string, formData: Partial<Form>): Promise<Form> => {
     try {
+      console.log(`Updating form with ID: ${id}`, formData);
       const updateData: any = { ...formData };
       if (formData.json_config) {
         updateData.json_config = formData.json_config as unknown as any;
@@ -152,12 +169,20 @@ export const useFormService = () => {
         .update(updateData)
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
+        console.error(`Error updating form with ID ${id}:`, error);
         throw error;
       }
 
+      if (!data) {
+        console.error(`No data returned after updating form with ID ${id}`);
+        throw new Error(`Failed to update form with ID ${id} - no data returned`);
+      }
+
+      console.log(`Form with ID ${id} updated successfully:`, data);
+      
       // Clear cache after updating a form
       clearFormsCache();
 
@@ -174,14 +199,18 @@ export const useFormService = () => {
   // Delete a form
   const deleteForm = async (id: string): Promise<void> => {
     try {
+      console.log(`Deleting form with ID: ${id}`);
       const { error } = await supabase
         .from('forms')
         .delete()
         .eq('id', id);
 
       if (error) {
+        console.error(`Error deleting form with ID ${id}:`, error);
         throw error;
       }
+      
+      console.log(`Form with ID ${id} deleted successfully`);
       
       // Clear cache after deleting a form
       clearFormsCache();
@@ -194,6 +223,7 @@ export const useFormService = () => {
   // Submit form data
   const submitForm = async (formId: string, data: Record<string, any>): Promise<void> => {
     try {
+      console.log(`Submitting data for form with ID: ${formId}`, data);
       const { error } = await supabase
         .from('form_submissions')
         .insert({
@@ -202,8 +232,11 @@ export const useFormService = () => {
         });
 
       if (error) {
+        console.error(`Error submitting data for form with ID ${formId}:`, error);
         throw error;
       }
+      
+      console.log(`Data for form with ID ${formId} submitted successfully`);
     } catch (error) {
       console.error('Error submitting form data:', error);
       throw error;
@@ -213,6 +246,7 @@ export const useFormService = () => {
   // Fetch submissions for a form
   const fetchFormSubmissions = async (formId: string): Promise<FormSubmission[]> => {
     try {
+      console.log(`Fetching submissions for form with ID: ${formId}`);
       const { data, error } = await supabase
         .from('form_submissions')
         .select('*')
@@ -220,9 +254,11 @@ export const useFormService = () => {
         .order('submitted_at', { ascending: false });
 
       if (error) {
+        console.error(`Error fetching submissions for form with ID ${formId}:`, error);
         throw error;
       }
-
+      
+      console.log(`Submissions for form with ID ${formId} fetched successfully:`, data);
       return data as FormSubmission[];
     } catch (error) {
       console.error('Error fetching form submissions:', error);

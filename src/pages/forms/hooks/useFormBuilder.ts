@@ -123,6 +123,7 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
 
     try {
       setIsSaving(true);
+      console.log("Attempting to save form...");
       
       const formConfig: FormConfig = {
         title,
@@ -131,6 +132,7 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
       };
       
       if (initialForm) {
+        console.log(`Updating existing form with ID: ${initialForm.id}`);
         await formService.updateForm(initialForm.id, {
           title,
           description: description || null,
@@ -142,12 +144,18 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
           description: "Form updated successfully"
         });
       } else {
+        console.log("Creating new form...");
+        const publicUrl = formService.generatePublicUrl();
+        console.log(`Generated public URL: ${publicUrl}`);
+        
         const newForm = await formService.createForm({
           title,
           description: description || null,
-          public_url: formService.generatePublicUrl(),
+          public_url: publicUrl,
           json_config: formConfig
         });
+        
+        console.log("New form created:", newForm);
         
         toast({
           title: "Success",
@@ -158,9 +166,15 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
       }
     } catch (error) {
       console.error("Error saving form:", error);
+      let errorMessage = "Failed to save form";
+      
+      if (error instanceof Error) {
+        errorMessage += `: ${error.message}`;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to save form",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
