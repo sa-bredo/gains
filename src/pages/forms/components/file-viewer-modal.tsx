@@ -15,7 +15,7 @@ import {
   Loader2,
   FileArchive,
   FileSpreadsheet,
-  FilePdf,
+  File as FilePdf,  // Changed from FilePdf to File and aliased it
   FileAudio,
   FileVideo,
 } from "lucide-react";
@@ -82,7 +82,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
       case "image":
         return <ImageIcon className="h-16 w-16 text-muted-foreground" />;
       case "pdf":
-        return <FilePdf className="h-16 w-16 text-muted-foreground" />;
+        return <FilePdf className="h-16 w-16 text-muted-foreground" />;  // Now using the aliased File icon
       case "text":
         return <FileText className="h-16 w-16 text-muted-foreground" />;
       case "spreadsheet":
