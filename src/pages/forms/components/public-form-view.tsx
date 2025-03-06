@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Form, FormField } from "../types";
@@ -193,6 +194,17 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
   const hasCoverImage = !!form.json_config.coverImage;
   const formTitle = form.title;
   const formDescription = form.description || "";
+  
+  // Get appearance settings from form config or use defaults
+  const appearance = form.json_config.appearance || { 
+    backgroundOpacity: 10, 
+    titleColor: "#FFFFFF", 
+    textColor: "#FFFFFF" 
+  };
+  
+  // Calculate opacity value for CSS (0-1 range)
+  const opacityValue = (appearance.backgroundOpacity || 10) / 100;
+  const bgOpacityClass = `bg-black/[${opacityValue}]`;
 
   return (
     <div className="h-screen w-full flex">
@@ -205,14 +217,26 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-black/10"></div>
-            <div className="absolute bottom-16 left-12">
-              <div className="bg-black/10 rounded-xl p-6">
-                <h1 className="text-5xl font-bold leading-tight text-white">
-                  {formTitle.split(' ').slice(0, Math.ceil(formTitle.split(' ').length / 2)).join(' ')}<br />
-                  {formTitle.split(' ').slice(Math.ceil(formTitle.split(' ').length / 2)).join(' ')}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div 
+                className="rounded-xl p-8 max-w-md"
+                style={{ 
+                  backgroundColor: `rgba(0, 0, 0, ${opacityValue})`,
+                }}
+              >
+                <h1 
+                  className="text-5xl font-bold leading-tight"
+                  style={{ color: appearance.titleColor || "#FFFFFF" }}
+                >
+                  {formTitle}
                 </h1>
                 {formDescription && (
-                  <p className="mt-4 text-white/90 max-w-md">{formDescription}</p>
+                  <p 
+                    className="mt-4 max-w-md"
+                    style={{ color: appearance.textColor || "#FFFFFF" }}
+                  >
+                    {formDescription}
+                  </p>
                 )}
               </div>
             </div>

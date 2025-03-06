@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { FormField, FormConfig, FieldType, Form, FormType } from "../types";
+import { FormField, FormConfig, FieldType, Form, FormType, FormAppearance } from "../types";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useFormService } from "../services/form-service";
@@ -19,6 +19,11 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
     fields: initialForm?.json_config?.fields || [],
     formType: initialForm?.form_type || "Survey" as FormType,
     coverImage: initialForm?.json_config?.coverImage || "",
+    appearance: initialForm?.json_config?.appearance || { 
+      backgroundOpacity: 10, 
+      titleColor: "#FFFFFF", 
+      textColor: "#FFFFFF" 
+    },
   });
   
   // State management
@@ -27,6 +32,7 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
   const [fields, setFields] = useState<FormField[]>(initialValueRef.current.fields);
   const [formType, setFormType] = useState<FormType>(initialValueRef.current.formType);
   const [coverImage, setCoverImage] = useState<string>(initialValueRef.current.coverImage);
+  const [appearance, setAppearance] = useState<FormAppearance>(initialValueRef.current.appearance);
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -48,6 +54,11 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
       setFields(initialForm.json_config.fields || []);
       setFormType(initialForm.form_type || "Survey");
       setCoverImage(initialForm.json_config.coverImage || "");
+      setAppearance(initialForm.json_config.appearance || { 
+        backgroundOpacity: 10, 
+        titleColor: "#FFFFFF", 
+        textColor: "#FFFFFF" 
+      });
       
       isInitialized.current = true;
     }
@@ -142,6 +153,7 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
         description: description || undefined,
         fields,
         coverImage: coverImage || undefined,
+        appearance
       };
       
       if (initialForm) {
@@ -208,7 +220,7 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
     } finally {
       setIsSaving(false);
     }
-  }, [title, description, fields, formType, coverImage, initialForm, formService, uiToast, navigate]);
+  }, [title, description, fields, formType, coverImage, appearance, initialForm, formService, uiToast, navigate]);
 
   return {
     title,
@@ -216,12 +228,14 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
     fields,
     formType,
     coverImage,
+    appearance,
     editingField,
     isSaving,
     setTitle,
     setDescription,
     setFormType,
     setCoverImage,
+    setAppearance,
     setEditingField,
     addField,
     duplicateField,

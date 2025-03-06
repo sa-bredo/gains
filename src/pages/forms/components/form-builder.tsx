@@ -24,12 +24,14 @@ export const FormBuilder = memo(({ form }: FormBuilderProps) => {
     fields,
     formType,
     coverImage,
+    appearance,
     editingField,
     isSaving,
     setTitle,
     setDescription,
     setFormType,
     setCoverImage,
+    setAppearance,
     setEditingField,
     addField,
     duplicateField,
@@ -53,10 +55,12 @@ export const FormBuilder = memo(({ form }: FormBuilderProps) => {
             description={description}
             formType={formType}
             coverImage={coverImage}
+            appearance={appearance}
             onTitleChange={setTitle}
             onDescriptionChange={setDescription}
             onFormTypeChange={setFormType}
             onCoverImageChange={setCoverImage}
+            onAppearanceChange={setAppearance}
           />
           
           <QuestionsSection 

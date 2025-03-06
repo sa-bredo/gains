@@ -1,3 +1,4 @@
+
 export type FieldType = 
   | 'text'
   | 'textarea'
@@ -20,11 +21,18 @@ export interface FormField {
   description?: string;
 }
 
+export interface FormAppearance {
+  backgroundOpacity?: number; // Between 0 and 100
+  titleColor?: string;
+  textColor?: string;
+}
+
 export interface FormConfig {
   fields: FormField[];
   title: string;
   description?: string;
   coverImage?: string;
+  appearance?: FormAppearance; // New appearance configuration
 }
 
 export interface Form {
