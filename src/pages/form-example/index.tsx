@@ -28,7 +28,7 @@ export default function FormExample() {
       <div className="flex flex-col md:flex-row w-full">
         {/* Left Column - Image with CTA */}
         <div className="md:w-1/2 relative overflow-hidden">
-          <div className="h-full min-h-[600px]">
+          <div className="h-full min-h-[600px] max-h-[800px]">
             <img
               src="https://images.squarespace-cdn.com/content/v1/66dfede09053481feac2a1aa/0abe5d7d-14f7-478f-9e30-7671976f644f/Screenshot+2024-09-22+at+11.03.17.png?format=2500w"
               alt="Studio Anatomy"
