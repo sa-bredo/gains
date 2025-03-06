@@ -1,4 +1,3 @@
-
 export type FieldType = 
   | 'text'
   | 'textarea'
@@ -25,6 +24,7 @@ export interface FormAppearance {
   backgroundOpacity?: number; // Between 0 and 100
   titleColor?: string;
   textColor?: string;
+  backgroundColor?: string;  // New field for background color
 }
 
 export interface FormConfig {

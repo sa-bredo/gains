@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Form, FormField } from "../types";
@@ -195,14 +194,12 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
   const formTitle = form.title;
   const formDescription = form.description || "";
   
-  // Get appearance settings from form config or use defaults
   const appearance = form.json_config.appearance || { 
     backgroundOpacity: 10, 
     titleColor: "#FFFFFF", 
     textColor: "#FFFFFF" 
   };
   
-  // Calculate opacity value for CSS (0-1 range)
   const opacityValue = (appearance.backgroundOpacity || 10) / 100;
   const bgOpacityClass = `bg-black/[${opacityValue}]`;
 
@@ -221,7 +218,7 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
               <div 
                 className="rounded-xl p-8 max-w-md"
                 style={{ 
-                  backgroundColor: `rgba(0, 0, 0, ${opacityValue})`,
+                  backgroundColor: `${appearance.backgroundColor || '#000000'}${Math.round((appearance.backgroundOpacity || 10) * 255 / 100).toString(16).padStart(2, '0')}`,
                 }}
               >
                 <h1 

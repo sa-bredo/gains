@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,7 +33,12 @@ export const FormConfigSection: React.FC<FormConfigSectionProps> = ({
   description,
   formType = "Survey",
   coverImage,
-  appearance = { backgroundOpacity: 10, titleColor: "#FFFFFF", textColor: "#FFFFFF" },
+  appearance = { 
+    backgroundOpacity: 10, 
+    titleColor: "#FFFFFF", 
+    textColor: "#FFFFFF",
+    backgroundColor: "#000000"
+  },
   onTitleChange, 
   onDescriptionChange,
   onFormTypeChange,
@@ -59,6 +63,13 @@ export const FormConfigSection: React.FC<FormConfigSectionProps> = ({
     onAppearanceChange({
       ...appearance,
       textColor: e.target.value
+    });
+  };
+
+  const handleBackgroundColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onAppearanceChange({
+      ...appearance,
+      backgroundColor: e.target.value
     });
   };
 
@@ -151,6 +162,22 @@ export const FormConfigSection: React.FC<FormConfigSectionProps> = ({
                 max={100}
                 step={1}
               />
+            </div>
+            
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Background Color</Label>
+              <div className="flex gap-3">
+                <div 
+                  className="w-10 h-10 rounded-md border" 
+                  style={{ backgroundColor: appearance.backgroundColor || "#000000" }} 
+                />
+                <Input
+                  type="text"
+                  value={appearance.backgroundColor || "#000000"}
+                  onChange={handleBackgroundColorChange}
+                  placeholder="#000000"
+                />
+              </div>
             </div>
             
             <div className="space-y-3">
