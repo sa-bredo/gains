@@ -240,48 +240,50 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
           </div>
         </div>
 
-        <div className="md:w-1/2 bg-[#d3e4fd]/30 h-full overflow-y-auto">
-          <div className="p-12">
-            <div className="max-w-md mx-auto w-full">
-              <div className="h-1 w-full bg-gray-200 rounded-full mb-8">
-                <div 
-                  className="h-full bg-primary rounded-full transition-all duration-300" 
-                  style={{ width: `${progress}%` }}
-                />
+        <div className="md:w-1/2 bg-[#d3e4fd]/30 h-full overflow-y-auto flex flex-col">
+          <div className="p-12 flex flex-col flex-grow">
+            <div className="h-1 w-full bg-gray-200 rounded-full mb-8">
+              <div 
+                className="h-full bg-primary rounded-full transition-all duration-300" 
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            
+            <div className="flex-grow flex items-center justify-center">
+              <div className="max-w-md mx-auto w-full">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentStep}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="w-full"
+                  >
+                    <div className="mb-8">
+                      <DynamicInput
+                        field={currentField}
+                        value={answers[currentField.label]}
+                        onChange={handleAnswer}
+                        onSubmit={goToNextStep}
+                        questionNumber={currentStep + 1}
+                      />
+                    </div>
+                    
+                    <div className="flex flex-col items-center space-y-6 mt-8">
+                      {currentStep > 0 && (
+                        <button 
+                          onClick={goToPreviousStep}
+                          className="flex items-center text-gray-500 hover:text-gray-700 mt-2"
+                        >
+                          <ArrowLeft className="h-4 w-4 mr-1" />
+                          Previous Question
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
               </div>
-              
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentStep}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="w-full"
-                >
-                  <div className="mb-8">
-                    <DynamicInput
-                      field={currentField}
-                      value={answers[currentField.label]}
-                      onChange={handleAnswer}
-                      onSubmit={goToNextStep}
-                      questionNumber={currentStep + 1}
-                    />
-                  </div>
-                  
-                  <div className="flex flex-col items-center space-y-6 mt-8">
-                    {currentStep > 0 && (
-                      <button 
-                        onClick={goToPreviousStep}
-                        className="flex items-center text-gray-500 hover:text-gray-700 mt-2"
-                      >
-                        <ArrowLeft className="h-4 w-4 mr-1" />
-                        Previous Question
-                      </button>
-                    )}
-                  </div>
-                </motion.div>
-              </AnimatePresence>
             </div>
           </div>
         </div>
