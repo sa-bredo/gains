@@ -10,10 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UserPlus, ListChecks, Palette } from "lucide-react";
+import { UserPlus, ListChecks } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
+import { ColorPicker } from "./color-picker";
 
 interface FormConfigSectionProps {
   title: string;
@@ -52,24 +53,24 @@ export const FormConfigSection: React.FC<FormConfigSectionProps> = ({
     });
   };
 
-  const handleTitleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTitleColorChange = (value: string) => {
     onAppearanceChange({
       ...appearance,
-      titleColor: e.target.value
+      titleColor: value
     });
   };
 
-  const handleTextColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTextColorChange = (value: string) => {
     onAppearanceChange({
       ...appearance,
-      textColor: e.target.value
+      textColor: value
     });
   };
 
-  const handleBackgroundColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBackgroundColorChange = (value: string) => {
     onAppearanceChange({
       ...appearance,
-      backgroundColor: e.target.value
+      backgroundColor: value
     });
   };
 
@@ -164,53 +165,23 @@ export const FormConfigSection: React.FC<FormConfigSectionProps> = ({
               />
             </div>
             
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">Background Color</Label>
-              <div className="flex gap-3">
-                <div 
-                  className="w-10 h-10 rounded-md border" 
-                  style={{ backgroundColor: appearance.backgroundColor || "#000000" }} 
-                />
-                <Input
-                  type="text"
-                  value={appearance.backgroundColor || "#000000"}
-                  onChange={handleBackgroundColorChange}
-                  placeholder="#000000"
-                />
-              </div>
-            </div>
+            <ColorPicker
+              label="Background Color"
+              value={appearance.backgroundColor || "#000000"}
+              onChange={handleBackgroundColorChange}
+            />
             
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">Title Color</Label>
-              <div className="flex gap-3">
-                <div 
-                  className="w-10 h-10 rounded-md border" 
-                  style={{ backgroundColor: appearance.titleColor || "#FFFFFF" }} 
-                />
-                <Input
-                  type="text"
-                  value={appearance.titleColor || "#FFFFFF"}
-                  onChange={handleTitleColorChange}
-                  placeholder="#FFFFFF"
-                />
-              </div>
-            </div>
+            <ColorPicker
+              label="Title Color"
+              value={appearance.titleColor || "#FFFFFF"}
+              onChange={handleTitleColorChange}
+            />
             
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">Text Color</Label>
-              <div className="flex gap-3">
-                <div 
-                  className="w-10 h-10 rounded-md border" 
-                  style={{ backgroundColor: appearance.textColor || "#FFFFFF" }} 
-                />
-                <Input
-                  type="text"
-                  value={appearance.textColor || "#FFFFFF"}
-                  onChange={handleTextColorChange}
-                  placeholder="#FFFFFF"
-                />
-              </div>
-            </div>
+            <ColorPicker
+              label="Text Color"
+              value={appearance.textColor || "#FFFFFF"}
+              onChange={handleTextColorChange}
+            />
           </TabsContent>
         </Tabs>
       </CardContent>
