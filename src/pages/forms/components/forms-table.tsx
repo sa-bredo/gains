@@ -87,7 +87,7 @@ export const FormsTable: React.FC<FormsTableProps> = ({
   const handleAction = (action: string, form: Form) => {
     switch(action) {
       case 'edit':
-        navigate(`/forms/${form.id}`);
+        navigate(`/forms/edit/${form.id}`);
         break;
       case 'submissions':
         navigate(`/forms/${form.id}/submissions`);

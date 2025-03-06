@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "./components/theme-provider";
@@ -63,7 +62,7 @@ function App() {
           <Route path="/forms" element={<FormsPage />} />
           <Route path="/forms/new" element={<NewFormPage />} />
           <Route path="/forms/edit/:id" element={<EditFormPage />} />
-          <Route path="/forms/submissions" element={<FormSubmissionsPage />} />
+          <Route path="/forms/:id/submissions" element={<FormSubmissionsPage />} />
         </Route>
       
         {/* This is crucial - catch all unmatched routes */}

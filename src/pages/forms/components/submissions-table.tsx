@@ -17,24 +17,17 @@ import {
   AccordionTrigger 
 } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
-import { Dispatch, SetStateAction } from "react";
 
 export interface SubmissionsTableProps {
   form: Form;
   submissions: FormSubmission[];
-  forms?: Form[];
   loading?: boolean;
-  selectedFormId?: string | null;
-  onFormSelect?: Dispatch<SetStateAction<string | null>>;
 }
 
 export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
   form,
   submissions,
-  forms,
-  loading,
-  selectedFormId,
-  onFormSelect
+  loading = false
 }) => {
   const renderSubmissionValue = (value: any) => {
     if (value === null || value === undefined) {
