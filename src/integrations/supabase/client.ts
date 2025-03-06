@@ -3,10 +3,22 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-export const SUPABASE_URL = "https://exatcpxfenndpkozdnje.supabase.co";
-export const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4YXRjcHhmZW5uZHBrb3pkbmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA1NjY4MTgsImV4cCI6MjA1NjE0MjgxOH0.8PIDjiIl5xwoo6GoJCqMrFilanV_9EmgtQx_sEvG6as";
+// Default to production values
+let SUPABASE_URL = "https://exatcpxfenndpkozdnje.supabase.co";
+let SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4YXRjcHhmZW5uZHBrb3pkbmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA1NjY4MTgsImV4cCI6MjA1NjE0MjgxOH0.8PIDjiIl5xwoo6GoJCqMrFilanV_9EmgtQx_sEvG6as";
+
+// Check if environment variables are available (for development environment)
+if (import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) {
+  console.log('Using development Supabase configuration');
+  SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+}
+
+// Export these constants if needed elsewhere
+export const SUPABASE_URL_EXPORT = SUPABASE_URL;
+export const SUPABASE_PUBLISHABLE_KEY = SUPABASE_ANON_KEY;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
