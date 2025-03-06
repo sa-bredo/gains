@@ -132,7 +132,7 @@ export const useFormService = () => {
 
       if (error) {
         console.error('Error creating form:', error);
-        throw error;
+        throw new Error(`Failed to create form: ${error.message}`);
       }
 
       if (!data) {
@@ -141,6 +141,9 @@ export const useFormService = () => {
       }
 
       console.log('Form created successfully:', data);
+      
+      // Show success toast
+      toast.success('Form created successfully!');
       
       // Clear cache after creating a new form
       clearFormsCache();
@@ -151,6 +154,10 @@ export const useFormService = () => {
       } as Form;
     } catch (error) {
       console.error('Error creating form:', error);
+      
+      // Show error toast
+      toast.error(error instanceof Error ? error.message : 'Failed to create form');
+      
       throw error;
     }
   };
@@ -173,7 +180,7 @@ export const useFormService = () => {
 
       if (error) {
         console.error(`Error updating form with ID ${id}:`, error);
-        throw error;
+        throw new Error(`Failed to update form: ${error.message}`);
       }
 
       if (!data) {
@@ -182,6 +189,9 @@ export const useFormService = () => {
       }
 
       console.log(`Form with ID ${id} updated successfully:`, data);
+      
+      // Show success toast
+      toast.success('Form updated successfully!');
       
       // Clear cache after updating a form
       clearFormsCache();
@@ -192,6 +202,10 @@ export const useFormService = () => {
       } as Form;
     } catch (error) {
       console.error('Error updating form:', error);
+      
+      // Show error toast
+      toast.error(error instanceof Error ? error.message : 'Failed to update form');
+      
       throw error;
     }
   };

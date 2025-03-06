@@ -5,6 +5,7 @@ import { FormField, FormConfig, FieldType, Form } from "../types";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useFormService } from "../services/form-service";
+import { toast } from "sonner";
 
 interface UseFormBuilderProps {
   initialForm?: Form;
@@ -25,7 +26,7 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const navigate = useNavigate();
   const formService = useFormService();
   
@@ -104,20 +105,25 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
 
   const saveForm = useCallback(async () => {
     if (!title.trim()) {
-      toast({
-        title: "Error",
+      // Show error toast using both toast systems for visibility
+      uiToast({
+        title: "Form Error",
         description: "Please provide a form title",
         variant: "destructive"
       });
+      
+      toast.error("Please provide a form title");
       return;
     }
 
     if (fields.length === 0) {
-      toast({
-        title: "Error",
+      uiToast({
+        title: "Form Error",
         description: "Please add at least one field to your form",
         variant: "destructive"
       });
+      
+      toast.error("Please add at least one field to your form");
       return;
     }
 
@@ -139,10 +145,14 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
           json_config: formConfig
         });
         
-        toast({
-          title: "Success",
-          description: "Form updated successfully"
+        // Show success toast using both toast systems
+        uiToast({
+          title: "Success!",
+          description: "Your form has been updated successfully",
+          variant: "default"
         });
+        
+        toast.success("Form updated successfully");
       } else {
         console.log("Creating new form...");
         const publicUrl = formService.generatePublicUrl();
@@ -157,10 +167,14 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
         
         console.log("New form created:", newForm);
         
-        toast({
-          title: "Success",
-          description: "Form created successfully"
+        // Show success toast using both toast systems
+        uiToast({
+          title: "Success!",
+          description: "Your new form has been created successfully",
+          variant: "default"
         });
+        
+        toast.success("Form created successfully");
         
         navigate(`/forms/${newForm.id}`);
       }
@@ -172,15 +186,18 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
         errorMessage += `: ${error.message}`;
       }
       
-      toast({
+      // Show error toast using both toast systems
+      uiToast({
         title: "Error",
         description: errorMessage,
         variant: "destructive"
       });
+      
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
-  }, [title, description, fields, initialForm, formService, toast, navigate]);
+  }, [title, description, fields, initialForm, formService, uiToast, navigate]);
 
   return {
     title,
