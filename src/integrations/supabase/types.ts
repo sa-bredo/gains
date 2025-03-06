@@ -327,6 +327,7 @@ export type Database = {
         Row: {
           created_at: string | null
           description: string | null
+          form_type: string | null
           id: string
           json_config: Json
           public_url: string
@@ -336,6 +337,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           description?: string | null
+          form_type?: string | null
           id?: string
           json_config?: Json
           public_url: string
@@ -345,6 +347,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           description?: string | null
+          form_type?: string | null
           id?: string
           json_config?: Json
           public_url?: string
