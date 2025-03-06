@@ -2,7 +2,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { FormType, FormAppearance } from "../types";
+import { FormType, FormAppearance, CompletionMessage } from "../types";
 import {
   Select,
   SelectContent,
@@ -22,11 +22,13 @@ interface FormConfigSectionProps {
   formType: FormType | undefined;
   coverImage: string | undefined;
   appearance: FormAppearance | undefined;
+  completionMessage: CompletionMessage;
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onFormTypeChange: (value: FormType) => void;
   onCoverImageChange: (value: string) => void;
   onAppearanceChange: (value: FormAppearance) => void;
+  onCompletionMessageChange: (value: CompletionMessage) => void;
 }
 
 export const FormConfigSection: React.FC<FormConfigSectionProps> = ({ 
@@ -40,11 +42,16 @@ export const FormConfigSection: React.FC<FormConfigSectionProps> = ({
     textColor: "#FFFFFF",
     backgroundColor: "#000000"
   },
+  completionMessage = {
+    title: "Thank you!",
+    description: "Your response has been submitted successfully."
+  },
   onTitleChange, 
   onDescriptionChange,
   onFormTypeChange,
   onCoverImageChange,
   onAppearanceChange,
+  onCompletionMessageChange,
 }) => {
   const handleOpacityChange = (value: number[]) => {
     onAppearanceChange({
@@ -81,9 +88,10 @@ export const FormConfigSection: React.FC<FormConfigSectionProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         <Tabs defaultValue="basic">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
+            <TabsTrigger value="completion">Completion</TabsTrigger>
           </TabsList>
           
           <TabsContent value="basic" className="space-y-4">
@@ -182,6 +190,32 @@ export const FormConfigSection: React.FC<FormConfigSectionProps> = ({
               value={appearance.textColor || "#FFFFFF"}
               onChange={handleTextColorChange}
             />
+          </TabsContent>
+
+          <TabsContent value="completion" className="space-y-4">
+            <div className="space-y-2">
+              <Label>Completion Title</Label>
+              <Input
+                value={completionMessage.title}
+                onChange={(e) => onCompletionMessageChange({
+                  ...completionMessage,
+                  title: e.target.value
+                })}
+                placeholder="Thank you message title"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Completion Message</Label>
+              <Textarea
+                value={completionMessage.description}
+                onChange={(e) => onCompletionMessageChange({
+                  ...completionMessage,
+                  description: e.target.value
+                })}
+                placeholder="Message shown after form submission"
+              />
+            </div>
           </TabsContent>
         </Tabs>
       </CardContent>

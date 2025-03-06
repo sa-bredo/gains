@@ -27,12 +27,18 @@ export interface FormAppearance {
   backgroundColor?: string;  // New field for background color
 }
 
+export interface CompletionMessage {
+  title: string;
+  description: string;
+}
+
 export interface FormConfig {
   fields: FormField[];
   title: string;
   description?: string;
   coverImage?: string;
-  appearance?: FormAppearance; // New appearance configuration
+  appearance?: FormAppearance;
+  completionMessage?: CompletionMessage;
 }
 
 export interface Form {

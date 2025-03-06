@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { FormField, FormConfig, FieldType, Form, FormType, FormAppearance } from "../types";
@@ -12,7 +11,6 @@ interface UseFormBuilderProps {
 }
 
 export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
-  // Use refs to store initial values to prevent re-renders
   const initialValueRef = useRef({
     title: initialForm?.title || "",
     description: initialForm?.description || "",
@@ -24,9 +22,12 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
       titleColor: "#FFFFFF", 
       textColor: "#FFFFFF" 
     },
+    completionMessage: initialForm?.json_config?.completionMessage || {
+      title: "Thank you!",
+      description: "Your response has been submitted successfully."
+    },
   });
   
-  // State management
   const [title, setTitle] = useState(initialValueRef.current.title);
   const [description, setDescription] = useState(initialValueRef.current.description);
   const [fields, setFields] = useState<FormField[]>(initialValueRef.current.fields);
@@ -35,20 +36,18 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
   const [appearance, setAppearance] = useState<FormAppearance>(initialValueRef.current.appearance);
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  
+  const [completionMessage, setCompletionMessage] = useState(initialValueRef.current.completionMessage);
+
   const { toast: uiToast } = useToast();
   const navigate = useNavigate();
   const formService = useFormService();
-  
-  // Track if the component has been initialized
+
   const isInitialized = useRef(false);
 
-  // Properly handle initialization with cleanup
   useEffect(() => {
     if (initialForm && !isInitialized.current) {
       console.log("Initializing form builder with form:", initialForm.id);
       
-      // Only set these values during initialization
       setTitle(initialForm.title);
       setDescription(initialForm.description || "");
       setFields(initialForm.json_config.fields || []);
@@ -59,17 +58,19 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
         titleColor: "#FFFFFF", 
         textColor: "#FFFFFF" 
       });
+      setCompletionMessage(initialForm.json_config.completionMessage || {
+        title: "Thank you!",
+        description: "Your response has been submitted successfully."
+      });
       
       isInitialized.current = true;
     }
     
-    // Cleanup function
     return () => {
       console.log("Cleaning up form builder");
     };
   }, [initialForm]);
 
-  // Memoize callbacks to prevent unnecessary re-renders
   const addField = useCallback((type: FieldType) => {
     const newField: FormField = {
       id: uuidv4(),
@@ -122,7 +123,6 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
 
   const saveForm = useCallback(async () => {
     if (!title.trim()) {
-      // Show error toast using both toast systems for visibility
       uiToast({
         title: "Form Error",
         description: "Please provide a form title",
@@ -153,7 +153,8 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
         description: description || undefined,
         fields,
         coverImage: coverImage || undefined,
-        appearance
+        appearance,
+        completionMessage
       };
       
       if (initialForm) {
@@ -167,7 +168,6 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
         
         console.log("Form updated successfully:", updatedForm);
         
-        // Show success toast using both toast systems for maximum visibility
         uiToast({
           title: "Success!",
           description: "Your form has been updated successfully",
@@ -190,7 +190,6 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
         
         console.log("New form created:", newForm);
         
-        // Show success toast using both toast systems for maximum visibility
         uiToast({
           title: "Success!",
           description: "Your new form has been created successfully",
@@ -209,7 +208,6 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
         errorMessage += `: ${error.message}`;
       }
       
-      // Show error toast using both toast systems
       uiToast({
         title: "Error",
         description: errorMessage,
@@ -220,7 +218,7 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
     } finally {
       setIsSaving(false);
     }
-  }, [title, description, fields, formType, coverImage, appearance, initialForm, formService, uiToast, navigate]);
+  }, [title, description, fields, formType, coverImage, appearance, completionMessage, initialForm, formService, uiToast, navigate]);
 
   return {
     title,
@@ -242,6 +240,8 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
     updateField,
     removeField,
     updateFieldsOrder,
-    saveForm
+    saveForm,
+    completionMessage,
+    setCompletionMessage
   };
 };

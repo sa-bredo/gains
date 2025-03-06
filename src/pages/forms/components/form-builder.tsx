@@ -1,4 +1,3 @@
-
 import React, { memo, useMemo } from "react";
 import { Form } from "../types";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,6 @@ export interface FormBuilderProps {
   form?: Form;
 }
 
-// Use memo to prevent unnecessary re-renders
 export const FormBuilder = memo(({ form }: FormBuilderProps) => {
   console.log("Rendering FormBuilder", form?.id);
   
@@ -38,10 +36,11 @@ export const FormBuilder = memo(({ form }: FormBuilderProps) => {
     updateField,
     removeField,
     updateFieldsOrder,
-    saveForm
+    saveForm,
+    completionMessage,
+    setCompletionMessage
   } = useFormBuilder({ initialForm: form });
 
-  // Memoize the editingFieldId to prevent unnecessary re-renders
   const editingFieldId = useMemo(() => 
     editingField ? editingField.id : null
   , [editingField]);
@@ -56,11 +55,13 @@ export const FormBuilder = memo(({ form }: FormBuilderProps) => {
             formType={formType}
             coverImage={coverImage}
             appearance={appearance}
+            completionMessage={completionMessage}
             onTitleChange={setTitle}
             onDescriptionChange={setDescription}
             onFormTypeChange={setFormType}
             onCoverImageChange={setCoverImage}
             onAppearanceChange={setAppearance}
+            onCompletionMessageChange={setCompletionMessage}
           />
           
           <QuestionsSection 

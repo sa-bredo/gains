@@ -325,6 +325,7 @@ export type Database = {
       }
       forms: {
         Row: {
+          completion_message: Json | null
           created_at: string | null
           description: string | null
           form_type: string | null
@@ -335,6 +336,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          completion_message?: Json | null
           created_at?: string | null
           description?: string | null
           form_type?: string | null
@@ -345,6 +347,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          completion_message?: Json | null
           created_at?: string | null
           description?: string | null
           form_type?: string | null

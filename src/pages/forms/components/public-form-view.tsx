@@ -84,10 +84,23 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
     if (!form) return;
     
     const currentField = form.json_config.fields[currentStep];
-    setAnswers(prev => ({
-      ...prev,
-      [currentField.label]: value
-    }));
+    
+    if (currentField.type === "checkbox") {
+      setAnswers(prev => ({
+        ...prev,
+        [currentField.label]: Array.isArray(value) ? value : []
+      }));
+    } else if (currentField.type === "multiple_choice") {
+      setAnswers(prev => ({
+        ...prev,
+        [currentField.label]: value
+      }));
+    } else {
+      setAnswers(prev => ({
+        ...prev,
+        [currentField.label]: value
+      }));
+    }
   };
 
   const goToNextStep = () => {
@@ -186,9 +199,11 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
               />
             </svg>
           </motion.div>
-          <h2 className="text-3xl font-bold mb-4">Thank you!</h2>
+          <h2 className="text-3xl font-bold mb-4">
+            {form?.json_config.completionMessage?.title || "Thank you!"}
+          </h2>
           <p className="text-muted-foreground mb-6">
-            Your response has been submitted successfully.
+            {form?.json_config.completionMessage?.description || "Your response has been submitted successfully."}
           </p>
           <Button asChild size="lg" className="rounded-full">
             <a href="/">Return to Home</a>
