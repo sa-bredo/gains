@@ -15,7 +15,8 @@ import {
   FileText, 
   Settings, 
   Users,
-  MapPin
+  MapPin,
+  FormInput
 } from "lucide-react";
 
 interface MainNavigationProps {
@@ -45,6 +46,15 @@ const defaultNavItems: NavItem[] = [
     url: "/document-signing",
     items: [
       { title: "Templates", url: "/document-signing" }
+    ]
+  },
+  {
+    title: "Forms",
+    icon: FormInput,
+    url: "/forms",
+    items: [
+      { title: "Form Builder", url: "/forms" },
+      { title: "Submissions", url: "/forms/submissions" }
     ]
   },
   {

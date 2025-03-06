@@ -294,6 +294,65 @@ export type Database = {
         }
         Relationships: []
       }
+      form_submissions: {
+        Row: {
+          data: Json
+          form_id: string
+          id: string
+          submitted_at: string | null
+        }
+        Insert: {
+          data?: Json
+          form_id: string
+          id?: string
+          submitted_at?: string | null
+        }
+        Update: {
+          data?: Json
+          form_id?: string
+          id?: string
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_submissions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forms: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          json_config: Json
+          public_url: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          json_config?: Json
+          public_url: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          json_config?: Json
+          public_url?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       gocardless_accounts: {
         Row: {
           account_id: string

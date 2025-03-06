@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "./components/theme-provider";
@@ -22,6 +21,11 @@ import PermissionsPage from "@/pages/settings/permissions";
 import AboutPage from "@/pages/About";
 import NotFound from "@/pages/NotFound";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import FormsPage from "./pages/forms";
+import NewFormPage from "./pages/forms/new";
+import EditFormPage from "./pages/forms/edit";
+import FormSubmissionsPage from "./pages/forms/submissions";
+import PublicFormPage from "./pages/form/[publicUrl]";
 
 function App() {
   return (
