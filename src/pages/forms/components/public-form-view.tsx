@@ -208,7 +208,7 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
           </div>
 
           <div className="md:w-1/2 bg-[#d3e4fd]/30 h-full overflow-y-auto flex flex-col">
-            <div className="p-12 flex flex-col flex-grow items-center justify-center">
+            <div className="p-12 flex flex-col items-center justify-center h-full">
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -237,9 +237,6 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
                 <p className="text-muted-foreground mb-6">
                   {form?.json_config.completionMessage?.description || "Your response has been submitted successfully."}
                 </p>
-                <Button asChild size="lg" className="rounded-full">
-                  <a href="/">Return to Home</a>
-                </Button>
               </div>
             </div>
           </div>
@@ -302,14 +299,16 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
 
         <div className="md:w-1/2 bg-[#d3e4fd]/30 h-full overflow-y-auto flex flex-col">
           <div className="p-12 flex flex-col flex-grow">
-            <div className="h-1 w-full bg-gray-200 rounded-full mb-8 flex items-center justify-center">
-              <div 
-                className="h-full bg-primary rounded-full transition-all duration-300" 
-                style={{ width: `${progress}%` }}
-              />
+            <div className="mb-12">
+              <div className="h-1 w-full bg-gray-200 rounded-full flex items-center justify-center">
+                <div 
+                  className="h-full bg-primary rounded-full transition-all duration-300" 
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
             
-            <div className="flex-grow flex items-center justify-center">
+            <div className="flex-grow flex flex-col">
               <div className="max-w-md mx-auto w-full">
                 <AnimatePresence mode="wait">
                   <motion.div

@@ -32,7 +32,15 @@ export const StyledRadioButton: React.FC<StyledRadioButtonProps> = ({
           {checked && <div className="w-3 h-3 rounded-full bg-primary" />}
         </div>
       </div>
-      <span className="text-base">{label}</span>
+      <span className="text-base w-full">{label}</span>
+      <input
+        type="radio"
+        id={id}
+        checked={checked}
+        onChange={onChange}
+        className="sr-only" // Visually hidden but still accessible
+        {...props}
+      />
     </label>
   );
 };
