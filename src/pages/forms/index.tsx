@@ -16,25 +16,24 @@ const FormsPage: React.FC = () => {
   const navigate = useNavigate();
   const formService = useFormService();
   
-  // Strong reference management to prevent infinite loops
+  // Use refs to track component state and prevent loops
   const isMounted = useRef(true);
-  const fetchCompleted = useRef(false);
+  const dataFetched = useRef(false);
 
   useEffect(() => {
     // Set isMounted to true when component mounts
     isMounted.current = true;
-    fetchCompleted.current = false;
     
     const fetchForms = async () => {
-      // Only fetch if we haven't completed a fetch yet and component is still mounted
-      if (fetchCompleted.current || !isMounted.current) return;
-      
-      // Mark that we've completed a fetch before starting, to prevent repeated attempts
-      fetchCompleted.current = true;
-      console.log("Fetching forms from Supabase - initial load");
+      // Only fetch if we haven't already fetched and component is still mounted
+      if (dataFetched.current || !isMounted.current) return;
       
       try {
+        console.log("Fetching forms from Supabase - initial load");
         setLoading(true);
+        // Mark that we're fetching data to prevent duplicate calls
+        dataFetched.current = true;
+        
         const data = await formService.fetchForms();
         
         // Only update state if component is still mounted
@@ -68,8 +67,7 @@ const FormsPage: React.FC = () => {
     try {
       console.log("Manually refetching forms after change");
       setLoading(true);
-      // Reset fetchCompleted to allow a new fetch
-      fetchCompleted.current = false;
+      
       const data = await formService.fetchForms();
       
       if (isMounted.current) {

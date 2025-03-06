@@ -20,19 +20,20 @@ const EditFormPage: React.FC = () => {
   
   // Strong reference management to prevent infinite loops
   const isMounted = useRef(true);
-  const fetchCompleted = useRef(false);
+  const dataFetched = useRef(false);
 
   useEffect(() => {
     // Set isMounted to true when component mounts
     isMounted.current = true;
-    fetchCompleted.current = false;
+    dataFetched.current = false;
     
     const fetchForm = async () => {
       // Only fetch if we have an ID, haven't completed a fetch yet, and component is still mounted
-      if (!id || fetchCompleted.current || !isMounted.current) return;
+      if (!id || dataFetched.current || !isMounted.current) return;
       
-      // Mark that we've completed a fetch before starting, to prevent repeated attempts
-      fetchCompleted.current = true;
+      // Mark that we've started a fetch to prevent repeated attempts
+      dataFetched.current = true;
+      
       console.log("Attempting to fetch form with ID:", id);
       
       try {

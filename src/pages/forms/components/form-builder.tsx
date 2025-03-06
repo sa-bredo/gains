@@ -35,15 +35,15 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ form }) => {
   const navigate = useNavigate();
   const formService = useFormService();
   
-  const isInitialized = useRef(false);
+  const initialized = useRef(false);
 
   useEffect(() => {
-    if (form && !isInitialized.current) {
+    if (form && !initialized.current) {
       console.log("FormBuilder initializing with form data", form.id);
       setTitle(form.title);
       setDescription(form.description || "");
       setFields(form.json_config.fields || []);
-      isInitialized.current = true;
+      initialized.current = true;
     }
   }, [form]);
 
