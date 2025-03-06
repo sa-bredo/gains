@@ -1,5 +1,5 @@
 
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -29,36 +29,65 @@ function ShiftsPage() {
   const [currentView, setCurrentView] = useState<'view' | 'add'>('view');
   const { currentCompany } = useCompany();
   const shiftService = useShiftService();
+  
+  // Refs to track if data has been fetched
+  const locationsFetched = useRef(false);
+  const isMounted = useRef(true);
 
   // Fetch locations and staff members when component mounts or company changes
   useEffect(() => {
+    // Reset the fetch state when company changes
+    locationsFetched.current = false;
+    
     const fetchInitialData = async () => {
-      if (!currentCompany) {
-        console.log('No company selected, skipping data fetch');
+      if (!currentCompany || !isMounted.current || locationsFetched.current) {
         return;
       }
       
       try {
         console.log('Fetching locations and staff for company:', currentCompany.id);
+        locationsFetched.current = true;
+        
         const locationsData = await shiftService.fetchLocations();
-        setLocations(locationsData);
+        if (isMounted.current) {
+          setLocations(locationsData);
+        }
         
         const staffData = await shiftService.fetchStaffMembers();
-        setStaffMembers(staffData);
+        if (isMounted.current) {
+          setStaffMembers(staffData);
+        }
         
         console.log('Fetched locations:', locationsData.length, 'staff members:', staffData.length);
       } catch (error) {
         console.error('Error fetching initial data:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load initial data. Please try again later.',
-          variant: 'destructive',
-        });
+        if (isMounted.current) {
+          toast({
+            title: 'Error',
+            description: 'Failed to load initial data. Please try again later.',
+            variant: 'destructive',
+          });
+        }
       }
     };
     
-    fetchInitialData();
+    if (currentCompany && !locationsFetched.current) {
+      fetchInitialData();
+    }
+    
+    // Cleanup function
+    return () => {
+      isMounted.current = false;
+    };
   }, [currentCompany, shiftService, toast]);
+
+  // Reset the mounting state when the component mounts
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   // Using react-query to fetch shifts with company filtering
   const { data, isLoading, error, refetch } = useQuery({
@@ -72,7 +101,7 @@ function ShiftsPage() {
 
   // Update the shifts state when data is fetched
   useEffect(() => {
-    if (data) {
+    if (data && isMounted.current) {
       console.log('Setting shifts from query data:', data.length);
       setShifts(data);
     }
@@ -80,7 +109,7 @@ function ShiftsPage() {
 
   // Handle error with useEffect
   useEffect(() => {
-    if (error) {
+    if (error && isMounted.current) {
       console.error('Error fetching shifts:', error);
       toast({
         title: 'Error',
