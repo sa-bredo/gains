@@ -9,6 +9,8 @@ export type FieldType =
   | 'date'
   | 'file';
 
+export type FormType = 'Join Team' | 'Survey';
+
 export interface FormField {
   id: string;
   type: FieldType;
@@ -23,6 +25,7 @@ export interface FormConfig {
   fields: FormField[];
   title: string;
   description?: string;
+  coverImage?: string;
 }
 
 export interface Form {
@@ -33,6 +36,7 @@ export interface Form {
   updated_at: string;
   public_url: string;
   json_config: FormConfig;
+  form_type?: FormType;
 }
 
 export interface FormSubmission {

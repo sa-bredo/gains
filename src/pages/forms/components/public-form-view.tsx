@@ -193,68 +193,112 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
   }
 
   const currentField = form.json_config.fields[currentStep];
+  const hasFieldsToShow = form.json_config.fields.length > 0;
+  const hasCoverImage = !!form.json_config.coverImage;
+  const formTitle = form.title;
+  const formDescription = form.description || "";
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      {/* Progress Bar */}
-      <div className="fixed top-0 left-0 right-0 h-1 bg-muted">
-        <div
-          className="h-full bg-primary"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      
-      {/* Navigation */}
-      <div className="p-4 flex justify-between items-center">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={goToPreviousStep}
-          disabled={currentStep === 0}
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="text-sm text-muted-foreground">
-          {currentStep + 1} of {form.json_config.fields.length}
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        >
-          <ChevronUp className="h-5 w-5" />
-        </Button>
-      </div>
-      
-      {/* Form Content */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="max-w-xl w-full"
-          >
-            <div className="mb-8">
-              <h1 className="text-4xl font-bold mb-6">{currentField.label}</h1>
-              <DynamicInput
-                field={currentField}
-                value={answers[currentField.label]}
-                onChange={handleAnswer}
-                onSubmit={goToNextStep}
+    <div className="min-h-screen flex flex-col md:flex-row bg-background">
+      {/* Cover Page - Left Panel (Fixed on md screens and up) */}
+      <div className="md:w-1/2 md:fixed md:h-screen bg-background md:border-r border-border/50 flex flex-col">
+        <div className="flex-1 flex flex-col p-6 overflow-auto">
+          {hasCoverImage && (
+            <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-8 bg-muted">
+              <img 
+                src={form.json_config.coverImage}
+                alt="Form Cover"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b';
+                }}
               />
             </div>
-          </motion.div>
-        </AnimatePresence>
+          )}
+          
+          <div className="flex-1 flex flex-col justify-center">
+            <h1 className="text-4xl font-bold mb-4">{formTitle}</h1>
+            {formDescription && (
+              <p className="text-lg text-muted-foreground">{formDescription}</p>
+            )}
+          </div>
+          
+          <div className="mt-8 text-sm text-muted-foreground">
+            <p>
+              Powered by Form Builder
+            </p>
+          </div>
+        </div>
       </div>
       
-      {/* Form Branding */}
-      <div className="p-4 text-center text-sm text-muted-foreground">
-        <p>
-          Powered by {form.title} Form Builder
-        </p>
+      {/* Form Content - Right Panel */}
+      <div className="flex-1 md:ml-[50%]">
+        {/* Progress Bar */}
+        <div className="sticky top-0 left-0 right-0 h-1 bg-muted z-10">
+          <div
+            className="h-full bg-primary"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        
+        {/* Navigation */}
+        <div className="p-4 flex justify-between items-center sticky top-1 bg-background z-10">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={goToPreviousStep}
+            disabled={currentStep === 0}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          {hasFieldsToShow && (
+            <div className="text-sm text-muted-foreground">
+              {currentStep + 1} of {form.json_config.fields.length}
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          >
+            <ChevronUp className="h-5 w-5" />
+          </Button>
+        </div>
+        
+        {/* Form Questions */}
+        {hasFieldsToShow ? (
+          <div className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-5rem)]">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentStep}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="max-w-xl w-full"
+              >
+                <div className="mb-8">
+                  <h1 className="text-4xl font-bold mb-6">{currentField.label}</h1>
+                  {currentField.description && (
+                    <p className="text-muted-foreground mb-4">{currentField.description}</p>
+                  )}
+                  <DynamicInput
+                    field={currentField}
+                    value={answers[currentField.label]}
+                    onChange={handleAnswer}
+                    onSubmit={goToNextStep}
+                  />
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center p-4">
+            <div className="text-center">
+              <p className="text-muted-foreground">This form doesn't have any questions yet.</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

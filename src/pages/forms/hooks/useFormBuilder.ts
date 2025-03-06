@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { FormField, FormConfig, FieldType, Form } from "../types";
+import { FormField, FormConfig, FieldType, Form, FormType } from "../types";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useFormService } from "../services/form-service";
@@ -17,12 +17,16 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
     title: initialForm?.title || "",
     description: initialForm?.description || "",
     fields: initialForm?.json_config?.fields || [],
+    formType: initialForm?.form_type || "Survey" as FormType,
+    coverImage: initialForm?.json_config?.coverImage || "",
   });
   
   // State management
   const [title, setTitle] = useState(initialValueRef.current.title);
   const [description, setDescription] = useState(initialValueRef.current.description);
   const [fields, setFields] = useState<FormField[]>(initialValueRef.current.fields);
+  const [formType, setFormType] = useState<FormType>(initialValueRef.current.formType);
+  const [coverImage, setCoverImage] = useState<string>(initialValueRef.current.coverImage);
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -42,6 +46,8 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
       setTitle(initialForm.title);
       setDescription(initialForm.description || "");
       setFields(initialForm.json_config.fields || []);
+      setFormType(initialForm.form_type || "Survey");
+      setCoverImage(initialForm.json_config.coverImage || "");
       
       isInitialized.current = true;
     }
@@ -134,7 +140,8 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
       const formConfig: FormConfig = {
         title,
         description: description || undefined,
-        fields
+        fields,
+        coverImage: coverImage || undefined,
       };
       
       if (initialForm) {
@@ -142,6 +149,7 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
         const updatedForm = await formService.updateForm(initialForm.id, {
           title,
           description: description || null,
+          form_type: formType,
           json_config: formConfig
         });
         
@@ -163,6 +171,7 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
         const newForm = await formService.createForm({
           title,
           description: description || null,
+          form_type: formType,
           public_url: publicUrl,
           json_config: formConfig
         });
@@ -199,16 +208,20 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
     } finally {
       setIsSaving(false);
     }
-  }, [title, description, fields, initialForm, formService, uiToast, navigate]);
+  }, [title, description, fields, formType, coverImage, initialForm, formService, uiToast, navigate]);
 
   return {
     title,
     description,
     fields,
+    formType,
+    coverImage,
     editingField,
     isSaving,
     setTitle,
     setDescription,
+    setFormType,
+    setCoverImage,
     setEditingField,
     addField,
     duplicateField,

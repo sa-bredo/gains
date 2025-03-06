@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Eye, ExternalLink, Link as LinkIcon, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Eye, ExternalLink, Link as LinkIcon, MoreHorizontal, Pencil, Trash2, UserPlus, ListChecks } from "lucide-react";
 import { formatDate } from "../utils/date-utils";
 import { useToast } from "@/hooks/use-toast";
 import { useFormService } from "../services/form-service";
@@ -31,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
 export interface FormsTableProps {
   forms: Form[];
@@ -107,12 +108,24 @@ export const FormsTable: React.FC<FormsTableProps> = ({
     }
   };
 
+  const getFormTypeIcon = (formType: string | undefined) => {
+    switch (formType) {
+      case 'Join Team':
+        return <UserPlus className="h-4 w-4 text-blue-500 mr-2" />;
+      case 'Survey':
+        return <ListChecks className="h-4 w-4 text-green-500 mr-2" />;
+      default:
+        return <ListChecks className="h-4 w-4 text-gray-500 mr-2" />;
+    }
+  };
+
   return (
     <>
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Title</TableHead>
+            <TableHead>Type</TableHead>
             <TableHead>Created</TableHead>
             <TableHead>Last Updated</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -121,7 +134,7 @@ export const FormsTable: React.FC<FormsTableProps> = ({
         <TableBody>
           {forms.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={4} className="text-center py-6">
+              <TableCell colSpan={5} className="text-center py-6">
                 <p className="text-muted-foreground">No forms found</p>
                 <Button asChild className="mt-2">
                   <Link to="/forms/new">Create a form</Link>
@@ -132,6 +145,12 @@ export const FormsTable: React.FC<FormsTableProps> = ({
             forms.map((form) => (
               <TableRow key={form.id}>
                 <TableCell className="font-medium">{form.title}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="flex items-center w-fit">
+                    {getFormTypeIcon(form.form_type)}
+                    {form.form_type || 'Survey'}
+                  </Badge>
+                </TableCell>
                 <TableCell>{formatDate(form.created_at)}</TableCell>
                 <TableCell>{formatDate(form.updated_at)}</TableCell>
                 <TableCell className="text-right">
