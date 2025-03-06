@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { FormField } from "../types";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import { CalendarIcon, ChevronRight, FileUp, Upload } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { StyledRadioButton } from "./styled-radio-button";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DynamicInputProps {
   field: FormField;
@@ -28,6 +30,7 @@ export const DynamicInput: React.FC<DynamicInputProps> = ({
   questionNumber,
 }) => {
   const [fileName, setFileName] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -35,11 +38,44 @@ export const DynamicInput: React.FC<DynamicInputProps> = ({
     onSubmit();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setFileName(file.name);
-      onChange(file.name); // Just store the filename for now
+    if (!file) return;
+
+    setFileName(file.name);
+    setIsUploading(true);
+
+    try {
+      // Generate a unique file path using company and form IDs
+      // For now, we'll use a placeholder format since we don't have the company slug
+      const formId = window.location.pathname.split('/').pop() || 'unknown';
+      const filePath = `${formId}/${field.id}_${file.name}`;
+
+      // Upload the file to Supabase storage
+      const { data, error } = await supabase.storage
+        .from('form-uploads')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (error) {
+        console.error('Error uploading file:', error);
+        throw error;
+      }
+
+      // Get the public URL for the uploaded file
+      const { data: urlData } = supabase.storage
+        .from('form-uploads')
+        .getPublicUrl(filePath);
+
+      // Store the file URL as the answer value
+      onChange(urlData.publicUrl);
+    } catch (error) {
+      console.error('File upload failed:', error);
+      // Handle error state here
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -183,10 +219,16 @@ export const DynamicInput: React.FC<DynamicInputProps> = ({
               type="button"
               variant="outline"
               size="lg"
-              className="w-full h-10 border-dashed"
+              className="w-full h-auto py-4 border-dashed"
               onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
             >
-              {fileName ? (
+              {isUploading ? (
+                <div className="flex items-center">
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Uploading...
+                </div>
+              ) : fileName ? (
                 <div className="flex items-center">
                   <FileUp className="mr-2 h-5 w-5" />
                   {fileName}
@@ -238,22 +280,25 @@ export const DynamicInput: React.FC<DynamicInputProps> = ({
         <Button
           type="submit"
           size="lg"
-          disabled={field.required && !isValueValid()}
+          disabled={field.required && !isValueValid() || isUploading}
           className="rounded-full font-medium h-12"
         >
           <span>Next</span>
           <ChevronRight className="h-5 w-5 ml-1" />
         </Button>
         
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="self-center text-muted-foreground hover:text-foreground"
-          onClick={onSubmit}
-        >
-          Skip
-        </Button>
+        {!field.required && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="self-center text-muted-foreground hover:text-foreground"
+            onClick={onSubmit}
+            disabled={isUploading}
+          >
+            Skip
+          </Button>
+        )}
       </div>
     </form>
   );

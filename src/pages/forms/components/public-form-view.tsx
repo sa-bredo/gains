@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Form, FormField } from "../types";
@@ -267,7 +268,7 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
 
         <div className="md:w-1/2 bg-[#d3e4fd]/30 h-full overflow-y-auto flex flex-col">
           <div className="p-12 flex flex-col flex-grow">
-            <div className="h-1 w-full bg-gray-200 rounded-full mb-8">
+            <div className="h-1 w-full bg-gray-200 rounded-full mb-8 flex items-center justify-center">
               <div 
                 className="h-full bg-primary rounded-full transition-all duration-300" 
                 style={{ width: `${progress}%` }}
