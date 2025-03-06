@@ -27,6 +27,7 @@ import NewFormPage from "./pages/forms/new";
 import EditFormPage from "./pages/forms/edit";
 import FormSubmissionsPage from "./pages/forms/submissions";
 import PublicFormPage from "./pages/form/[publicUrl]";
+import FormExample from "@/pages/form-example";
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         {/* Fix: Make sure the route properly captures the parameter */}
         <Route path="/form/:publicUrl" element={<PublicFormPage />} />
+        <Route path="/form-example" element={<FormExample />} />
       
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>
