@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -6,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { FormBuilder } from "./components/form-builder";
 import { useFormService } from "./services/form-service";
 import { Form } from "./types";
-import { Loader2, Eye } from "lucide-react";
+import { Loader2, Eye, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -69,6 +70,10 @@ const EditFormPage: React.FC = () => {
     }
   };
 
+  const handleBackClick = () => {
+    navigate('/forms');
+  };
+
   if (loading) {
     return (
         <div className="min-h-screen flex w-full">
@@ -78,6 +83,15 @@ const EditFormPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <SidebarTrigger className="mr-2" />
                 <Separator orientation="vertical" className="h-4" />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleBackClick} 
+                  className="mr-1"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="sr-only">Back to forms</span>
+                </Button>
                 <span className="font-medium">Edit Form</span>
               </div>
             </header>
@@ -99,6 +113,15 @@ const EditFormPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <SidebarTrigger className="mr-2" />
                 <Separator orientation="vertical" className="h-4" />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleBackClick} 
+                  className="mr-1"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="sr-only">Back to forms</span>
+                </Button>
                 <span className="font-medium">Edit Form</span>
               </div>
             </header>
@@ -129,6 +152,15 @@ const EditFormPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <SidebarTrigger className="mr-2" />
               <Separator orientation="vertical" className="h-4" />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleBackClick} 
+                className="mr-1"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="sr-only">Back to forms</span>
+              </Button>
               <span className="font-medium">Edit Form</span>
             </div>
           </header>
