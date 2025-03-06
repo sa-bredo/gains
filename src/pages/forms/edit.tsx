@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -18,32 +18,34 @@ const EditFormPage: React.FC = () => {
   const formService = useFormService();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchForm = async () => {
-      if (!id) {
-        setError("Form ID is missing");
-        setLoading(false);
-        return;
-      }
+  // Use useCallback to prevent the fetchForm function from being recreated on each render
+  const fetchForm = useCallback(async () => {
+    if (!id) {
+      setError("Form ID is missing");
+      setLoading(false);
+      return;
+    }
 
-      console.log("Attempting to fetch form with ID:", id);
-      setLoading(true);
-      
-      try {
-        const data = await formService.fetchFormById(id);
-        console.log("Form data received:", data);
-        setForm(data);
-      } catch (error) {
-        console.error("Error fetching form:", error);
-        setError("Failed to load form. It may have been deleted or you don't have permission to view it.");
-        toast.error("Could not load the form. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchForm();
+    console.log("Attempting to fetch form with ID:", id);
+    setLoading(true);
+    
+    try {
+      const data = await formService.fetchFormById(id);
+      console.log("Form data received:", data);
+      setForm(data);
+    } catch (error) {
+      console.error("Error fetching form:", error);
+      setError("Failed to load form. It may have been deleted or you don't have permission to view it.");
+      toast.error("Could not load the form. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
   }, [id, formService]);
+
+  useEffect(() => {
+    fetchForm();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchForm]);
 
   if (loading) {
     return (
@@ -97,6 +99,7 @@ const EditFormPage: React.FC = () => {
     );
   }
 
+  // Only render FormBuilder once the form data is loaded
   return (
     <div className="min-h-screen flex w-full">
       <AppSidebar />
