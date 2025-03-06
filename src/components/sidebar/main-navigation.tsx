@@ -1,4 +1,3 @@
-
 import { FC } from "react";
 import { useLocation } from "react-router-dom";
 import {
@@ -53,8 +52,7 @@ const defaultNavItems: NavItem[] = [
     icon: FormInput,
     url: "/forms",
     items: [
-      { title: "Form Builder", url: "/forms" },
-      { title: "Submissions", url: "/forms/submissions" }
+      { title: "Form Builder", url: "/forms" }
     ]
   },
   {
