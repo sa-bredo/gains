@@ -6,24 +6,6 @@ import { StyledRadioButton } from "@/pages/forms/components/styled-radio-button"
 export default function FormExample() {
   return (
     <div className="min-h-screen w-full">
-      {/* Top Navigation */}
-      <header className="bg-white py-4 px-8 flex justify-between items-center">
-        <div className="flex items-center">
-          <div className="text-2xl font-bold text-[#1A2C55]">B3</div>
-          <span className="text-xs ml-2 mt-auto">LPR</span>
-        </div>
-        <nav className="hidden md:flex space-x-8">
-          <a href="#" className="text-gray-700 hover:text-gray-900">Home</a>
-          <a href="#" className="text-gray-700 hover:text-gray-900">Services</a>
-          <a href="#" className="text-gray-700 hover:text-gray-900">Blog</a>
-          <a href="#" className="text-gray-700 hover:text-gray-900">About Us</a>
-          <a href="#" className="text-gray-700 hover:text-gray-900">Contact Us</a>
-        </nav>
-        <button className="bg-gray-200 text-gray-800 px-6 py-2 rounded-full">
-          Log in
-        </button>
-      </header>
-
       {/* Main Content - Two Column Layout */}
       <div className="flex flex-col md:flex-row w-full">
         {/* Left Column - Image with CTA */}
