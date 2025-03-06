@@ -1,74 +1,104 @@
 
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useParams } from "react-router-dom";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/sidebar";
+import { Separator } from "@/components/ui/separator";
 import { FormBuilder } from "./components/form-builder";
-import { Form } from "./types";
 import { useFormService } from "./services/form-service";
-import { useToast } from "@/hooks/use-toast";
+import { Form } from "./types";
+import { Loader2 } from "lucide-react";
 
-export default function EditFormPage() {
+const EditFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [form, setForm] = useState<Form | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const formService = useFormService();
-  const { toast } = useToast();
 
   useEffect(() => {
     const fetchForm = async () => {
       if (!id) {
-        setIsLoading(false);
+        setError("Form ID is missing");
+        setLoading(false);
         return;
       }
-      
+
       try {
-        const formData = await formService.fetchFormById(id);
-        setForm(formData);
+        const data = await formService.fetchFormById(id);
+        setForm(data);
       } catch (error) {
         console.error("Error fetching form:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load form",
-          variant: "destructive",
-        });
-        navigate("/forms");
+        setError("Failed to load form. It may have been deleted or you don't have permission to view it.");
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
     fetchForm();
-  }, [id, navigate, formService, toast]);
+  }, [id, formService]);
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="container py-6">
-        <div className="flex justify-center py-10">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-        </div>
+      <div className="min-h-screen flex w-full">
+        <AppSidebar />
+        <SidebarInset className="bg-background">
+          <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="mr-2" />
+              <Separator orientation="vertical" className="h-4" />
+              <span className="font-medium">Edit Form</span>
+            </div>
+          </header>
+          <div className="container mx-auto py-6 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </SidebarInset>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex w-full">
+        <AppSidebar />
+        <SidebarInset className="bg-background">
+          <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="mr-2" />
+              <Separator orientation="vertical" className="h-4" />
+              <span className="font-medium">Edit Form</span>
+            </div>
+          </header>
+          <div className="container mx-auto py-6">
+            <div className="bg-destructive/10 text-destructive p-4 rounded-md">
+              <h2 className="text-xl font-bold mb-2">Error</h2>
+              <p>{error}</p>
+            </div>
+          </div>
+        </SidebarInset>
       </div>
     );
   }
 
   return (
-    <div className="container py-6">
-      <div className="flex items-center mb-6">
-        <Button variant="ghost" onClick={() => navigate("/forms")}>
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          Back to Forms
-        </Button>
-      </div>
-      
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">
-          {form ? `Edit Form: ${form.title}` : "Create New Form"}
-        </h1>
-      </div>
-      
-      <FormBuilder initialForm={form || undefined} />
+    <div className="min-h-screen flex w-full">
+      <AppSidebar />
+      <SidebarInset className="bg-background">
+        <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="mr-2" />
+            <Separator orientation="vertical" className="h-4" />
+            <span className="font-medium">Edit Form</span>
+          </div>
+        </header>
+        <div className="container mx-auto py-6">
+          <h1 className="text-2xl font-bold mb-6">Edit Form</h1>
+          {form && <FormBuilder form={form} />}
+        </div>
+      </SidebarInset>
     </div>
   );
-}
+};
+
+export default EditFormPage;
