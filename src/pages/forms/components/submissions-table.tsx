@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from "react";
-import { Form, FormSubmission } from "../types";
+import { Form, FormSubmission, TypedSubmissionValue } from "../types";
 import {
   Table,
   TableBody,
@@ -14,9 +14,16 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
-  FileJson
+  FileJson,
+  Calendar,
+  FileText,
+  Link,
+  Image,
+  Check,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
 
 export interface SubmissionsTableProps {
   form: Form;
@@ -29,8 +36,6 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
   submissions,
   loading = false
 }) => {
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
-
   // Extract all possible keys from all submissions
   const allKeys = useMemo(() => {
     const keySet = new Set<string>();
@@ -50,20 +55,131 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
     return Array.from(keySet);
   }, [submissions, form]);
 
-  const renderSubmissionValue = (value: any) => {
+  // Helper function to determine if a value is a TypedSubmissionValue
+  const isTypedValue = (value: any): value is TypedSubmissionValue => {
+    return value !== null && 
+           typeof value === 'object' && 
+           'value' in value && 
+           'type' in value;
+  };
+
+  // Helper function to get the actual value and type from submission data
+  const getValueAndType = (data: any): { value: any; type: string } => {
+    if (isTypedValue(data)) {
+      return { value: data.value, type: data.type };
+    }
+    
+    // For legacy data (strings), infer type
+    if (data === null || data === undefined) {
+      return { value: null, type: 'text' };
+    }
+    
+    if (typeof data === 'string') {
+      if (data.match(/^\d{4}-\d{2}-\d{2}T/)) {
+        return { value: data, type: 'date' };
+      }
+      
+      if (data.startsWith('http') && 
+         (data.includes('.jpg') || data.includes('.png') || data.includes('.gif'))) {
+        return { value: data, type: 'image' };
+      }
+      
+      if (data.startsWith('http')) {
+        return { value: data, type: 'link' };
+      }
+    }
+    
+    return { value: data, type: 'text' };
+  };
+
+  const renderSubmissionValue = (data: any) => {
+    const { value, type } = getValueAndType(data);
+    
     if (value === null || value === undefined) {
       return <span className="text-muted-foreground italic">Not provided</span>;
     }
 
-    if (Array.isArray(value)) {
-      return value.join(", ");
+    switch (type) {
+      case 'file':
+        return (
+          <a 
+            href={value} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center text-primary hover:underline"
+          >
+            <FileText className="h-4 w-4 mr-1" />
+            {value.split('/').pop()}
+          </a>
+        );
+      
+      case 'image':
+        return (
+          <div className="flex flex-col items-start">
+            <a 
+              href={value} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center text-primary hover:underline mb-1"
+            >
+              <Image className="h-4 w-4 mr-1" />
+              {value.split('/').pop()}
+            </a>
+            <img 
+              src={value} 
+              alt="Submission" 
+              className="h-12 w-auto object-contain rounded border border-border" 
+            />
+          </div>
+        );
+      
+      case 'date':
+        try {
+          const date = new Date(value);
+          return (
+            <div className="flex items-center">
+              <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
+              {format(date, 'PPP')}
+            </div>
+          );
+        } catch (e) {
+          return String(value);
+        }
+      
+      case 'link':
+        return (
+          <a 
+            href={value} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center text-primary hover:underline"
+          >
+            <Link className="h-4 w-4 mr-1" />
+            {String(value).substring(0, 30)}
+            {String(value).length > 30 ? '...' : ''}
+          </a>
+        );
+      
+      case 'checkbox':
+      case 'boolean':
+        if (typeof value === 'boolean') {
+          return value ? 
+            <Check className="h-4 w-4 text-green-500" /> : 
+            <X className="h-4 w-4 text-red-500" />;
+        }
+        return String(value);
+      
+      default:
+        if (Array.isArray(value)) {
+          return value.join(", ");
+        }
+        
+        if (typeof value === "boolean") {
+          return value ? "Yes" : "No";
+        }
+        
+        return String(value);
     }
-
-    if (typeof value === "boolean") {
-      return value ? "Yes" : "No";
-    }
-
-    return String(value);
   };
 
   const handleDownloadJson = (submission: FormSubmission) => {
@@ -92,7 +208,7 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
         Showing {submissions.length} {submissions.length === 1 ? "submission" : "submissions"} for "{form.title}"
       </p>
       
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>

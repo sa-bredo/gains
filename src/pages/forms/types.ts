@@ -1,3 +1,4 @@
+
 export type FieldType = 
   | 'text'
   | 'textarea'
@@ -6,7 +7,8 @@ export type FieldType =
   | 'multiple_choice'
   | 'checkbox'
   | 'date'
-  | 'file';
+  | 'file'
+  | 'short_text';  // Added for backward compatibility
 
 export type FormType = 'Join Team' | 'Survey';
 
@@ -52,9 +54,14 @@ export interface Form {
   form_type?: FormType;
 }
 
+export interface TypedSubmissionValue {
+  value: any;
+  type: FieldType | string;
+}
+
 export interface FormSubmission {
   id: string;
   form_id: string;
   submitted_at: string;
-  data: Record<string, any>;
+  data: Record<string, string | TypedSubmissionValue>;
 }
