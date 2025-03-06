@@ -33,11 +33,13 @@ export const QuestionsSection = memo(({
   
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="pb-2">
         <CardTitle>Questions</CardTitle>
-        <FieldToolbar onAddField={onAddField} />
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        <div className="w-full">
+          <FieldToolbar onAddField={onAddField} />
+        </div>
         <FieldsList
           fields={fields}
           editingFieldId={editingFieldId}

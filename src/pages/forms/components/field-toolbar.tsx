@@ -10,7 +10,7 @@ interface FieldToolbarProps {
 
 export const FieldToolbar: React.FC<FieldToolbarProps> = ({ onAddField }) => {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2 justify-start w-full">
       {fieldTypes.map((type) => (
         <Button
           key={type}
