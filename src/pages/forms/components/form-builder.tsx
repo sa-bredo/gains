@@ -137,12 +137,13 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ initialForm }) => {
           description: "Form updated successfully"
         });
       } else {
-        // Create new form
-        const newForm = await formService.createForm(
+        // Create new form - fix: use createForm with proper arguments
+        const newForm = await formService.createForm({
           title,
-          description || null,
-          formConfig
-        );
+          description: description || null,
+          public_url: formService.generatePublicUrl(),
+          json_config: formConfig
+        });
         
         toast({
           title: "Success",
@@ -150,7 +151,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ initialForm }) => {
         });
         
         // Navigate to the edit page with the new form ID
-        navigate(`/forms/${newForm.id}`);
+        navigate(`/forms/edit/${newForm.id}`);
       }
     } catch (error) {
       console.error("Error saving form:", error);

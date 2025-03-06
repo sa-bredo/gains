@@ -27,7 +27,8 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
   useEffect(() => {
     const fetchForm = async () => {
       try {
-        const formData = await formService.fetchFormByUrl(publicUrl);
+        // Fix: Use fetchFormByPublicUrl instead of fetchFormByUrl
+        const formData = await formService.fetchFormByPublicUrl(publicUrl);
         setForm(formData);
         
         // Initialize answers
@@ -90,7 +91,8 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
     setIsSubmitting(true);
     
     try {
-      await formService.submitFormResponse(form.id, answers);
+      // Fix: Use submitForm instead of submitFormResponse
+      await formService.submitForm(form.id, answers);
       setIsComplete(true);
     } catch (error) {
       console.error("Error submitting form:", error);
