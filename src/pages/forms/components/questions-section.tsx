@@ -24,7 +24,12 @@ export const QuestionsSection = memo(({
   onRemoveField,
   onFieldsReorder
 }: QuestionsSectionProps) => {
-  console.log("Rendering QuestionsSection");
+  console.log("Rendering QuestionsSection, fields count:", fields.length);
+  
+  // Memoize the add first field handler
+  const handleAddFirstField = React.useCallback(() => {
+    onAddField("text");
+  }, [onAddField]);
   
   return (
     <Card>
@@ -40,7 +45,7 @@ export const QuestionsSection = memo(({
           onEditField={onEditField}
           onDuplicateField={onDuplicateField}
           onRemoveField={onRemoveField}
-          onAddFirstField={() => onAddField("text")}
+          onAddFirstField={handleAddFirstField}
         />
       </CardContent>
     </Card>

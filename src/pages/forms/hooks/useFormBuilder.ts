@@ -11,9 +11,17 @@ interface UseFormBuilderProps {
 }
 
 export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
-  const [title, setTitle] = useState(initialForm?.title || "");
-  const [description, setDescription] = useState(initialForm?.description || "");
-  const [fields, setFields] = useState<FormField[]>(initialForm?.json_config?.fields || []);
+  // Use refs to store initial values to prevent re-renders
+  const initialValueRef = useRef({
+    title: initialForm?.title || "",
+    description: initialForm?.description || "",
+    fields: initialForm?.json_config?.fields || [],
+  });
+  
+  // State management
+  const [title, setTitle] = useState(initialValueRef.current.title);
+  const [description, setDescription] = useState(initialValueRef.current.description);
+  const [fields, setFields] = useState<FormField[]>(initialValueRef.current.fields);
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -21,19 +29,29 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
   const navigate = useNavigate();
   const formService = useFormService();
   
-  const initialized = useRef(false);
+  // Track if the component has been initialized
+  const isInitialized = useRef(false);
 
-  // Use useEffect for initialization instead of conditional rendering
+  // Properly handle initialization with cleanup
   useEffect(() => {
-    if (initialForm && !initialized.current) {
+    if (initialForm && !isInitialized.current) {
       console.log("Initializing form builder with form:", initialForm.id);
+      
+      // Only set these values during initialization
       setTitle(initialForm.title);
       setDescription(initialForm.description || "");
       setFields(initialForm.json_config.fields || []);
-      initialized.current = true;
+      
+      isInitialized.current = true;
     }
+    
+    // Cleanup function
+    return () => {
+      console.log("Cleaning up form builder");
+    };
   }, [initialForm]);
 
+  // Memoize callbacks to prevent unnecessary re-renders
   const addField = useCallback((type: FieldType) => {
     const newField: FormField = {
       id: uuidv4(),
@@ -43,7 +61,7 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
       options: type === "multiple_choice" || type === "checkbox" ? ["Option 1"] : undefined
     };
     
-    setFields((prevFields) => [...prevFields, newField]);
+    setFields(prevFields => [...prevFields, newField]);
     setEditingField(newField);
   }, [fields.length]);
 
@@ -54,28 +72,28 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
       label: `${field.label} (Copy)`
     };
     
-    setFields((prevFields) => {
-      const updatedFields = [...prevFields];
+    setFields(prevFields => {
       const index = prevFields.findIndex(f => f.id === field.id);
+      const updatedFields = [...prevFields];
       updatedFields.splice(index + 1, 0, duplicatedField);
       return updatedFields;
     });
   }, []);
 
   const updateField = useCallback((updatedField: FormField) => {
-    setFields((prevFields) => 
+    setFields(prevFields => 
       prevFields.map(field => field.id === updatedField.id ? updatedField : field)
     );
     
-    setEditingField((prevEditingField) => 
+    setEditingField(prevEditingField => 
       prevEditingField?.id === updatedField.id ? updatedField : prevEditingField
     );
   }, []);
 
   const removeField = useCallback((fieldId: string) => {
-    setFields((prevFields) => prevFields.filter(field => field.id !== fieldId));
+    setFields(prevFields => prevFields.filter(field => field.id !== fieldId));
     
-    setEditingField((prevEditingField) => 
+    setEditingField(prevEditingField => 
       prevEditingField?.id === fieldId ? null : prevEditingField
     );
   }, []);

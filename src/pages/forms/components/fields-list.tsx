@@ -32,6 +32,8 @@ const FieldItem = memo(({
   onDuplicate: () => void;
   onRemove: () => void;
 }) => {
+  console.log("Rendering FieldItem", field.id);
+  
   return (
     <Draggable
       key={field.id}
@@ -117,6 +119,19 @@ export const FieldsList = memo(({
     
     onFieldsReorder(items);
   }, [fields, onFieldsReorder]);
+  
+  // Properly memoize these handlers for each field
+  const getEditHandler = useCallback((field: FormField) => () => {
+    onEditField(field);
+  }, [onEditField]);
+  
+  const getDuplicateHandler = useCallback((field: FormField) => () => {
+    onDuplicateField(field);
+  }, [onDuplicateField]);
+  
+  const getRemoveHandler = useCallback((fieldId: string) => () => {
+    onRemoveField(fieldId);
+  }, [onRemoveField]);
 
   if (fields.length === 0) {
     return (
@@ -145,9 +160,9 @@ export const FieldsList = memo(({
                 field={field}
                 index={index}
                 isEditing={editingFieldId === field.id}
-                onEdit={() => onEditField(field)}
-                onDuplicate={() => onDuplicateField(field)}
-                onRemove={() => onRemoveField(field.id)}
+                onEdit={getEditHandler(field)}
+                onDuplicate={getDuplicateHandler(field)}
+                onRemove={getRemoveHandler(field.id)}
               />
             ))}
             {provided.placeholder}
