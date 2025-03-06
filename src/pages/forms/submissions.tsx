@@ -13,6 +13,7 @@ const FormSubmissionsPage: React.FC = () => {
   const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const formService = useFormService();
+  const [selectedForm, setSelectedForm] = useState<Form | null>(null);
 
   useEffect(() => {
     const fetchForms = async () => {
@@ -22,6 +23,7 @@ const FormSubmissionsPage: React.FC = () => {
         
         if (data.length > 0 && !selectedFormId) {
           setSelectedFormId(data[0].id);
+          setSelectedForm(data[0]);
         }
       } catch (error) {
         console.error("Error fetching forms:", error);
@@ -31,6 +33,21 @@ const FormSubmissionsPage: React.FC = () => {
     };
 
     fetchForms();
+  }, [formService, selectedFormId]);
+
+  useEffect(() => {
+    if (!selectedFormId) return;
+    
+    const fetchSelectedForm = async () => {
+      try {
+        const form = await formService.fetchFormById(selectedFormId);
+        setSelectedForm(form);
+      } catch (error) {
+        console.error("Error fetching selected form:", error);
+      }
+    };
+
+    fetchSelectedForm();
   }, [formService, selectedFormId]);
 
   useEffect(() => {
@@ -65,13 +82,16 @@ const FormSubmissionsPage: React.FC = () => {
         <div className="container mx-auto py-6">
           <h1 className="text-2xl font-bold mb-6">Form Submissions</h1>
           
-          <SubmissionsTable 
-            forms={forms} 
-            submissions={submissions} 
-            loading={loading}
-            selectedFormId={selectedFormId}
-            onFormSelect={setSelectedFormId}
-          />
+          {selectedForm && (
+            <SubmissionsTable 
+              form={selectedForm}
+              submissions={submissions}
+              forms={forms}
+              loading={loading}
+              selectedFormId={selectedFormId || ""}
+              onFormSelect={setSelectedFormId}
+            />
+          )}
         </div>
       </SidebarInset>
     </div>

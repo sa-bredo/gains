@@ -16,18 +16,19 @@ const FormsPage: React.FC = () => {
   const navigate = useNavigate();
   const formService = useFormService();
 
-  useEffect(() => {
-    const fetchForms = async () => {
-      try {
-        const data = await formService.fetchForms();
-        setForms(data);
-      } catch (error) {
-        console.error("Error fetching forms:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchForms = async () => {
+    try {
+      setLoading(true);
+      const data = await formService.fetchForms();
+      setForms(data);
+    } catch (error) {
+      console.error("Error fetching forms:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchForms();
   }, [formService]);
 
@@ -50,7 +51,11 @@ const FormsPage: React.FC = () => {
             </Button>
           </div>
           
-          <FormsTable forms={forms} loading={loading} />
+          <FormsTable 
+            forms={forms} 
+            loading={loading}
+            onFormsChange={fetchForms}
+          />
         </div>
       </SidebarInset>
     </div>

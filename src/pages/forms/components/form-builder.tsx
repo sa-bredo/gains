@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { v4 as uuidv4 } from "uuid";
-import { FormField, FormConfig, FieldType } from "../types";
+import { FormField, FormConfig, FieldType, Form } from "../types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,19 +20,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useFormService } from "../services/form-service";
 
-interface FormBuilderProps {
-  initialForm?: {
-    id: string;
-    title: string;
-    description?: string;
-    json_config: FormConfig;
-  };
+export interface FormBuilderProps {
+  form?: Form;
 }
 
-export const FormBuilder: React.FC<FormBuilderProps> = ({ initialForm }) => {
-  const [title, setTitle] = useState(initialForm?.title || "");
-  const [description, setDescription] = useState(initialForm?.description || "");
-  const [fields, setFields] = useState<FormField[]>(initialForm?.json_config.fields || []);
+export const FormBuilder: React.FC<FormBuilderProps> = ({ form }) => {
+  const [title, setTitle] = useState(form?.title || "");
+  const [description, setDescription] = useState(form?.description || "");
+  const [fields, setFields] = useState<FormField[]>(form?.json_config.fields || []);
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -124,9 +118,8 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ initialForm }) => {
         fields
       };
       
-      if (initialForm) {
-        // Update existing form
-        await formService.updateForm(initialForm.id, {
+      if (form) {
+        await formService.updateForm(form.id, {
           title,
           description: description || null,
           json_config: formConfig
@@ -137,7 +130,6 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ initialForm }) => {
           description: "Form updated successfully"
         });
       } else {
-        // Create new form - fix: use createForm with proper arguments
         const newForm = await formService.createForm({
           title,
           description: description || null,
@@ -150,8 +142,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ initialForm }) => {
           description: "Form created successfully"
         });
         
-        // Navigate to the edit page with the new form ID
-        navigate(`/forms/edit/${newForm.id}`);
+        navigate(`/forms/${newForm.id}`);
       }
     } catch (error) {
       console.error("Error saving form:", error);

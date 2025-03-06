@@ -32,14 +32,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface FormsTableProps {
+export interface FormsTableProps {
   forms: Form[];
-  onFormsChange: () => void;
+  loading?: boolean;
+  onFormsChange?: () => void;
 }
 
 export const FormsTable: React.FC<FormsTableProps> = ({
   forms,
-  onFormsChange
+  loading = false,
+  onFormsChange = () => {}
 }) => {
   const [formToDelete, setFormToDelete] = useState<Form | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
