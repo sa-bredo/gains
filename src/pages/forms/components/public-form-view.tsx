@@ -251,23 +251,6 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
                 </div>
                 
                 <div className="flex flex-col items-center space-y-6 mt-8">
-                  <Button 
-                    onClick={goToNextStep}
-                    disabled={currentField.required && !answers[currentField.label]}
-                    className="w-full bg-[#1A2C55] hover:bg-[#0f1a33] text-white py-6 rounded-lg"
-                  >
-                    {currentStep < form.json_config.fields.length - 1 ? 'Next' : 'Submit'}
-                  </Button>
-                  
-                  {currentStep < form.json_config.fields.length - 1 && (
-                    <button 
-                      onClick={goToNextStep}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      Skip Question
-                    </button>
-                  )}
-
                   {currentStep > 0 && (
                     <button 
                       onClick={goToPreviousStep}

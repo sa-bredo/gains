@@ -52,7 +52,7 @@ export const DynamicInput: React.FC<DynamicInputProps> = ({
             placeholder={field.placeholder}
             value={value || ""}
             onChange={(e) => onChange(e.target.value)}
-            className="text-lg p-4 h-14"
+            className="text-lg p-4 h-10"
             autoFocus
           />
         );
@@ -75,7 +75,7 @@ export const DynamicInput: React.FC<DynamicInputProps> = ({
             placeholder={field.placeholder}
             value={value || ""}
             onChange={(e) => onChange(e.target.value)}
-            className="text-lg p-4 h-14"
+            className="text-lg p-4 h-10"
             autoFocus
           />
         );
@@ -87,7 +87,7 @@ export const DynamicInput: React.FC<DynamicInputProps> = ({
             placeholder={field.placeholder || "email@example.com"}
             value={value || ""}
             onChange={(e) => onChange(e.target.value)}
-            className="text-lg p-4 h-14"
+            className="text-lg p-4 h-10"
             autoFocus
           />
         );
@@ -98,7 +98,7 @@ export const DynamicInput: React.FC<DynamicInputProps> = ({
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full justify-start text-left text-lg h-14",
+                  "w-full justify-start text-left text-lg h-10",
                   !value && "text-muted-foreground"
                 )}
               >
@@ -183,7 +183,7 @@ export const DynamicInput: React.FC<DynamicInputProps> = ({
               type="button"
               variant="outline"
               size="lg"
-              className="w-full h-20 border-dashed"
+              className="w-full h-10 border-dashed"
               onClick={() => fileInputRef.current?.click()}
             >
               {fileName ? (
@@ -221,7 +221,7 @@ export const DynamicInput: React.FC<DynamicInputProps> = ({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-6">
         <div className="space-y-2">
-          <h2 className="text-2xl md:text-3xl font-semibold flex items-start gap-2">
+          <h2 className="text-lg md:text-lg font-semibold flex items-start gap-2">
             {questionNumber && (
               <span className="text-primary mr-2">{questionNumber}.</span>
             )}
@@ -231,7 +231,7 @@ export const DynamicInput: React.FC<DynamicInputProps> = ({
             <p className="text-muted-foreground text-base">{field.description}</p>
           )}
         </div>
-        <div className="mt-6">{renderInputField()}</div>
+        <div className="mt-3">{renderInputField()}</div>
       </div>
       
       <div className="pt-4 flex flex-col space-y-3">
