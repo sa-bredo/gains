@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { FormField } from "../types";
 import { Input } from "@/components/ui/input";
@@ -8,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { CalendarIcon, ChevronRight, FileUp, Upload } from "lucide-react";
+import { CalendarIcon, ChevronRight, FileUp, Upload, Loader2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { StyledRadioButton } from "./styled-radio-button";
@@ -46,34 +45,28 @@ export const DynamicInput: React.FC<DynamicInputProps> = ({
     setIsUploading(true);
 
     try {
-      // Generate a unique file path using company and form IDs
-      // For now, we'll use a placeholder format since we don't have the company slug
       const formId = window.location.pathname.split('/').pop() || 'unknown';
       const filePath = `${formId}/${field.id}_${file.name}`;
 
-      // Upload the file to Supabase storage
-      const { data, error } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('form-uploads')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
         });
 
-      if (error) {
-        console.error('Error uploading file:', error);
-        throw error;
+      if (uploadError) {
+        console.error('Error uploading file:', uploadError);
+        throw uploadError;
       }
 
-      // Get the public URL for the uploaded file
-      const { data: urlData } = supabase.storage
+      const { data: { publicUrl } } = supabase.storage
         .from('form-uploads')
         .getPublicUrl(filePath);
 
-      // Store the file URL as the answer value
-      onChange(urlData.publicUrl);
+      onChange(publicUrl);
     } catch (error) {
       console.error('File upload failed:', error);
-      // Handle error state here
     } finally {
       setIsUploading(false);
     }
