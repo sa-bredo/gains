@@ -21,19 +21,23 @@ const EditFormPage: React.FC = () => {
   // Strong reference management to prevent infinite loops
   const isMounted = useRef(true);
   const dataFetched = useRef(false);
+  const formId = useRef(id);
 
   const fetchForm = useCallback(async () => {
     // Only fetch if we have an ID, haven't completed a fetch yet, and component is still mounted
-    if (!id || dataFetched.current || !isMounted.current) return;
+    if (!formId.current || dataFetched.current || !isMounted.current) {
+      console.log("Skipping form fetch:", { id: formId.current, fetched: dataFetched.current, mounted: isMounted.current });
+      return;
+    }
     
     // Mark that we've started a fetch to prevent repeated attempts
     dataFetched.current = true;
     
-    console.log("Attempting to fetch form with ID:", id);
+    console.log("Attempting to fetch form with ID:", formId.current);
     
     try {
       setLoading(true);
-      const data = await formService.fetchFormById(id);
+      const data = await formService.fetchFormById(formId.current);
       
       // Only update state if component is still mounted
       if (isMounted.current) {
@@ -51,20 +55,22 @@ const EditFormPage: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [id, formService]);
+  }, [formService]);
 
   useEffect(() => {
     // Set isMounted to true when component mounts
     isMounted.current = true;
     dataFetched.current = false;
+    formId.current = id;
     
     fetchForm();
     
     // Clean up function that runs when component unmounts
     return () => {
+      console.log("EditFormPage unmounting");
       isMounted.current = false;
     };
-  }, [fetchForm]); // Only re-run if fetchForm changes
+  }, [id, fetchForm]); // Only re-run if fetchForm or id changes
 
   if (loading) {
     return (
@@ -132,7 +138,7 @@ const EditFormPage: React.FC = () => {
         </header>
         <div className="container mx-auto py-6">
           <h1 className="text-2xl font-bold mb-6">Edit Form</h1>
-          {form && <FormBuilder key={form.id} form={form} />}
+          {form && <FormBuilder key={`form-${form.id}`} form={form} />}
         </div>
       </SidebarInset>
     </div>

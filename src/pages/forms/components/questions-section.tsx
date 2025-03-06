@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormField, FieldType } from "../types";
 import { FieldToolbar } from "./field-toolbar";
@@ -15,7 +15,7 @@ interface QuestionsSectionProps {
   onFieldsReorder: (reorderedFields: FormField[]) => void;
 }
 
-export const QuestionsSection: React.FC<QuestionsSectionProps> = ({
+export const QuestionsSection = memo(({
   fields,
   editingFieldId,
   onAddField,
@@ -23,7 +23,9 @@ export const QuestionsSection: React.FC<QuestionsSectionProps> = ({
   onDuplicateField,
   onRemoveField,
   onFieldsReorder
-}) => {
+}: QuestionsSectionProps) => {
+  console.log("Rendering QuestionsSection");
+  
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -43,4 +45,6 @@ export const QuestionsSection: React.FC<QuestionsSectionProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+QuestionsSection.displayName = "QuestionsSection";

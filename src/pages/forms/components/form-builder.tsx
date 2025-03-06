@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { memo } from "react";
 import { Form } from "../types";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
@@ -13,7 +13,10 @@ export interface FormBuilderProps {
   form?: Form;
 }
 
-export const FormBuilder: React.FC<FormBuilderProps> = ({ form }) => {
+// Use memo to prevent unnecessary re-renders
+export const FormBuilder = memo(({ form }: FormBuilderProps) => {
+  console.log("Rendering FormBuilder", form?.id);
+  
   const {
     title,
     description,
@@ -30,12 +33,6 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ form }) => {
     updateFieldsOrder,
     saveForm
   } = useFormBuilder({ initialForm: form });
-
-  useEffect(() => {
-    if (form) {
-      console.log("FormBuilder initializing with form data", form.id);
-    }
-  }, [form]);
 
   return (
     <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -91,4 +88,6 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ form }) => {
       </div>
     </div>
   );
-};
+});
+
+FormBuilder.displayName = "FormBuilder";

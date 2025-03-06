@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { FormField, FormConfig, FieldType, Form } from "../types";
 import { useToast } from "@/hooks/use-toast";
@@ -23,19 +23,16 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
   
   const initialized = useRef(false);
 
-  const initializeForm = useCallback((form: Form) => {
-    if (!initialized.current) {
-      setTitle(form.title);
-      setDescription(form.description || "");
-      setFields(form.json_config.fields || []);
+  // Use useEffect for initialization instead of conditional rendering
+  useEffect(() => {
+    if (initialForm && !initialized.current) {
+      console.log("Initializing form builder with form:", initialForm.id);
+      setTitle(initialForm.title);
+      setDescription(initialForm.description || "");
+      setFields(initialForm.json_config.fields || []);
       initialized.current = true;
     }
-  }, []);
-
-  // Make sure to call initializeForm if initialForm is provided
-  if (initialForm && !initialized.current) {
-    initializeForm(initialForm);
-  }
+  }, [initialForm]);
 
   const addField = useCallback((type: FieldType) => {
     const newField: FormField = {
