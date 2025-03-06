@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { Form, FormSubmission, TypedSubmissionValue } from "../types";
 import {
@@ -21,7 +20,8 @@ import {
   Image,
   Check,
   X,
-  Eye
+  Eye,
+  File
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -41,16 +41,13 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<{ url: string, name: string }>({ url: "", name: "" });
 
-  // Extract all possible keys from all submissions
   const allKeys = useMemo(() => {
     const keySet = new Set<string>();
     
-    // Add form field labels as keys
     form.json_config.fields.forEach(field => {
       keySet.add(field.label);
     });
     
-    // Add any additional keys from submission data
     submissions.forEach(submission => {
       Object.keys(submission.data).forEach(key => {
         keySet.add(key);
@@ -60,7 +57,6 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
     return Array.from(keySet);
   }, [submissions, form]);
 
-  // Helper function to determine if a value is a TypedSubmissionValue
   const isTypedValue = (value: any): value is TypedSubmissionValue => {
     return value !== null && 
            typeof value === 'object' && 
@@ -68,13 +64,11 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
            'type' in value;
   };
 
-  // Helper function to get the actual value and type from submission data
   const getValueAndType = (data: any): { value: any; type: string } => {
     if (isTypedValue(data)) {
       return { value: data.value, type: data.type };
     }
     
-    // For legacy data (strings), infer type
     if (data === null || data === undefined) {
       return { value: null, type: 'text' };
     }
@@ -113,19 +107,10 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
       case 'file':
         return (
           <div className="flex items-center space-x-2">
-            <a 
-              href={value} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center text-primary hover:underline"
-            >
-              <FileText className="h-4 w-4 mr-1" />
-              {value.split('/').pop()}
-            </a>
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-8 w-8 p-0" 
+              className="h-8 p-1 flex items-center" 
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -133,7 +118,10 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
               }}
               title="View file"
             >
-              <Eye className="h-4 w-4" />
+              <File className="h-4 w-4 mr-1.5" />
+              <span className="text-primary hover:underline truncate max-w-[180px]">
+                {value.split('/').pop()}
+              </span>
             </Button>
           </div>
         );
@@ -141,30 +129,22 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
       case 'image':
         return (
           <div className="flex flex-col items-start">
-            <div className="flex items-center space-x-2">
-              <a 
-                href={value} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center text-primary hover:underline mb-1"
-              >
-                <Image className="h-4 w-4 mr-1" />
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 p-1 flex items-center mb-1" 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openFileViewer(value, value.split('/').pop());
+              }}
+              title="View image"
+            >
+              <Image className="h-4 w-4 mr-1.5" />
+              <span className="text-primary hover:underline truncate max-w-[180px]">
                 {value.split('/').pop()}
-              </a>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openFileViewer(value, value.split('/').pop());
-                }}
-                title="View image"
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
-            </div>
+              </span>
+            </Button>
             <div 
               className="h-12 w-auto relative overflow-hidden border border-border rounded cursor-pointer"
               onClick={() => openFileViewer(value, value.split('/').pop())}
