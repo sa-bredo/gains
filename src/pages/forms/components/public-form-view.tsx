@@ -3,15 +3,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Form, FormField } from "../types";
 import { useFormService } from "../services/form-service";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, ChevronRight, MessageCircleQuestion } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DynamicInput } from "./dynamic-input";
 
 interface PublicFormViewProps {
   publicUrl: string;
+  isPreview?: boolean;
 }
 
-export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => {
+export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPreview = false }) => {
   const [form, setForm] = useState<Form | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
@@ -36,7 +37,9 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
         console.log(`Fetching form with public URL: ${publicUrl}`);
         formFetched.current = true;
         
-        const formData = await formService.fetchFormByPublicUrl(publicUrl);
+        const formData = isPreview 
+          ? await formService.fetchFormById(publicUrl) 
+          : await formService.fetchFormByPublicUrl(publicUrl);
         
         if (!isMounted.current) return;
         
@@ -55,7 +58,9 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
       } catch (error) {
         console.error("Error fetching form:", error);
         if (isMounted.current) {
-          setError("Form not found. Please check the URL.");
+          setError(isPreview 
+            ? "Could not load form preview. Please try again." 
+            : "Form not found. Please check the URL.");
         }
       }
     };
@@ -66,7 +71,7 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
       console.log("PublicFormView unmounting");
       isMounted.current = false;
     };
-  }, [publicUrl, formService]);
+  }, [publicUrl, formService, isPreview]);
 
   useEffect(() => {
     if (form && form.json_config.fields.length > 0) {
@@ -107,6 +112,11 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
 
   const handleSubmit = async () => {
     if (!form) return;
+    
+    if (isPreview) {
+      setIsComplete(true);
+      return;
+    }
     
     setIsSubmitting(true);
     

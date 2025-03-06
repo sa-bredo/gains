@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -6,14 +7,18 @@ import { Separator } from "@/components/ui/separator";
 import { FormBuilder } from "./components/form-builder";
 import { useFormService } from "./services/form-service";
 import { Form } from "./types";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PublicFormView } from "./components/public-form-view";
 
 const EditFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const navigate = useNavigate();
 
   // ✅ Memoize formService to prevent unnecessary re-renders
@@ -64,6 +69,10 @@ const EditFormPage: React.FC = () => {
       isMounted.current = false;
     };
   }, [id, fetchForm]); // Runs only when `id` changes
+
+  const handlePreviewClick = () => {
+    setPreviewOpen(true);
+  };
 
   if (loading) {
     return (
@@ -129,10 +138,29 @@ const EditFormPage: React.FC = () => {
             </div>
           </header>
           <div className="container mx-auto py-6">
-            <h1 className="text-2xl font-bold mb-6">Edit Form</h1>
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-bold">Edit Form</h1>
+              <Button variant="outline" size="sm" onClick={handlePreviewClick}>
+                <Eye className="mr-2 h-4 w-4" />
+                Preview Form
+              </Button>
+            </div>
             {form && <FormBuilder key={`form-${form.id}`} form={form} />}
           </div>
         </SidebarInset>
+
+        {form && (
+          <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+            <DialogContent className="max-w-6xl h-[90vh] p-0 overflow-hidden">
+              <DialogHeader className="p-4 border-b">
+                <DialogTitle>Form Preview: {form.title}</DialogTitle>
+              </DialogHeader>
+              <div className="h-full overflow-auto">
+                <PublicFormView publicUrl={form.public_url} isPreview={true} />
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
   );
 };
