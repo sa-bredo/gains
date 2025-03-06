@@ -36,22 +36,15 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ form }) => {
   const formService = useFormService();
   
   const isInitialized = useRef(false);
-  const isMounted = useRef(true);
 
   useEffect(() => {
-    isMounted.current = true;
-    
-    if (form && !isInitialized.current && isMounted.current) {
+    if (form && !isInitialized.current) {
       console.log("FormBuilder initializing with form data", form.id);
       setTitle(form.title);
       setDescription(form.description || "");
       setFields(form.json_config.fields || []);
       isInitialized.current = true;
     }
-    
-    return () => {
-      isMounted.current = false;
-    };
   }, [form]);
 
   const addField = (type: FieldType) => {
