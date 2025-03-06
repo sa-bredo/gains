@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Form } from "../types";
 import {
   Table,
@@ -48,6 +48,7 @@ export const FormsTable: React.FC<FormsTableProps> = ({
   
   const { toast } = useToast();
   const formService = useFormService();
+  const navigate = useNavigate();
 
   const copyFormLink = (form: Form) => {
     const url = `${window.location.origin}/form/${form.public_url}`;
@@ -80,6 +81,29 @@ export const FormsTable: React.FC<FormsTableProps> = ({
     } finally {
       setIsDeleting(false);
       setFormToDelete(null);
+    }
+  };
+
+  const handleAction = (action: string, form: Form) => {
+    switch(action) {
+      case 'edit':
+        navigate(`/forms/${form.id}`);
+        break;
+      case 'submissions':
+        navigate(`/forms/${form.id}/submissions`);
+        break;
+      case 'copy':
+        copyFormLink(form);
+        break;
+      case 'preview':
+        // Open in new tab
+        window.open(`/form/${form.public_url}`, '_blank');
+        break;
+      case 'delete':
+        setFormToDelete(form);
+        break;
+      default:
+        break;
     }
   };
 
@@ -119,37 +143,25 @@ export const FormsTable: React.FC<FormsTableProps> = ({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link to={`/forms/${form.id}`}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          <span>Edit</span>
-                        </Link>
+                      <DropdownMenuItem onClick={() => handleAction('edit', form)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        <span>Edit</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link to={`/forms/${form.id}/submissions`}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          <span>View Submissions</span>
-                        </Link>
+                      <DropdownMenuItem onClick={() => handleAction('submissions', form)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        <span>View Submissions</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => copyFormLink(form)}
-                      >
+                      <DropdownMenuItem onClick={() => handleAction('copy', form)}>
                         <LinkIcon className="mr-2 h-4 w-4" />
                         <span>Copy Link</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <a
-                          href={`/form/${form.public_url}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          <span>Preview</span>
-                        </a>
+                      <DropdownMenuItem onClick={() => handleAction('preview', form)}>
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        <span>Preview</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive"
-                        onClick={() => setFormToDelete(form)}
+                        onClick={() => handleAction('delete', form)}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         <span>Delete</span>
