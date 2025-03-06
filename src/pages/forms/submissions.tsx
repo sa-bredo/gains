@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -16,10 +15,10 @@ const FormSubmissionsPage: React.FC = () => {
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const formService = useFormService();
   const navigate = useNavigate();
   
-  // Add these refs to prevent re-fetching and infinite loops
+  const formService = useMemo(() => useFormService(), []);
+
   const isMounted = useRef(true);
   const dataFetched = useRef<string | null>(null);
 
@@ -34,13 +33,11 @@ const FormSubmissionsPage: React.FC = () => {
 
     setLoading(true);
     try {
-      // Fetch the form data
       const formData = await formService.fetchFormById(id);
       
       if (isMounted.current) {
         setForm(formData);
         
-        // Fetch submissions for this form
         const submissionsData = await formService.fetchFormSubmissions(id);
         setSubmissions(submissionsData);
       }
@@ -150,20 +147,23 @@ const FormSubmissionsPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <SidebarTrigger className="mr-2" />
             <Separator orientation="vertical" className="h-4" />
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={handleBackClick} 
-              className="mr-1"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="sr-only">Back to forms</span>
-            </Button>
             <span className="font-medium">Form Submissions</span>
           </div>
         </header>
         <div className="container mx-auto py-6">
-          <h1 className="text-2xl font-bold mb-6">Form Submissions: {form.title}</h1>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handleBackClick}
+                className="mr-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <h1 className="text-2xl font-bold">Form Submissions: {form.title}</h1>
+            </div>
+          </div>
           
           <SubmissionsTable 
             form={form}
