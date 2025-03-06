@@ -98,6 +98,7 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
     
     if (currentStep < totalSteps - 1) {
       setCurrentStep(currentStep + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       handleSubmit();
     }
@@ -106,6 +107,7 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
   const goToPreviousStep = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -184,7 +186,7 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
           <p className="text-muted-foreground mb-6">
             Your response has been submitted successfully.
           </p>
-          <Button asChild size="lg">
+          <Button asChild size="lg" className="rounded-full">
             <a href="/">Return to Home</a>
           </Button>
         </div>
@@ -199,12 +201,12 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
   const formDescription = form.description || "";
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-background">
+    <div className="min-h-screen flex flex-col md:flex-row bg-[#f1f7fa]">
       {/* Cover Page - Left Panel (Fixed on md screens and up) */}
-      <div className="md:w-1/2 md:fixed md:h-screen bg-background md:border-r border-border/50 flex flex-col">
+      <div className="md:w-1/2 md:fixed md:h-screen bg-background md:border-r border-border/50 flex flex-col overflow-hidden">
         <div className="flex-1 flex flex-col p-6 overflow-auto">
           {hasCoverImage && (
-            <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-8 bg-muted">
+            <div className="relative w-full h-full rounded-lg overflow-hidden">
               <img 
                 src={form.json_config.coverImage}
                 alt="Form Cover"
@@ -213,21 +215,14 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
                   e.currentTarget.src = 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b';
                 }}
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-8">
+                <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{formTitle}</h1>
+                {formDescription && (
+                  <p className="text-lg text-white/90">{formDescription}</p>
+                )}
+              </div>
             </div>
           )}
-          
-          <div className="flex-1 flex flex-col justify-center">
-            <h1 className="text-4xl font-bold mb-4">{formTitle}</h1>
-            {formDescription && (
-              <p className="text-lg text-muted-foreground">{formDescription}</p>
-            )}
-          </div>
-          
-          <div className="mt-8 text-sm text-muted-foreground">
-            <p>
-              Powered by Form Builder
-            </p>
-          </div>
         </div>
       </div>
       
@@ -236,18 +231,19 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
         {/* Progress Bar */}
         <div className="sticky top-0 left-0 right-0 h-1 bg-muted z-10">
           <div
-            className="h-full bg-primary"
+            className="h-full bg-primary transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
         
         {/* Navigation */}
-        <div className="p-4 flex justify-between items-center sticky top-1 bg-background z-10">
+        <div className="p-4 flex justify-between items-center sticky top-1 bg-[#f1f7fa] z-10">
           <Button
             variant="ghost"
             size="icon"
             onClick={goToPreviousStep}
             disabled={currentStep === 0}
+            className={currentStep === 0 ? "opacity-0" : ""}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -267,7 +263,7 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
         
         {/* Form Questions */}
         {hasFieldsToShow ? (
-          <div className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-5rem)]">
+          <div className="flex-1 flex items-start justify-center p-6 md:p-12 min-h-[calc(100vh-8rem)]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentStep}
@@ -275,20 +271,15 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
-                className="max-w-xl w-full"
+                className="max-w-xl w-full bg-white rounded-xl shadow-sm p-8"
               >
-                <div className="mb-8">
-                  <h1 className="text-4xl font-bold mb-6">{currentField.label}</h1>
-                  {currentField.description && (
-                    <p className="text-muted-foreground mb-4">{currentField.description}</p>
-                  )}
-                  <DynamicInput
-                    field={currentField}
-                    value={answers[currentField.label]}
-                    onChange={handleAnswer}
-                    onSubmit={goToNextStep}
-                  />
-                </div>
+                <DynamicInput
+                  field={currentField}
+                  value={answers[currentField.label]}
+                  onChange={handleAnswer}
+                  onSubmit={goToNextStep}
+                  questionNumber={currentStep + 1}
+                />
               </motion.div>
             </AnimatePresence>
           </div>

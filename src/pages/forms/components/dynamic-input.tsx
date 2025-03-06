@@ -5,19 +5,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { CalendarIcon, FileUp, Upload } from "lucide-react";
+import { CalendarIcon, ChevronRight, FileUp, Upload } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { StyledRadioButton } from "./styled-radio-button";
 
 interface DynamicInputProps {
   field: FormField;
   value: any;
   onChange: (value: any) => void;
   onSubmit: () => void;
+  questionNumber?: number;
 }
 
 export const DynamicInput: React.FC<DynamicInputProps> = ({
@@ -25,6 +26,7 @@ export const DynamicInput: React.FC<DynamicInputProps> = ({
   value,
   onChange,
   onSubmit,
+  questionNumber,
 }) => {
   const [fileName, setFileName] = useState<string>("");
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -117,26 +119,17 @@ export const DynamicInput: React.FC<DynamicInputProps> = ({
         );
       case "multiple_choice":
         return (
-          <RadioGroup
-            value={value || ""}
-            onValueChange={onChange}
-            className="space-y-3"
-          >
+          <div className="space-y-3">
             {field.options?.map((option, index) => (
-              <div
+              <StyledRadioButton
                 key={index}
-                className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-muted/40 transition-colors"
-              >
-                <RadioGroupItem value={option} id={`${field.id}-${index}`} />
-                <Label
-                  htmlFor={`${field.id}-${index}`}
-                  className="text-lg cursor-pointer w-full py-1"
-                >
-                  {option}
-                </Label>
-              </div>
+                id={`${field.id}-${index}`}
+                checked={value === option}
+                label={option}
+                onChange={() => onChange(option)}
+              />
             ))}
-          </RadioGroup>
+          </div>
         );
       case "checkbox":
         return (
@@ -227,20 +220,40 @@ export const DynamicInput: React.FC<DynamicInputProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
-        {field.description && (
-          <p className="text-muted-foreground">{field.description}</p>
-        )}
-        <div>{renderInputField()}</div>
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <h1 className="text-2xl md:text-3xl font-semibold flex items-start gap-2">
+            {questionNumber && (
+              <span className="text-primary mr-2">{questionNumber}.</span>
+            )}
+            {field.label}
+          </h1>
+          {field.description && (
+            <p className="text-muted-foreground text-base">{field.description}</p>
+          )}
+        </div>
+        <div className="mt-6">{renderInputField()}</div>
       </div>
       
-      <div className="pt-4">
+      <div className="pt-4 flex flex-col space-y-3">
         <Button
           type="submit"
           size="lg"
           disabled={field.required && !isValueValid()}
+          className="rounded-full font-medium h-12"
         >
-          {field.required && !isValueValid() ? "Please answer this question" : "Continue"}
+          <span>Next</span>
+          <ChevronRight className="h-5 w-5 ml-1" />
+        </Button>
+        
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="self-center text-muted-foreground hover:text-foreground"
+          onClick={onSubmit}
+        >
+          Skip
         </Button>
       </div>
     </form>
