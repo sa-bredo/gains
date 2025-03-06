@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Form, FormField } from "../types";
@@ -195,84 +196,95 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
   const formDescription = form.description || "";
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
-      <div className="md:w-1/2 md:fixed md:h-screen bg-background overflow-hidden relative">
-        {hasCoverImage ? (
-          <div className="absolute inset-0">
-            <img 
-              src={form.json_config.coverImage}
-              alt="Form Cover"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src = 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b';
-              }}
+    <div className="min-h-screen w-full">
+      {/* Main Content - Two Column Layout */}
+      <div className="flex flex-col md:flex-row w-full">
+        {/* Left Column - Image with Form Title */}
+        <div className="md:w-1/2 relative overflow-hidden">
+          <div className="min-h-[600px] max-h-[700px]">
+            <img
+              src={form.json_config.coverImage || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"}
+              alt={formTitle}
+              className="w-full max-h-[650px] object-cover rounded-lg"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-          </div>
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20"></div>
-        )}
-        
-        <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-12">
-          <div className="relative z-10">
-            <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">{formTitle}</h1>
-            {formDescription && (
-              <p className="text-lg text-white/90 max-w-md">{formDescription}</p>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      <div className="flex-1 md:ml-[50%] bg-[#d3e4fd]/30">
-        <div className="sticky top-0 left-0 right-0 h-1 bg-white/30 z-10">
-          <div
-            className="h-full bg-primary transition-all duration-300"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        
-        <div className="p-4 flex justify-between items-center sticky top-1 bg-[#d3e4fd]/30 z-10">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={goToPreviousStep}
-            disabled={currentStep === 0}
-            className={currentStep === 0 ? "opacity-0" : ""}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          
-          <div className="flex items-center">
-            <MessageCircleQuestion className="h-5 w-5 text-primary mr-2" />
-            <span className="font-medium text-primary">Question</span>
-          </div>
-          
-          {hasFieldsToShow && (
-            <div className="text-sm text-muted-foreground">
-              {currentStep + 1} of {form.json_config.fields.length}
+            <div className="absolute inset-0 bg-black/10"></div>
+            <div className="absolute bottom-16 left-12 text-white">
+              <h1 className="text-5xl font-bold leading-tight">
+                {formTitle.split(' ').slice(0, Math.ceil(formTitle.split(' ').length / 2)).join(' ')}<br />
+                {formTitle.split(' ').slice(Math.ceil(formTitle.split(' ').length / 2)).join(' ')}
+              </h1>
+              {formDescription && (
+                <p className="mt-4 text-white/90 max-w-md">{formDescription}</p>
+              )}
             </div>
-          )}
+          </div>
         </div>
-        
-        <div className="flex-1 flex items-start justify-center p-6 md:p-12 min-h-[calc(100vh-8rem)]">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="max-w-xl w-full bg-white rounded-xl shadow-sm p-8"
-            >
-              <DynamicInput
-                field={currentField}
-                value={answers[currentField.label]}
-                onChange={handleAnswer}
-                onSubmit={goToNextStep}
-                questionNumber={currentStep + 1}
+
+        {/* Right Column - Survey Form */}
+        <div className="md:w-1/2 bg-[#d3e4fd]/30 p-12 flex items-center">
+          <div className="max-w-md mx-auto w-full">
+            {/* Progress indicator */}
+            <div className="h-1 w-full bg-gray-200 rounded-full mb-8">
+              <div 
+                className="h-full bg-primary rounded-full transition-all duration-300" 
+                style={{ width: `${progress}%` }}
               />
-            </motion.div>
-          </AnimatePresence>
+            </div>
+            
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentStep}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="w-full"
+              >
+                <div className="mb-8">
+                  <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+                    {currentStep + 1}. {currentField.label}
+                  </h2>
+                  
+                  <DynamicInput
+                    field={currentField}
+                    value={answers[currentField.label]}
+                    onChange={handleAnswer}
+                    onSubmit={goToNextStep}
+                    questionNumber={currentStep + 1}
+                  />
+                </div>
+                
+                <div className="flex flex-col items-center space-y-6 mt-8">
+                  <Button 
+                    onClick={goToNextStep}
+                    disabled={currentField.required && !answers[currentField.label]}
+                    className="w-full bg-[#1A2C55] hover:bg-[#0f1a33] text-white py-6 rounded-lg"
+                  >
+                    {currentStep < form.json_config.fields.length - 1 ? 'Next' : 'Submit'}
+                  </Button>
+                  
+                  {currentStep < form.json_config.fields.length - 1 && (
+                    <button 
+                      onClick={goToNextStep}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      Skip Question
+                    </button>
+                  )}
+
+                  {currentStep > 0 && (
+                    <button 
+                      onClick={goToPreviousStep}
+                      className="flex items-center text-gray-500 hover:text-gray-700 mt-2"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-1" />
+                      Previous Question
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </div>
