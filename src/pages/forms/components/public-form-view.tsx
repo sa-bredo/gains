@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Form, FormField } from "../types";
 import { useFormService } from "../services/form-service";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, ChevronUp, PanelLeft, MessageCircleQuestion } from "lucide-react";
+import { Loader2, ArrowLeft, ChevronRight, MessageCircleQuestion } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DynamicInput } from "./dynamic-input";
 
@@ -21,7 +20,6 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   
-  // Add refs to prevent re-fetching loops
   const formFetched = useRef(false);
   const isMounted = useRef(true);
 
@@ -32,12 +30,11 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
     isMounted.current = true;
     
     const fetchForm = async () => {
-      // Skip if already fetched or component unmounted
       if (formFetched.current || !isMounted.current) return;
       
       try {
         console.log(`Fetching form with public URL: ${publicUrl}`);
-        formFetched.current = true; // Mark as fetched before the actual fetch to prevent race conditions
+        formFetched.current = true;
         
         const formData = await formService.fetchFormByPublicUrl(publicUrl);
         
@@ -46,7 +43,6 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
         console.log(`Form fetched successfully:`, formData);
         setForm(formData);
         
-        // Initialize answers
         const initialAnswers: Record<string, any> = {};
         formData.json_config.fields.forEach(field => {
           if (field.type === "checkbox") {
@@ -66,14 +62,12 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
 
     fetchForm();
     
-    // Cleanup
     return () => {
       console.log("PublicFormView unmounting");
       isMounted.current = false;
     };
   }, [publicUrl, formService]);
 
-  // Update progress when currentStep or form changes
   useEffect(() => {
     if (form && form.json_config.fields.length > 0) {
       const totalFields = form.json_config.fields.length;
@@ -201,51 +195,43 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
   const formDescription = form.description || "";
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-[#f1f7fa]">
-      {/* Left Panel - Fixed panel with image, title, description */}
-      <div className="md:w-1/2 md:fixed md:h-screen bg-background md:border-r border-border/50 flex flex-col overflow-hidden">
-        <div className="flex-1 flex flex-col p-6 overflow-auto">
-          <div className="flex items-center mb-6 text-primary">
-            <PanelLeft className="h-5 w-5 mr-2" />
-            <span className="font-medium">Information</span>
+    <div className="min-h-screen flex flex-col md:flex-row">
+      <div className="md:w-1/2 md:fixed md:h-screen bg-background overflow-hidden relative">
+        {hasCoverImage ? (
+          <div className="absolute inset-0">
+            <img 
+              src={form.json_config.coverImage}
+              alt="Form Cover"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b';
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
           </div>
-          
-          {hasCoverImage ? (
-            <div className="relative w-full h-64 mb-6 rounded-lg overflow-hidden">
-              <img 
-                src={form.json_config.coverImage}
-                alt="Form Cover"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b';
-                }}
-              />
-            </div>
-          ) : (
-            <div className="bg-muted w-full h-64 mb-6 rounded-lg flex items-center justify-center">
-              <span className="text-muted-foreground">No cover image</span>
-            </div>
-          )}
-          
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">{formTitle}</h1>
-          {formDescription && (
-            <p className="text-lg text-muted-foreground">{formDescription}</p>
-          )}
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20"></div>
+        )}
+        
+        <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-12">
+          <div className="relative z-10">
+            <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">{formTitle}</h1>
+            {formDescription && (
+              <p className="text-lg text-white/90 max-w-md">{formDescription}</p>
+            )}
+          </div>
         </div>
       </div>
       
-      {/* Right Panel - Questions and form content */}
-      <div className="flex-1 md:ml-[50%]">
-        {/* Progress Bar */}
-        <div className="sticky top-0 left-0 right-0 h-1 bg-muted z-10">
+      <div className="flex-1 md:ml-[50%] bg-[#d3e4fd]/30">
+        <div className="sticky top-0 left-0 right-0 h-1 bg-white/30 z-10">
           <div
             className="h-full bg-primary transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
         
-        {/* Navigation */}
-        <div className="p-4 flex justify-between items-center sticky top-1 bg-[#f1f7fa] z-10">
+        <div className="p-4 flex justify-between items-center sticky top-1 bg-[#d3e4fd]/30 z-10">
           <Button
             variant="ghost"
             size="icon"
@@ -268,35 +254,26 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
           )}
         </div>
         
-        {/* Form Questions */}
-        {hasFieldsToShow ? (
-          <div className="flex-1 flex items-start justify-center p-6 md:p-12 min-h-[calc(100vh-8rem)]">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentStep}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="max-w-xl w-full bg-white rounded-xl shadow-sm p-8"
-              >
-                <DynamicInput
-                  field={currentField}
-                  value={answers[currentField.label]}
-                  onChange={handleAnswer}
-                  onSubmit={goToNextStep}
-                  questionNumber={currentStep + 1}
-                />
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center p-4">
-            <div className="text-center">
-              <p className="text-muted-foreground">This form doesn't have any questions yet.</p>
-            </div>
-          </div>
-        )}
+        <div className="flex-1 flex items-start justify-center p-6 md:p-12 min-h-[calc(100vh-8rem)]">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="max-w-xl w-full bg-white rounded-xl shadow-sm p-8"
+            >
+              <DynamicInput
+                field={currentField}
+                value={answers[currentField.label]}
+                onChange={handleAnswer}
+                onSubmit={goToNextStep}
+                questionNumber={currentStep + 1}
+              />
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
