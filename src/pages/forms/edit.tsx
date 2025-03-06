@@ -152,21 +152,22 @@ const EditFormPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <SidebarTrigger className="mr-2" />
               <Separator orientation="vertical" className="h-4" />
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleBackClick} 
-                className="mr-1"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span className="sr-only">Back to forms</span>
-              </Button>
               <span className="font-medium">Edit Form</span>
             </div>
           </header>
           <div className="container mx-auto py-6">
             <div className="flex items-center justify-between mb-6">
-              <h1 className="text-2xl font-bold">Edit Form</h1>
+              <div className="flex items-center gap-4">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={handleBackClick}
+                  className="mr-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <h1 className="text-2xl font-bold">Edit Form</h1>
+              </div>
               <Button variant="outline" size="sm" onClick={handlePreviewClick}>
                 <Eye className="mr-2 h-4 w-4" />
                 Preview Form
