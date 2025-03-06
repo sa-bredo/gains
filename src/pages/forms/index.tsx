@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -20,45 +20,46 @@ const FormsPage: React.FC = () => {
   const isMounted = useRef(true);
   const dataFetched = useRef(false);
 
+  const fetchForms = useCallback(async () => {
+    // Only fetch if we haven't already fetched and component is still mounted
+    if (dataFetched.current || !isMounted.current) return;
+    
+    try {
+      console.log("Fetching forms from Supabase - initial load");
+      setLoading(true);
+      // Mark that we're fetching data to prevent duplicate calls
+      dataFetched.current = true;
+      
+      const data = await formService.fetchForms();
+      
+      // Only update state if component is still mounted
+      if (isMounted.current) {
+        console.log("Forms fetched successfully:", data);
+        setForms(data);
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error("Error fetching forms:", error);
+      
+      // Only update state if component is still mounted
+      if (isMounted.current) {
+        setLoading(false);
+      }
+    }
+  }, [formService]);
+
   useEffect(() => {
     // Set isMounted to true when component mounts
     isMounted.current = true;
+    dataFetched.current = false;
     
-    const fetchForms = async () => {
-      // Only fetch if we haven't already fetched and component is still mounted
-      if (dataFetched.current || !isMounted.current) return;
-      
-      try {
-        console.log("Fetching forms from Supabase - initial load");
-        setLoading(true);
-        // Mark that we're fetching data to prevent duplicate calls
-        dataFetched.current = true;
-        
-        const data = await formService.fetchForms();
-        
-        // Only update state if component is still mounted
-        if (isMounted.current) {
-          console.log("Forms fetched successfully:", data);
-          setForms(data);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Error fetching forms:", error);
-        
-        // Only update state if component is still mounted
-        if (isMounted.current) {
-          setLoading(false);
-        }
-      }
-    };
-
     fetchForms();
     
     // Clean up function that runs when component unmounts
     return () => {
       isMounted.current = false;
     };
-  }, [formService]); // Only re-run if formService changes
+  }, [fetchForms]); // Include fetchForms in the dependency array
 
   // Separate function to refetch data when needed (e.g., after form deletion)
   const handleFormsChange = async () => {
@@ -67,6 +68,10 @@ const FormsPage: React.FC = () => {
     try {
       console.log("Manually refetching forms after change");
       setLoading(true);
+      
+      // Clear cache before refetching
+      formService.clearFormsCache();
+      dataFetched.current = false;
       
       const data = await formService.fetchForms();
       

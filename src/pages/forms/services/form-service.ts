@@ -3,10 +3,22 @@ import { v4 as uuidv4 } from 'uuid';
 import { FormConfig, Form, FormSubmission } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 
+// Create a cache for recently fetched forms
+let formsCache: Form[] | null = null;
+let formsCacheTimestamp: number | null = null;
+const CACHE_EXPIRY_MS = 30000; // 30 seconds
+
 export const useFormService = () => {
   // Fetch all forms for the current user
   const fetchForms = async (): Promise<Form[]> => {
     try {
+      // Check if we have a valid cache
+      const now = Date.now();
+      if (formsCache && formsCacheTimestamp && (now - formsCacheTimestamp < CACHE_EXPIRY_MS)) {
+        console.log('Using cached forms data');
+        return formsCache;
+      }
+
       console.log('Fetching forms from Supabase');
       const { data, error } = await supabase
         .from('forms')
@@ -19,15 +31,27 @@ export const useFormService = () => {
       }
 
       console.log('Forms fetched successfully:', data);
-      // Cast the JSON data to our FormConfig type
-      return data.map(form => ({
+      
+      // Update cache
+      const formData = data.map(form => ({
         ...form,
         json_config: form.json_config as unknown as FormConfig
       })) as Form[];
+      
+      formsCache = formData;
+      formsCacheTimestamp = now;
+      
+      return formData;
     } catch (error) {
       console.error('Error fetching forms:', error);
       throw error;
     }
+  };
+
+  // Clear the forms cache
+  const clearFormsCache = () => {
+    formsCache = null;
+    formsCacheTimestamp = null;
   };
 
   // Fetch a single form by ID
@@ -102,6 +126,9 @@ export const useFormService = () => {
         throw error;
       }
 
+      // Clear cache after creating a new form
+      clearFormsCache();
+
       return {
         ...data,
         json_config: data.json_config as unknown as FormConfig
@@ -131,6 +158,9 @@ export const useFormService = () => {
         throw error;
       }
 
+      // Clear cache after updating a form
+      clearFormsCache();
+
       return {
         ...data,
         json_config: data.json_config as unknown as FormConfig
@@ -152,6 +182,9 @@ export const useFormService = () => {
       if (error) {
         throw error;
       }
+      
+      // Clear cache after deleting a form
+      clearFormsCache();
     } catch (error) {
       console.error('Error deleting form:', error);
       throw error;
@@ -212,5 +245,6 @@ export const useFormService = () => {
     submitForm,
     fetchFormSubmissions,
     generatePublicUrl,
+    clearFormsCache,
   };
 };
