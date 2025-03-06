@@ -85,7 +85,12 @@ export const FormsTable: React.FC<FormsTableProps> = ({
     }
   };
 
-  const handleAction = (action: string, form: Form) => {
+  const handleAction = (action: string, form: Form, e?: React.MouseEvent) => {
+    // If there's an event, stop it from propagating to the row's onClick
+    if (e) {
+      e.stopPropagation();
+    }
+    
     switch(action) {
       case 'edit':
         navigate(`/forms/edit/${form.id}`);
@@ -106,6 +111,10 @@ export const FormsTable: React.FC<FormsTableProps> = ({
       default:
         break;
     }
+  };
+
+  const handleRowClick = (form: Form) => {
+    navigate(`/forms/edit/${form.id}`);
   };
 
   const getFormTypeIcon = (formType: string | undefined) => {
@@ -143,7 +152,11 @@ export const FormsTable: React.FC<FormsTableProps> = ({
             </TableRow>
           ) : (
             forms.map((form) => (
-              <TableRow key={form.id}>
+              <TableRow 
+                key={form.id}
+                onClick={() => handleRowClick(form)}
+                className="cursor-pointer"
+              >
                 <TableCell className="font-medium">{form.title}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className="flex items-center w-fit">
@@ -156,31 +169,35 @@ export const FormsTable: React.FC<FormsTableProps> = ({
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
+                      <Button 
+                        variant="ghost" 
+                        className="h-8 w-8 p-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <span className="sr-only">Open menu</span>
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleAction('edit', form)}>
+                      <DropdownMenuItem onClick={(e) => handleAction('edit', form, e)}>
                         <Pencil className="mr-2 h-4 w-4" />
                         <span>Edit</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAction('submissions', form)}>
+                      <DropdownMenuItem onClick={(e) => handleAction('submissions', form, e)}>
                         <Eye className="mr-2 h-4 w-4" />
                         <span>View Submissions</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAction('copy', form)}>
+                      <DropdownMenuItem onClick={(e) => handleAction('copy', form, e)}>
                         <LinkIcon className="mr-2 h-4 w-4" />
                         <span>Copy Link</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAction('preview', form)}>
+                      <DropdownMenuItem onClick={(e) => handleAction('preview', form, e)}>
                         <ExternalLink className="mr-2 h-4 w-4" />
                         <span>Preview</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive"
-                        onClick={() => handleAction('delete', form)}
+                        onClick={(e) => handleAction('delete', form, e)}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         <span>Delete</span>
