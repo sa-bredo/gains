@@ -1,4 +1,3 @@
-
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth as useClerkAuth, useUser } from "@clerk/clerk-react";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -20,7 +19,11 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // Cleanup on unmount
   useEffect(() => {
+    console.log("ProtectedRoute mounted");
+    isMounted.current = true;
+    
     return () => {
+      console.log("ProtectedRoute unmounting");
       isMounted.current = false;
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -34,6 +37,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       if (!isMounted.current) return;
       
       if (isLoaded && isSignedIn && !currentCompany && !isLoadingCompanies && !hasAttemptedRefresh) {
+        console.log("ProtectedRoute: No current company, attempting refresh");
         setHasAttemptedRefresh(true);
         try {
           console.log("Attempting to refresh companies for authenticated user");
@@ -45,10 +49,16 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
           timeoutRef.current = window.setTimeout(() => {
             if (!isMounted.current) return;
             
-            if (!currentCompany && userCompanies.length === 0) {
+            console.log("After refresh, checking companies state:", {
+              hasCurrentCompany: !!currentCompany,
+              companyCount: userCompanies.length,
+              path: location.pathname
+            });
+            
+            if (!currentCompany && userCompanies.length === 0 && !location.pathname.includes('/select-company')) {
               console.log("Still no companies after refresh, redirecting to select-company");
               toast.info("Please select or create a company to continue");
-              // Force navigation to select company page
+              // Force navigation to select company page if we really can't get any companies
               window.location.href = "/select-company";
             }
           }, 3000); // Allow 3 seconds for the refresh to complete
@@ -68,7 +78,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [isLoaded, isSignedIn, currentCompany, isLoadingCompanies, refreshCompanies, hasAttemptedRefresh, userCompanies]);
+  }, [isLoaded, isSignedIn, currentCompany, isLoadingCompanies, refreshCompanies, hasAttemptedRefresh, userCompanies, location.pathname]);
 
   // Debug logging on company state changes
   useEffect(() => {
@@ -91,9 +101,18 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         if (!isMounted.current) return;
         
         if (isLoadingCompanies) {
-          console.log("Loading companies timed out, forcing refresh");
-          // Force a refresh to break potential loops
-          window.location.reload();
+          console.log("Loading companies timed out in ProtectedRoute");
+          
+          // If we're on the select-company page, force a refresh to break potential loops
+          if (location.pathname === '/select-company') {
+            console.log("On select-company page, forcing page refresh");
+            window.location.reload();
+          } else {
+            // Otherwise redirect to select-company
+            console.log("Redirecting to select-company due to timeout");
+            toast.error("Loading took too long. Please try again.");
+            window.location.href = "/select-company";
+          }
         }
       }, 10000); // 10 second timeout
       
@@ -101,7 +120,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         clearTimeout(loadingTimeout);
       };
     }
-  }, [isLoaded, isSignedIn, isLoadingCompanies]);
+  }, [isLoaded, isSignedIn, isLoadingCompanies, location.pathname]);
 
   // If auth or companies are still loading, show loading state
   if (!isLoaded || isLoadingCompanies) {

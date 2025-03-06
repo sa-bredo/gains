@@ -14,19 +14,28 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const hasAttemptedRefresh = useRef(false);
   const isMounted = useRef(true);
+  const redirectTimeout = useRef<number | null>(null);
 
+  // Set up mounting tracker
   useEffect(() => {
-    // Set up mounting tracker
+    console.log("Dashboard component mounted");
     isMounted.current = true;
     
     return () => {
+      console.log("Dashboard component unmounting");
       isMounted.current = false;
+      
+      // Clear any pending timeouts when unmounting
+      if (redirectTimeout.current) {
+        window.clearTimeout(redirectTimeout.current);
+      }
     };
   }, []);
 
   useEffect(() => {
     // Redirect to login if not signed in and Clerk is loaded
     if (isLoaded && !isSignedIn) {
+      console.log("User not signed in, redirecting to login");
       navigate("/login");
       return;
     }
@@ -43,26 +52,63 @@ const Dashboard = () => {
           // Set a timeout to check if we still don't have a company after refresh
           if (!isMounted.current) return;
           
-          window.setTimeout(() => {
+          redirectTimeout.current = window.setTimeout(() => {
             if (!isMounted.current) return;
+            
+            console.log("After refresh, checking if company exists:", {
+              currentCompany: !!currentCompany,
+              isLoaded,
+              isSignedIn
+            });
             
             if (!currentCompany) {
               console.log("Still no company after refresh, redirecting to select-company");
-              toast("Please select a company to continue");
-              navigate("/select-company");
+              toast.info("Please select a company to continue");
+              navigate("/select-company", { replace: true });
             }
           }, 2000);
           
         } catch (error) {
           console.error("Error refreshing companies in Dashboard:", error);
           toast.error("Failed to load company information");
-          navigate("/select-company");
+          navigate("/select-company", { replace: true });
         }
       };
       
       attemptRefresh();
     }
   }, [isLoaded, isSignedIn, navigate, currentCompany, isLoadingCompanies, refreshCompanies]);
+
+  // Add a loading timeout to prevent infinite loading
+  useEffect(() => {
+    // If we're still loading after 10 seconds, something might be wrong
+    if (isLoaded && isSignedIn && isLoadingCompanies) {
+      const loadingTimeout = window.setTimeout(() => {
+        if (!isMounted.current) return;
+        
+        if (isLoadingCompanies) {
+          console.log("Loading companies timed out in Dashboard, redirecting to select-company");
+          toast.error("Loading took too long. Please try again.");
+          navigate("/select-company", { replace: true });
+        }
+      }, 10000); // 10 second timeout
+      
+      return () => {
+        window.clearTimeout(loadingTimeout);
+      };
+    }
+  }, [isLoaded, isSignedIn, isLoadingCompanies, navigate]);
+
+  // Log the current state for debugging
+  useEffect(() => {
+    console.log("Dashboard state:", {
+      hasCompany: !!currentCompany,
+      companyName: currentCompany?.name || "None",
+      isLoading: isLoadingCompanies,
+      isAuthenticated: isSignedIn,
+      hasAttemptedRefresh: hasAttemptedRefresh.current
+    });
+  }, [currentCompany, isLoadingCompanies, isSignedIn]);
 
   if (!isLoaded || isLoadingCompanies) {
     return (
