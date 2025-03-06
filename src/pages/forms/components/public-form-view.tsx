@@ -205,14 +205,16 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-black/10"></div>
-            <div className="absolute bottom-16 left-12 text-white">
-              <h1 className="text-5xl font-bold leading-tight">
-                {formTitle.split(' ').slice(0, Math.ceil(formTitle.split(' ').length / 2)).join(' ')}<br />
-                {formTitle.split(' ').slice(Math.ceil(formTitle.split(' ').length / 2)).join(' ')}
-              </h1>
-              {formDescription && (
-                <p className="mt-4 text-white/90 max-w-md">{formDescription}</p>
-              )}
+            <div className="absolute bottom-16 left-12">
+              <div className="bg-black/10 rounded-xl p-6">
+                <h1 className="text-5xl font-bold leading-tight text-white">
+                  {formTitle.split(' ').slice(0, Math.ceil(formTitle.split(' ').length / 2)).join(' ')}<br />
+                  {formTitle.split(' ').slice(Math.ceil(formTitle.split(' ').length / 2)).join(' ')}
+                </h1>
+                {formDescription && (
+                  <p className="mt-4 text-white/90 max-w-md">{formDescription}</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
