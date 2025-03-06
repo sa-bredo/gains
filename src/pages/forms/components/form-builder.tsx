@@ -164,9 +164,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ form }) => {
         variant: "destructive"
       });
     } finally {
-      if (isMounted.current) {
-        setIsSaving(false);
-      }
+      setIsSaving(false);
     }
   };
 
