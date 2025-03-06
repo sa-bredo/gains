@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -17,50 +17,52 @@ const EditFormPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const formService = useFormService();
   const navigate = useNavigate();
+  
+  // Strong reference management to prevent infinite loops
   const isMounted = useRef(true);
-  const hasFetched = useRef(false);
-
-  const fetchForm = useCallback(async () => {
-    if (!id || hasFetched.current || !isMounted.current) {
-      return;
-    }
-
-    console.log("Attempting to fetch form with ID:", id);
-    setLoading(true);
-    hasFetched.current = true;
-    
-    try {
-      const data = await formService.fetchFormById(id);
-      
-      if (isMounted.current) {
-        console.log("Form data received:", data);
-        setForm(data);
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error("Error fetching form:", error);
-      
-      if (isMounted.current) {
-        setError("Failed to load form. It may have been deleted or you don't have permission to view it.");
-        toast.error("Could not load the form. Please try again later.");
-        setLoading(false);
-      }
-    }
-  }, [id, formService]);
+  const fetchAttempted = useRef(false);
 
   useEffect(() => {
+    // Set isMounted to true when component mounts
     isMounted.current = true;
     
-    if (id && !hasFetched.current) {
-      fetchForm();
-    }
+    const fetchForm = async () => {
+      // Only fetch if we have an ID, haven't attempted to fetch yet, and component is still mounted
+      if (!id || fetchAttempted.current || !isMounted.current) return;
+      
+      // Mark that we've attempted a fetch
+      fetchAttempted.current = true;
+      console.log("Attempting to fetch form with ID:", id);
+      
+      try {
+        setLoading(true);
+        const data = await formService.fetchFormById(id);
+        
+        // Only update state if component is still mounted
+        if (isMounted.current) {
+          console.log("Form data received:", data);
+          setForm(data);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error fetching form:", error);
+        
+        // Only update state if component is still mounted
+        if (isMounted.current) {
+          setError("Failed to load form. It may have been deleted or you don't have permission to view it.");
+          toast.error("Could not load the form. Please try again later.");
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchForm();
     
-    // Clean up function
+    // Clean up function that runs when component unmounts
     return () => {
       isMounted.current = false;
-      hasFetched.current = false;
     };
-  }, [id, fetchForm]);
+  }, [id, formService]); // Only re-run if id or formService changes
 
   if (loading) {
     return (

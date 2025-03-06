@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { v4 as uuidv4 } from "uuid";
 import { FormField, FormConfig, FieldType, Form } from "../types";
@@ -26,8 +25,8 @@ export interface FormBuilderProps {
 }
 
 export const FormBuilder: React.FC<FormBuilderProps> = ({ form }) => {
-  const [title, setTitle] = useState(form?.title || "");
-  const [description, setDescription] = useState(form?.description || "");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [fields, setFields] = useState<FormField[]>([]);
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -35,24 +34,23 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ form }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const formService = useFormService();
-  const initialized = useRef(false);
+  
+  const isInitialized = useRef(false);
   const isMounted = useRef(true);
 
-  // Initialize form fields only once when component mounts or form changes
   useEffect(() => {
     isMounted.current = true;
     
-    if (form && !initialized.current) {
+    if (form && !isInitialized.current && isMounted.current) {
+      console.log("FormBuilder initializing with form data", form.id);
       setTitle(form.title);
       setDescription(form.description || "");
       setFields(form.json_config.fields || []);
-      initialized.current = true;
-      console.log("FormBuilder initialized with form data", form.id);
+      isInitialized.current = true;
     }
     
     return () => {
       isMounted.current = false;
-      initialized.current = false;
     };
   }, [form]);
 
@@ -111,8 +109,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ form }) => {
     setFields(items);
   };
 
-  // Use useCallback to prevent recreation of saveForm function on every render
-  const saveForm = useCallback(async () => {
+  const saveForm = async () => {
     if (!title.trim()) {
       toast({
         title: "Error",
@@ -178,7 +175,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ form }) => {
         setIsSaving(false);
       }
     }
-  }, [title, description, fields, form, formService, toast, navigate]);
+  };
 
   return (
     <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -15,51 +15,69 @@ const FormsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const formService = useFormService();
+  
+  // Strong reference management to prevent infinite loops
   const isMounted = useRef(true);
-  const hasFetched = useRef(false);
+  const fetchAttempted = useRef(false);
 
   useEffect(() => {
+    // Set isMounted to true when component mounts
     isMounted.current = true;
     
-    // Only fetch forms if we haven't already
-    if (!hasFetched.current) {
-      fetchForms();
-    }
+    const fetchForms = async () => {
+      // Only fetch if we haven't attempted to fetch yet and component is still mounted
+      if (fetchAttempted.current || !isMounted.current) return;
+      
+      // Mark that we've attempted a fetch
+      fetchAttempted.current = true;
+      console.log("Fetching forms from Supabase - initial load");
+      
+      try {
+        setLoading(true);
+        const data = await formService.fetchForms();
+        
+        // Only update state if component is still mounted
+        if (isMounted.current) {
+          console.log("Forms fetched successfully:", data);
+          setForms(data);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error fetching forms:", error);
+        
+        // Only update state if component is still mounted
+        if (isMounted.current) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchForms();
     
+    // Clean up function that runs when component unmounts
     return () => {
       isMounted.current = false;
-      hasFetched.current = false;
     };
-  }, []);
+  }, [formService]); // Only re-run if formService changes
 
-  const fetchForms = async () => {
-    if (hasFetched.current || !isMounted.current) return;
-
+  // Separate function to refetch data when needed (e.g., after form deletion)
+  const handleFormsChange = async () => {
+    if (!isMounted.current) return;
+    
     try {
-      console.log("Fetching forms from Supabase");
+      console.log("Manually refetching forms after change");
       setLoading(true);
-      hasFetched.current = true;
-      
       const data = await formService.fetchForms();
       
       if (isMounted.current) {
-        console.log("Forms fetched successfully:", data);
         setForms(data);
         setLoading(false);
       }
     } catch (error) {
-      console.error("Error fetching forms:", error);
+      console.error("Error refetching forms:", error);
       if (isMounted.current) {
         setLoading(false);
       }
-    }
-  };
-
-  // Create a safe version of fetchForms for the FormsTable that won't cause infinite loops
-  const handleFormsChange = () => {
-    if (isMounted.current) {
-      hasFetched.current = false;
-      fetchForms();
     }
   };
 
