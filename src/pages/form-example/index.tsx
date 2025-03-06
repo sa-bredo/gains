@@ -30,7 +30,7 @@ export default function FormExample() {
         <div className="md:w-1/2 relative overflow-hidden">
           <div className="h-full min-h-[600px]">
             <img 
-              src="/lovable-uploads/796dcf0e-c544-4573-b409-1e34c23190af.png" 
+              src="https://images.squarespace-cdn.com/content/v1/66dfede09053481feac2a1aa/32dfa6f0-799e-4542-8e2c-bc1ad2f41cb1/Screenshot+2024-09-22+at+11.01.14.png?format=2500w"
               alt="Studio Anatomy" 
               className="w-full h-full object-cover rounded-lg"
             />
