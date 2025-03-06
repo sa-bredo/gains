@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -10,8 +9,6 @@ import { Form } from "./types";
 import { Loader2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PublicFormView } from "./components/public-form-view";
 
 const EditFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,14 +18,11 @@ const EditFormPage: React.FC = () => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ Memoize formService to prevent unnecessary re-renders
   const formService = useMemo(() => useFormService(), []);
 
-  // ✅ Use refs to manage component lifecycle & prevent re-fetching loops
   const isMounted = useRef(true);
-  const dataFetched = useRef<string | null>(null); // Track last fetched form ID
+  const dataFetched = useRef<string | null>(null);
 
-  // ✅ Ensure fetchForm is stable
   const fetchForm = useCallback(async () => {
     if (!id || dataFetched.current === id || !isMounted.current) {
       console.log("Skipping form fetch:", { id, fetchedId: dataFetched.current, mounted: isMounted.current });
@@ -36,7 +30,7 @@ const EditFormPage: React.FC = () => {
     }
 
     console.log("Attempting to fetch form with ID:", id);
-    dataFetched.current = id; // Prevent duplicate fetches
+    dataFetched.current = id;
 
     try {
       setLoading(true);
@@ -57,10 +51,9 @@ const EditFormPage: React.FC = () => {
     }
   }, [formService, id]);
 
-  // ✅ Ensure useEffect only runs when ID changes and fetchForm remains stable
   useEffect(() => {
     isMounted.current = true;
-    dataFetched.current = null; // Reset tracking
+    dataFetched.current = null;
 
     if (id) fetchForm();
 
@@ -68,10 +61,12 @@ const EditFormPage: React.FC = () => {
       console.log("EditFormPage unmounting");
       isMounted.current = false;
     };
-  }, [id, fetchForm]); // Runs only when `id` changes
+  }, [id, fetchForm]);
 
   const handlePreviewClick = () => {
-    setPreviewOpen(true);
+    if (form?.public_url) {
+      window.open(`/form/${form.public_url}`, '_blank');
+    }
   };
 
   if (loading) {
@@ -148,19 +143,6 @@ const EditFormPage: React.FC = () => {
             {form && <FormBuilder key={`form-${form.id}`} form={form} />}
           </div>
         </SidebarInset>
-
-        {form && (
-          <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-            <DialogContent className="max-w-6xl h-[90vh] p-0 overflow-hidden">
-              <DialogHeader className="p-4 border-b">
-                <DialogTitle>Form Preview: {form.title}</DialogTitle>
-              </DialogHeader>
-              <div className="h-full overflow-auto">
-                <PublicFormView publicUrl={form.public_url} isPreview={true} />
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
       </div>
   );
 };
