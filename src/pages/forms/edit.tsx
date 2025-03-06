@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -17,6 +17,7 @@ const EditFormPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const formService = useFormService();
   const navigate = useNavigate();
+  const hasFetched = useRef(false);
 
   // Use useCallback to prevent the fetchForm function from being recreated on each render
   const fetchForm = useCallback(async () => {
@@ -25,6 +26,9 @@ const EditFormPage: React.FC = () => {
       setLoading(false);
       return;
     }
+
+    if (hasFetched.current) return; // Prevent multiple fetches
+    hasFetched.current = true;
 
     console.log("Attempting to fetch form with ID:", id);
     setLoading(true);
@@ -44,7 +48,10 @@ const EditFormPage: React.FC = () => {
 
   useEffect(() => {
     fetchForm();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Clean up function to reset ref on unmount
+    return () => {
+      hasFetched.current = false;
+    };
   }, [fetchForm]);
 
   if (loading) {

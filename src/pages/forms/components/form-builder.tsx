@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { v4 as uuidv4 } from "uuid";
 import { FormField, FormConfig, FieldType, Form } from "../types";
@@ -35,14 +35,22 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ form }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const formService = useFormService();
+  const initialized = useRef(false);
 
   // Initialize form fields only once when component mounts or form changes
   useEffect(() => {
-    if (form) {
+    if (form && !initialized.current) {
       setTitle(form.title);
       setDescription(form.description || "");
       setFields(form.json_config.fields || []);
+      initialized.current = true;
+      console.log("FormBuilder initialized with form data", form.id);
     }
+    
+    return () => {
+      // Reset the initialization flag when component unmounts
+      initialized.current = false;
+    };
   }, [form]);
 
   const addField = (type: FieldType) => {
