@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -15,11 +15,19 @@ const FormsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const formService = useFormService();
+  const hasFetched = useRef(false);
 
   const fetchForms = async () => {
+    // Prevent multiple fetches in development mode with React.StrictMode
+    if (hasFetched.current) return;
+    
     try {
+      console.log("Fetching forms from Supabase");
       setLoading(true);
+      hasFetched.current = true;
+      
       const data = await formService.fetchForms();
+      console.log("Forms fetched successfully:", data);
       setForms(data);
     } catch (error) {
       console.error("Error fetching forms:", error);
@@ -30,7 +38,18 @@ const FormsPage: React.FC = () => {
 
   useEffect(() => {
     fetchForms();
-  }, [formService]);
+    
+    // Clean up function to reset the ref when component unmounts
+    return () => {
+      hasFetched.current = false;
+    };
+  }, []);
+
+  // Create a safe version of fetchForms for the FormsTable that won't cause infinite loops
+  const handleFormsChange = () => {
+    hasFetched.current = false;
+    fetchForms();
+  };
 
   return (
     <div className="min-h-screen flex w-full">
@@ -54,7 +73,7 @@ const FormsPage: React.FC = () => {
           <FormsTable 
             forms={forms} 
             loading={loading}
-            onFormsChange={fetchForms}
+            onFormsChange={handleFormsChange}
           />
         </div>
       </SidebarInset>
