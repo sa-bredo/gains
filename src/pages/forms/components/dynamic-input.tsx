@@ -221,12 +221,12 @@ export const DynamicInput: React.FC<DynamicInputProps> = ({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-6">
         <div className="space-y-2">
-          <h1 className="text-2xl md:text-3xl font-semibold flex items-start gap-2">
+          <h2 className="text-2xl md:text-3xl font-semibold flex items-start gap-2">
             {questionNumber && (
               <span className="text-primary mr-2">{questionNumber}.</span>
             )}
             {field.label}
-          </h1>
+          </h2>
           {field.description && (
             <p className="text-muted-foreground text-base">{field.description}</p>
           )}

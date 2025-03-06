@@ -241,10 +241,6 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
                 className="w-full"
               >
                 <div className="mb-8">
-                  <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-                    {currentStep + 1}. {currentField.label}
-                  </h2>
-                  
                   <DynamicInput
                     field={currentField}
                     value={answers[currentField.label]}
