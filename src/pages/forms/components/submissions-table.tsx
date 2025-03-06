@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { Form, FormSubmission } from "../types";
 import {
   Table,
@@ -11,12 +11,12 @@ import {
 } from "@/components/ui/table";
 import { formatDate } from "../utils/date-utils";
 import { 
-  Accordion, 
-  AccordionContent, 
-  AccordionItem, 
-  AccordionTrigger 
-} from "@/components/ui/accordion";
-import { Card } from "@/components/ui/card";
+  ChevronDown,
+  ChevronUp,
+  Download,
+  FileJson
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export interface SubmissionsTableProps {
   form: Form;
@@ -29,91 +29,107 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
   submissions,
   loading = false
 }) => {
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  // Extract all possible keys from all submissions
+  const allKeys = useMemo(() => {
+    const keySet = new Set<string>();
+    
+    // Add form field labels as keys
+    form.json_config.fields.forEach(field => {
+      keySet.add(field.label);
+    });
+    
+    // Add any additional keys from submission data
+    submissions.forEach(submission => {
+      Object.keys(submission.data).forEach(key => {
+        keySet.add(key);
+      });
+    });
+    
+    return Array.from(keySet);
+  }, [submissions, form]);
+
   const renderSubmissionValue = (value: any) => {
     if (value === null || value === undefined) {
       return <span className="text-muted-foreground italic">Not provided</span>;
     }
 
     if (Array.isArray(value)) {
-      return (
-        <ul className="list-disc pl-5">
-          {value.map((item, index) => (
-            <li key={index}>{item}</li>
-          ))}
-        </ul>
-      );
+      return value.join(", ");
     }
 
     if (typeof value === "boolean") {
       return value ? "Yes" : "No";
     }
 
-    return value.toString();
+    return String(value);
   };
 
+  const handleDownloadJson = (submission: FormSubmission) => {
+    const dataStr = JSON.stringify(submission.data, null, 2);
+    const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
+    
+    const link = document.createElement('a');
+    link.setAttribute('href', dataUri);
+    link.setAttribute('download', `submission-${submission.id}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  if (submissions.length === 0) {
+    return (
+      <div className="text-center py-10">
+        <p className="text-muted-foreground">No submissions found for this form.</p>
+      </div>
+    );
+  }
+
   return (
-    <>
-      {submissions.length === 0 ? (
-        <div className="text-center py-10">
-          <p className="text-muted-foreground">No submissions found for this form.</p>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          <p className="text-muted-foreground">
-            Showing {submissions.length} {submissions.length === 1 ? "submission" : "submissions"} for "{form.title}"
-          </p>
-          
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Submission Date</TableHead>
-                <TableHead className="text-right">Details</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {submissions.map((submission) => (
-                <TableRow key={submission.id}>
-                  <TableCell>{formatDate(submission.submitted_at)}</TableCell>
-                  <TableCell className="text-right">
-                    <Accordion type="single" collapsible className="w-full">
-                      <AccordionItem value={submission.id}>
-                        <AccordionTrigger>View Details</AccordionTrigger>
-                        <AccordionContent>
-                          <Card className="p-4">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Question</TableHead>
-                                  <TableHead>Answer</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {form.json_config.fields.map((field) => (
-                                  <TableRow key={field.id}>
-                                    <TableCell className="font-medium">
-                                      {field.label}
-                                      {field.required && (
-                                        <span className="text-red-500">*</span>
-                                      )}
-                                    </TableCell>
-                                    <TableCell>
-                                      {renderSubmissionValue(submission.data[field.label])}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </Card>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                  </TableCell>
-                </TableRow>
+    <div className="space-y-6">
+      <p className="text-muted-foreground">
+        Showing {submissions.length} {submissions.length === 1 ? "submission" : "submissions"} for "{form.title}"
+      </p>
+      
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[180px]">Submission Date</TableHead>
+              {allKeys.map((key) => (
+                <TableHead key={key}>{key}</TableHead>
               ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-    </>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {submissions.map((submission) => (
+              <TableRow key={submission.id}>
+                <TableCell className="font-medium">
+                  {formatDate(submission.submitted_at)}
+                </TableCell>
+                {allKeys.map((key) => (
+                  <TableCell key={key}>
+                    {renderSubmissionValue(submission.data[key])}
+                  </TableCell>
+                ))}
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDownloadJson(submission)}
+                    title="Download JSON"
+                  >
+                    <FileJson className="h-4 w-4 mr-1" />
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 };
