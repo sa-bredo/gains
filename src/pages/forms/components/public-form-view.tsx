@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Form, FormField } from "../types";
 import { useFormService } from "../services/form-service";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, ChevronUp } from "lucide-react";
+import { Loader2, ArrowLeft, ChevronUp, PanelLeft, MessageCircleQuestion } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DynamicInput } from "./dynamic-input";
 
@@ -202,11 +202,16 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-[#f1f7fa]">
-      {/* Cover Page - Left Panel (Fixed on md screens and up) */}
+      {/* Left Panel - Fixed panel with image, title, description */}
       <div className="md:w-1/2 md:fixed md:h-screen bg-background md:border-r border-border/50 flex flex-col overflow-hidden">
         <div className="flex-1 flex flex-col p-6 overflow-auto">
-          {hasCoverImage && (
-            <div className="relative w-full h-full rounded-lg overflow-hidden">
+          <div className="flex items-center mb-6 text-primary">
+            <PanelLeft className="h-5 w-5 mr-2" />
+            <span className="font-medium">Information</span>
+          </div>
+          
+          {hasCoverImage ? (
+            <div className="relative w-full h-64 mb-6 rounded-lg overflow-hidden">
               <img 
                 src={form.json_config.coverImage}
                 alt="Form Cover"
@@ -215,18 +220,21 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
                   e.currentTarget.src = 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b';
                 }}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-8">
-                <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{formTitle}</h1>
-                {formDescription && (
-                  <p className="text-lg text-white/90">{formDescription}</p>
-                )}
-              </div>
             </div>
+          ) : (
+            <div className="bg-muted w-full h-64 mb-6 rounded-lg flex items-center justify-center">
+              <span className="text-muted-foreground">No cover image</span>
+            </div>
+          )}
+          
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">{formTitle}</h1>
+          {formDescription && (
+            <p className="text-lg text-muted-foreground">{formDescription}</p>
           )}
         </div>
       </div>
       
-      {/* Form Content - Right Panel */}
+      {/* Right Panel - Questions and form content */}
       <div className="flex-1 md:ml-[50%]">
         {/* Progress Bar */}
         <div className="sticky top-0 left-0 right-0 h-1 bg-muted z-10">
@@ -247,18 +255,17 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
+          
+          <div className="flex items-center">
+            <MessageCircleQuestion className="h-5 w-5 text-primary mr-2" />
+            <span className="font-medium text-primary">Question</span>
+          </div>
+          
           {hasFieldsToShow && (
             <div className="text-sm text-muted-foreground">
               {currentStep + 1} of {form.json_config.fields.length}
             </div>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          >
-            <ChevronUp className="h-5 w-5" />
-          </Button>
         </div>
         
         {/* Form Questions */}
