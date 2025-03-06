@@ -17,42 +17,50 @@ const EditFormPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const formService = useFormService();
   const navigate = useNavigate();
+  const isMounted = useRef(true);
   const hasFetched = useRef(false);
 
-  // Use useCallback to prevent the fetchForm function from being recreated on each render
   const fetchForm = useCallback(async () => {
-    if (!id) {
-      setError("Form ID is missing");
-      setLoading(false);
+    if (!id || hasFetched.current || !isMounted.current) {
       return;
     }
 
-    if (hasFetched.current) return; // Prevent multiple fetches
-    hasFetched.current = true;
-
     console.log("Attempting to fetch form with ID:", id);
     setLoading(true);
+    hasFetched.current = true;
     
     try {
       const data = await formService.fetchFormById(id);
-      console.log("Form data received:", data);
-      setForm(data);
+      
+      if (isMounted.current) {
+        console.log("Form data received:", data);
+        setForm(data);
+        setLoading(false);
+      }
     } catch (error) {
       console.error("Error fetching form:", error);
-      setError("Failed to load form. It may have been deleted or you don't have permission to view it.");
-      toast.error("Could not load the form. Please try again later.");
-    } finally {
-      setLoading(false);
+      
+      if (isMounted.current) {
+        setError("Failed to load form. It may have been deleted or you don't have permission to view it.");
+        toast.error("Could not load the form. Please try again later.");
+        setLoading(false);
+      }
     }
   }, [id, formService]);
 
   useEffect(() => {
-    fetchForm();
-    // Clean up function to reset ref on unmount
+    isMounted.current = true;
+    
+    if (id && !hasFetched.current) {
+      fetchForm();
+    }
+    
+    // Clean up function
     return () => {
+      isMounted.current = false;
       hasFetched.current = false;
     };
-  }, [fetchForm]);
+  }, [id, fetchForm]);
 
   if (loading) {
     return (

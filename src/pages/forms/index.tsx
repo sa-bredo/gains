@@ -15,40 +15,52 @@ const FormsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const formService = useFormService();
+  const isMounted = useRef(true);
   const hasFetched = useRef(false);
 
-  const fetchForms = async () => {
-    // Prevent multiple fetches in development mode with React.StrictMode
-    if (hasFetched.current) return;
+  useEffect(() => {
+    isMounted.current = true;
     
+    // Only fetch forms if we haven't already
+    if (!hasFetched.current) {
+      fetchForms();
+    }
+    
+    return () => {
+      isMounted.current = false;
+      hasFetched.current = false;
+    };
+  }, []);
+
+  const fetchForms = async () => {
+    if (hasFetched.current || !isMounted.current) return;
+
     try {
       console.log("Fetching forms from Supabase");
       setLoading(true);
       hasFetched.current = true;
       
       const data = await formService.fetchForms();
-      console.log("Forms fetched successfully:", data);
-      setForms(data);
+      
+      if (isMounted.current) {
+        console.log("Forms fetched successfully:", data);
+        setForms(data);
+        setLoading(false);
+      }
     } catch (error) {
       console.error("Error fetching forms:", error);
-    } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+      }
     }
   };
 
-  useEffect(() => {
-    fetchForms();
-    
-    // Clean up function to reset the ref when component unmounts
-    return () => {
-      hasFetched.current = false;
-    };
-  }, []);
-
   // Create a safe version of fetchForms for the FormsTable that won't cause infinite loops
   const handleFormsChange = () => {
-    hasFetched.current = false;
-    fetchForms();
+    if (isMounted.current) {
+      hasFetched.current = false;
+      fetchForms();
+    }
   };
 
   return (

@@ -28,7 +28,7 @@ export interface FormBuilderProps {
 export const FormBuilder: React.FC<FormBuilderProps> = ({ form }) => {
   const [title, setTitle] = useState(form?.title || "");
   const [description, setDescription] = useState(form?.description || "");
-  const [fields, setFields] = useState<FormField[]>(form?.json_config.fields || []);
+  const [fields, setFields] = useState<FormField[]>([]);
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -36,9 +36,12 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ form }) => {
   const navigate = useNavigate();
   const formService = useFormService();
   const initialized = useRef(false);
+  const isMounted = useRef(true);
 
   // Initialize form fields only once when component mounts or form changes
   useEffect(() => {
+    isMounted.current = true;
+    
     if (form && !initialized.current) {
       setTitle(form.title);
       setDescription(form.description || "");
@@ -48,7 +51,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ form }) => {
     }
     
     return () => {
-      // Reset the initialization flag when component unmounts
+      isMounted.current = false;
       initialized.current = false;
     };
   }, [form]);
@@ -171,7 +174,9 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ form }) => {
         variant: "destructive"
       });
     } finally {
-      setIsSaving(false);
+      if (isMounted.current) {
+        setIsSaving(false);
+      }
     }
   }, [title, description, fields, form, formService, toast, navigate]);
 
