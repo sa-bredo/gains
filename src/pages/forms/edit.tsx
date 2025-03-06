@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -8,6 +8,7 @@ import { FormBuilder } from "./components/form-builder";
 import { useFormService } from "./services/form-service";
 import { Form } from "./types";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const EditFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +16,7 @@ const EditFormPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const formService = useFormService();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchForm = async () => {
@@ -24,12 +26,17 @@ const EditFormPage: React.FC = () => {
         return;
       }
 
+      console.log("Attempting to fetch form with ID:", id);
+      setLoading(true);
+      
       try {
         const data = await formService.fetchFormById(id);
+        console.log("Form data received:", data);
         setForm(data);
       } catch (error) {
         console.error("Error fetching form:", error);
         setError("Failed to load form. It may have been deleted or you don't have permission to view it.");
+        toast.error("Could not load the form. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -52,6 +59,7 @@ const EditFormPage: React.FC = () => {
           </header>
           <div className="container mx-auto py-6 flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2">Loading form data...</span>
           </div>
         </SidebarInset>
       </div>
@@ -74,6 +82,14 @@ const EditFormPage: React.FC = () => {
             <div className="bg-destructive/10 text-destructive p-4 rounded-md">
               <h2 className="text-xl font-bold mb-2">Error</h2>
               <p>{error}</p>
+              <div className="mt-4">
+                <button 
+                  onClick={() => navigate('/forms')}
+                  className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
+                >
+                  Return to Forms
+                </button>
+              </div>
             </div>
           </div>
         </SidebarInset>

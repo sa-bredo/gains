@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { FormConfig, Form, FormSubmission } from '../types';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,15 +7,18 @@ export const useFormService = () => {
   // Fetch all forms for the current user
   const fetchForms = async (): Promise<Form[]> => {
     try {
+      console.log('Fetching forms from Supabase');
       const { data, error } = await supabase
         .from('forms')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
+        console.error('Supabase error fetching forms:', error);
         throw error;
       }
 
+      console.log('Forms fetched successfully:', data);
       // Cast the JSON data to our FormConfig type
       return data.map(form => ({
         ...form,
@@ -29,6 +33,7 @@ export const useFormService = () => {
   // Fetch a single form by ID
   const fetchFormById = async (id: string): Promise<Form> => {
     try {
+      console.log(`Fetching form with ID: ${id}`);
       const { data, error } = await supabase
         .from('forms')
         .select('*')
@@ -36,9 +41,16 @@ export const useFormService = () => {
         .single();
 
       if (error) {
+        console.error(`Supabase error fetching form with ID ${id}:`, error);
         throw error;
       }
 
+      if (!data) {
+        console.error(`No form found with ID: ${id}`);
+        throw new Error('Form not found');
+      }
+
+      console.log(`Form with ID ${id} fetched successfully:`, data);
       return {
         ...data,
         json_config: data.json_config as unknown as FormConfig
