@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "./components/theme-provider";
@@ -40,6 +41,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/form/:publicUrl" element={<PublicFormPage />} />
       
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>
@@ -58,6 +60,10 @@ function App() {
           <Route path="/settings/permissions" element={<PermissionsPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/knowledge" element={<NotFound />} />
+          <Route path="/forms" element={<FormsPage />} />
+          <Route path="/forms/new" element={<NewFormPage />} />
+          <Route path="/forms/edit/:id" element={<EditFormPage />} />
+          <Route path="/forms/submissions" element={<FormSubmissionsPage />} />
         </Route>
       
         {/* This is crucial - catch all unmatched routes */}
