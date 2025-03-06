@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Loader2, AlertCircle } from "lucide-react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
@@ -12,6 +12,17 @@ const Dashboard = () => {
   const { currentCompany, isLoadingCompanies, refreshCompanies } = useCompany();
   const { isSignedIn, isLoaded } = useAuth();
   const navigate = useNavigate();
+  const hasAttemptedRefresh = useRef(false);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    // Set up mounting tracker
+    isMounted.current = true;
+    
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     // Redirect to login if not signed in and Clerk is loaded
@@ -21,14 +32,30 @@ const Dashboard = () => {
     }
 
     // If no company and we're not currently loading, try one refresh
-    if (isLoaded && isSignedIn && !currentCompany && !isLoadingCompanies) {
+    if (isLoaded && isSignedIn && !currentCompany && !isLoadingCompanies && !hasAttemptedRefresh.current) {
+      hasAttemptedRefresh.current = true;
+      
       const attemptRefresh = async () => {
         console.log("Dashboard attempting to refresh companies");
         try {
           await refreshCompanies();
+          
+          // Set a timeout to check if we still don't have a company after refresh
+          if (!isMounted.current) return;
+          
+          window.setTimeout(() => {
+            if (!isMounted.current) return;
+            
+            if (!currentCompany) {
+              console.log("Still no company after refresh, redirecting to select-company");
+              toast("Please select a company to continue");
+              navigate("/select-company");
+            }
+          }, 2000);
+          
         } catch (error) {
           console.error("Error refreshing companies in Dashboard:", error);
-          toast("Please select a company to continue");
+          toast.error("Failed to load company information");
           navigate("/select-company");
         }
       };
@@ -40,8 +67,8 @@ const Dashboard = () => {
   if (!isLoaded || isLoadingCompanies) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading dashboard...</span>
+        <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+        <span>Loading dashboard...</span>
       </div>
     );
   }

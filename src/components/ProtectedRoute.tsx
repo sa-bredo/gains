@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth as useClerkAuth, useUser } from "@clerk/clerk-react";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 
 export type ProtectedRouteProps = {
@@ -15,15 +15,44 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { currentCompany, isLoadingCompanies, refreshCompanies, userCompanies } = useCompany();
   const location = useLocation();
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
+  const isMounted = useRef(true);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   // Attempt to refresh companies if none are loaded after authentication
   useEffect(() => {
     const attemptRefresh = async () => {
+      if (!isMounted.current) return;
+      
       if (isLoaded && isSignedIn && !currentCompany && !isLoadingCompanies && !hasAttemptedRefresh) {
         setHasAttemptedRefresh(true);
         try {
           console.log("Attempting to refresh companies for authenticated user");
           await refreshCompanies();
+          
+          // Set a timeout to check if we still don't have companies after refresh
+          if (!isMounted.current) return;
+          
+          timeoutRef.current = window.setTimeout(() => {
+            if (!isMounted.current) return;
+            
+            if (!currentCompany && userCompanies.length === 0) {
+              console.log("Still no companies after refresh, redirecting to select-company");
+              toast.info("Please select or create a company to continue");
+              // Force navigation to select company page
+              window.location.href = "/select-company";
+            }
+          }, 3000); // Allow 3 seconds for the refresh to complete
+          
         } catch (error) {
           console.error("Error refreshing companies in ProtectedRoute:", error);
           toast.error("Failed to load company information. Please try again.");
@@ -32,7 +61,14 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     };
 
     attemptRefresh();
-  }, [isLoaded, isSignedIn, currentCompany, isLoadingCompanies, refreshCompanies, hasAttemptedRefresh]);
+    
+    // Cleanup timeout on dependency changes
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [isLoaded, isSignedIn, currentCompany, isLoadingCompanies, refreshCompanies, hasAttemptedRefresh, userCompanies]);
 
   // Debug logging on company state changes
   useEffect(() => {
@@ -41,10 +77,31 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         hasCompanies: userCompanies.length > 0,
         companyCount: userCompanies.length,
         currentCompany: currentCompany?.name || "None",
-        currentPath: location.pathname
+        currentPath: location.pathname,
+        isLoadingCompanies
       });
     }
-  }, [isLoaded, isSignedIn, userCompanies, currentCompany, location.pathname]);
+  }, [isLoaded, isSignedIn, userCompanies, currentCompany, location.pathname, isLoadingCompanies]);
+
+  // Add a loading timeout to prevent infinite loading
+  useEffect(() => {
+    // If we're still loading after 10 seconds, something might be wrong
+    if (isLoaded && isSignedIn && isLoadingCompanies) {
+      const loadingTimeout = window.setTimeout(() => {
+        if (!isMounted.current) return;
+        
+        if (isLoadingCompanies) {
+          console.log("Loading companies timed out, forcing refresh");
+          // Force a refresh to break potential loops
+          window.location.reload();
+        }
+      }, 10000); // 10 second timeout
+      
+      return () => {
+        clearTimeout(loadingTimeout);
+      };
+    }
+  }, [isLoaded, isSignedIn, isLoadingCompanies]);
 
   // If auth or companies are still loading, show loading state
   if (!isLoaded || isLoadingCompanies) {
