@@ -20,10 +20,12 @@ import {
   Link,
   Image,
   Check,
-  X
+  X,
+  Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { FileViewerModal } from "./file-viewer-modal";
 
 export interface SubmissionsTableProps {
   form: Form;
@@ -36,6 +38,9 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
   submissions,
   loading = false
 }) => {
+  const [fileViewerOpen, setFileViewerOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<{ url: string, name: string }>({ url: "", name: "" });
+
   // Extract all possible keys from all submissions
   const allKeys = useMemo(() => {
     const keySet = new Set<string>();
@@ -92,6 +97,11 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
     return { value: data, type: 'text' };
   };
 
+  const openFileViewer = (url: string, name: string = "") => {
+    setSelectedFile({ url, name });
+    setFileViewerOpen(true);
+  };
+
   const renderSubmissionValue = (data: any) => {
     const { value, type } = getValueAndType(data);
     
@@ -102,34 +112,69 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
     switch (type) {
       case 'file':
         return (
-          <a 
-            href={value} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center text-primary hover:underline"
-          >
-            <FileText className="h-4 w-4 mr-1" />
-            {value.split('/').pop()}
-          </a>
+          <div className="flex items-center space-x-2">
+            <a 
+              href={value} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center text-primary hover:underline"
+            >
+              <FileText className="h-4 w-4 mr-1" />
+              {value.split('/').pop()}
+            </a>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openFileViewer(value, value.split('/').pop());
+              }}
+              title="View file"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          </div>
         );
       
       case 'image':
         return (
           <div className="flex flex-col items-start">
-            <a 
-              href={value} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center text-primary hover:underline mb-1"
+            <div className="flex items-center space-x-2">
+              <a 
+                href={value} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center text-primary hover:underline mb-1"
+              >
+                <Image className="h-4 w-4 mr-1" />
+                {value.split('/').pop()}
+              </a>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openFileViewer(value, value.split('/').pop());
+                }}
+                title="View image"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            </div>
+            <div 
+              className="h-12 w-auto relative overflow-hidden border border-border rounded cursor-pointer"
+              onClick={() => openFileViewer(value, value.split('/').pop())}
             >
-              <Image className="h-4 w-4 mr-1" />
-              {value.split('/').pop()}
-            </a>
-            <img 
-              src={value} 
-              alt="Submission" 
-              className="h-12 w-auto object-contain rounded border border-border" 
-            />
+              <img 
+                src={value} 
+                alt="Submission" 
+                className="h-full w-auto object-contain" 
+              />
+            </div>
           </div>
         );
       
@@ -246,6 +291,13 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
           </TableBody>
         </Table>
       </div>
+
+      <FileViewerModal 
+        isOpen={fileViewerOpen}
+        onClose={() => setFileViewerOpen(false)}
+        fileUrl={selectedFile.url}
+        fileName={selectedFile.name}
+      />
     </div>
   );
 };
