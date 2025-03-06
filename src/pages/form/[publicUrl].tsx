@@ -5,6 +5,7 @@ import { PublicFormView } from "../forms/components/public-form-view";
 
 export default function PublicFormPage() {
   const { publicUrl } = useParams<{ publicUrl: string }>();
+  console.log("Public form page loading with URL:", publicUrl);
 
   if (!publicUrl) {
     return (

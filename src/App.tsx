@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "./components/theme-provider";
@@ -40,6 +41,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
+        {/* Fix: Make sure the route properly captures the parameter */}
         <Route path="/form/:publicUrl" element={<PublicFormPage />} />
       
         {/* Protected routes */}

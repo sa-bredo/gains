@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Form, FormField } from "../types";
 import { useFormService } from "../services/form-service";
@@ -20,15 +20,30 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
   const [isComplete, setIsComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  
+  // Add refs to prevent re-fetching loops
+  const formFetched = useRef(false);
+  const isMounted = useRef(true);
 
   const { toast } = useToast();
   const formService = useFormService();
 
   useEffect(() => {
+    isMounted.current = true;
+    
     const fetchForm = async () => {
+      // Skip if already fetched or component unmounted
+      if (formFetched.current || !isMounted.current) return;
+      
       try {
-        // Fix: Use fetchFormByPublicUrl instead of fetchFormByUrl
+        console.log(`Fetching form with public URL: ${publicUrl}`);
+        formFetched.current = true; // Mark as fetched before the actual fetch to prevent race conditions
+        
         const formData = await formService.fetchFormByPublicUrl(publicUrl);
+        
+        if (!isMounted.current) return;
+        
+        console.log(`Form fetched successfully:`, formData);
         setForm(formData);
         
         // Initialize answers
@@ -43,15 +58,24 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
         setAnswers(initialAnswers);
       } catch (error) {
         console.error("Error fetching form:", error);
-        setError("Form not found. Please check the URL.");
+        if (isMounted.current) {
+          setError("Form not found. Please check the URL.");
+        }
       }
     };
 
     fetchForm();
+    
+    // Cleanup
+    return () => {
+      console.log("PublicFormView unmounting");
+      isMounted.current = false;
+    };
   }, [publicUrl, formService]);
 
+  // Update progress when currentStep or form changes
   useEffect(() => {
-    if (form) {
+    if (form && form.json_config.fields.length > 0) {
       const totalFields = form.json_config.fields.length;
       setProgress((currentStep / totalFields) * 100);
     }
@@ -61,10 +85,10 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
     if (!form) return;
     
     const currentField = form.json_config.fields[currentStep];
-    setAnswers({
-      ...answers,
+    setAnswers(prev => ({
+      ...prev,
       [currentField.label]: value
-    });
+    }));
   };
 
   const goToNextStep = () => {
@@ -91,8 +115,9 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl }) => 
     setIsSubmitting(true);
     
     try {
-      // Fix: Use submitForm instead of submitFormResponse
+      console.log(`Submitting form responses for form ID: ${form.id}`);
       await formService.submitForm(form.id, answers);
+      console.log("Form submitted successfully");
       setIsComplete(true);
     } catch (error) {
       console.error("Error submitting form:", error);
