@@ -29,10 +29,15 @@ export default function FormExample() {
         {/* Left Column - Image with CTA */}
         <div className="md:w-1/2 relative overflow-hidden">
           <div className="h-full min-h-[600px]">
+            <img
+              src="https://images.squarespace-cdn.com/content/v1/66dfede09053481feac2a1aa/0abe5d7d-14f7-478f-9e30-7671976f644f/Screenshot+2024-09-22+at+11.03.17.png?format=2500w"
+              alt="Studio Anatomy"
+              className="w-full h-full object-cover rounded-lg"
+            />
             <div className="absolute inset-0 bg-black/10"></div>
             <div className="absolute bottom-16 left-12 text-white">
               <h1 className="text-5xl font-bold leading-tight">
-                Join the Studio2<br />
+                Join the Studio<br />
                 Anatomy Family
               </h1>
             </div>
