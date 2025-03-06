@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { FormConfig, Form, FormSubmission } from '../types';
 import { supabase } from '@/integrations/supabase/client';
@@ -132,11 +131,13 @@ export const useFormService = () => {
 
       if (error) {
         console.error('Error creating form:', error);
+        toast.error(`Failed to create form: ${error.message}`);
         throw new Error(`Failed to create form: ${error.message}`);
       }
 
       if (!data) {
         console.error('No data returned after form creation');
+        toast.error('Failed to create form - no data returned');
         throw new Error('Failed to create form - no data returned');
       }
 
@@ -155,9 +156,7 @@ export const useFormService = () => {
     } catch (error) {
       console.error('Error creating form:', error);
       
-      // Show error toast
-      toast.error(error instanceof Error ? error.message : 'Failed to create form');
-      
+      // Rethrow the error for proper handling upstream
       throw error;
     }
   };
@@ -180,11 +179,13 @@ export const useFormService = () => {
 
       if (error) {
         console.error(`Error updating form with ID ${id}:`, error);
+        toast.error(`Failed to update form: ${error.message}`);
         throw new Error(`Failed to update form: ${error.message}`);
       }
 
       if (!data) {
         console.error(`No data returned after updating form with ID ${id}`);
+        toast.error(`Failed to update form with ID ${id} - no data returned`);
         throw new Error(`Failed to update form with ID ${id} - no data returned`);
       }
 
@@ -203,9 +204,7 @@ export const useFormService = () => {
     } catch (error) {
       console.error('Error updating form:', error);
       
-      // Show error toast
-      toast.error(error instanceof Error ? error.message : 'Failed to update form');
-      
+      // Rethrow the error for proper handling upstream
       throw error;
     }
   };

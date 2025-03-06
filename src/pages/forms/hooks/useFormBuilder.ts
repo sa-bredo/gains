@@ -139,20 +139,22 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
       
       if (initialForm) {
         console.log(`Updating existing form with ID: ${initialForm.id}`);
-        await formService.updateForm(initialForm.id, {
+        const updatedForm = await formService.updateForm(initialForm.id, {
           title,
           description: description || null,
           json_config: formConfig
         });
         
-        // Show success toast using both toast systems
+        console.log("Form updated successfully:", updatedForm);
+        
+        // Show success toast using both toast systems for maximum visibility
         uiToast({
           title: "Success!",
           description: "Your form has been updated successfully",
           variant: "default"
         });
         
-        toast.success("Form updated successfully");
+        toast.success("Form updated successfully!");
       } else {
         console.log("Creating new form...");
         const publicUrl = formService.generatePublicUrl();
@@ -167,14 +169,14 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
         
         console.log("New form created:", newForm);
         
-        // Show success toast using both toast systems
+        // Show success toast using both toast systems for maximum visibility
         uiToast({
           title: "Success!",
           description: "Your new form has been created successfully",
           variant: "default"
         });
         
-        toast.success("Form created successfully");
+        toast.success("Form created successfully!");
         
         navigate(`/forms/${newForm.id}`);
       }
