@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Form, FormField } from "../types";
@@ -172,45 +171,80 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
 
   if (isComplete) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="min-h-screen flex items-center justify-center bg-background"
-      >
-        <div className="text-center max-w-md p-6">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="bg-primary text-primary-foreground rounded-full p-4 inline-flex mx-auto mb-6"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              className="h-8 w-8"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
+      <div className="h-screen w-full flex">
+        <div className="flex flex-col md:flex-row w-full h-full">
+          <div className="md:w-1/2 relative h-full">
+            <div className="h-full">
+              <img
+                src={form.json_config.coverImage || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"}
+                alt={form.title}
+                className="w-full h-full object-cover"
               />
-            </svg>
-          </motion.div>
-          <h2 className="text-3xl font-bold mb-4">
-            {form?.json_config.completionMessage?.title || "Thank you!"}
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            {form?.json_config.completionMessage?.description || "Your response has been submitted successfully."}
-          </p>
-          <Button asChild size="lg" className="rounded-full">
-            <a href="/">Return to Home</a>
-          </Button>
+              <div className="absolute inset-0 bg-black/10"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div 
+                  className="rounded-xl p-8 max-w-md"
+                  style={{ 
+                    backgroundColor: `${form.json_config.appearance?.backgroundColor || '#000000'}${Math.round((form.json_config.appearance?.backgroundOpacity || 10) * 255 / 100).toString(16).padStart(2, '0')}`,
+                  }}
+                >
+                  <h1 
+                    className="text-5xl font-bold leading-tight"
+                    style={{ color: form.json_config.appearance?.titleColor || "#FFFFFF" }}
+                  >
+                    {form.title}
+                  </h1>
+                  {form.description && (
+                    <p 
+                      className="mt-4 max-w-md"
+                      style={{ color: form.json_config.appearance?.textColor || "#FFFFFF" }}
+                    >
+                      {form.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="md:w-1/2 bg-[#d3e4fd]/30 h-full overflow-y-auto flex flex-col">
+            <div className="p-12 flex flex-col flex-grow items-center justify-center">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="bg-primary text-primary-foreground rounded-full p-4 inline-flex mx-auto mb-6"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  className="h-8 w-8"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </motion.div>
+              <div className="text-center max-w-md">
+                <h2 className="text-3xl font-bold mb-4">
+                  {form?.json_config.completionMessage?.title || "Thank you!"}
+                </h2>
+                <p className="text-muted-foreground mb-6">
+                  {form?.json_config.completionMessage?.description || "Your response has been submitted successfully."}
+                </p>
+                <Button asChild size="lg" className="rounded-full">
+                  <a href="/">Return to Home</a>
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
