@@ -25,12 +25,25 @@ import {
   File,
   UserCheck,
   Users,
-  BookOpen
+  BookOpen,
+  Star,
+  Search,
+  MoreVertical,
+  StarOff
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { FileViewerModal } from "./file-viewer-modal";
 import { TextContentModal } from "./text-content-modal";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useFormService } from "../services/form-service";
+import { useToast } from "@/hooks/use-toast";
 
 export interface SubmissionsTableProps {
   form: Form;
@@ -47,6 +60,12 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
   const [selectedFile, setSelectedFile] = useState<{ url: string, name: string }>({ url: "", name: "" });
   const [textModalOpen, setTextModalOpen] = useState(false);
   const [selectedText, setSelectedText] = useState<{ label: string, content: string }>({ label: "", content: "" });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [starredOnly, setStarredOnly] = useState(false);
+  const [starredSubmissions, setStarredSubmissions] = useState<Record<string, boolean>>({});
+  
+  const { toast } = useToast();
+  const formService = useFormService();
 
   const isJoinTeamForm = form.form_type === "Join Team";
 
@@ -119,6 +138,21 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
   const openTextModal = (label: string, content: string) => {
     setSelectedText({ label, content });
     setTextModalOpen(true);
+  };
+
+  const toggleStar = (submissionId: string) => {
+    setStarredSubmissions(prev => ({
+      ...prev,
+      [submissionId]: !prev[submissionId]
+    }));
+    
+    // Here we would typically update the database
+    // This is placeholder functionality until backend support is added
+    toast({
+      description: starredSubmissions[submissionId] 
+        ? "Removed from starred submissions" 
+        : "Added to starred submissions",
+    });
   };
 
   const renderSubmissionValue = (data: any, fieldLabel: string) => {
@@ -253,14 +287,58 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
   const handleInviteInterview = (submission: FormSubmission) => {
     console.log("Invite to interview:", submission.id);
     // Functionality to be defined later
-    alert("Invite to interview functionality will be implemented later");
+    toast({
+      description: "Invite to interview functionality will be implemented later"
+    });
   };
 
   const handleInviteTeam = (submission: FormSubmission) => {
     console.log("Invite to team:", submission.id);
     // Functionality to be defined later
-    alert("Invite to team functionality will be implemented later");
+    toast({
+      description: "Invite to team functionality will be implemented later"
+    });
   };
+
+  // Filter submissions based on search query and starred status
+  const filteredSubmissions = useMemo(() => {
+    return submissions.filter(submission => {
+      // Filter by starred status if enabled
+      if (starredOnly && !starredSubmissions[submission.id]) {
+        return false;
+      }
+      
+      // Return all results if no search query
+      if (!searchQuery) {
+        return true;
+      }
+      
+      // Search in submission date
+      if (submission.submitted_at.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return true;
+      }
+      
+      // Search through all data fields
+      return Object.entries(submission.data).some(([key, value]) => {
+        if (value === null || value === undefined) {
+          return false;
+        }
+        
+        // Handle typed values
+        if (isTypedValue(value)) {
+          if (String(value.value).toLowerCase().includes(searchQuery.toLowerCase())) {
+            return true;
+          }
+        } 
+        // Handle regular values
+        else if (String(value).toLowerCase().includes(searchQuery.toLowerCase())) {
+          return true;
+        }
+        
+        return false;
+      });
+    });
+  }, [submissions, searchQuery, starredOnly, starredSubmissions]);
 
   if (submissions.length === 0) {
     return (
@@ -276,20 +354,65 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
         Showing {submissions.length} {submissions.length === 1 ? "submission" : "submissions"} for "{form.title}"
       </p>
       
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search submissions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setStarredOnly(!starredOnly)}
+          className={starredOnly ? "bg-amber-100 border-amber-200 dark:bg-amber-950 dark:border-amber-800" : ""}
+        >
+          {starredOnly ? (
+            <>
+              <Star className="h-4 w-4 mr-2 text-amber-500" fill="currentColor" />
+              Starred only
+            </>
+          ) : (
+            <>
+              <Star className="h-4 w-4 mr-2" />
+              Show starred
+            </>
+          )}
+        </Button>
+      </div>
+      
       <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[60px]">Star</TableHead>
               <TableHead className="w-[180px]">Submission Date</TableHead>
               {allKeys.map((key) => (
                 <TableHead key={key}>{key}</TableHead>
               ))}
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-right w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {submissions.map((submission) => (
+            {filteredSubmissions.map((submission) => (
               <TableRow key={submission.id}>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleStar(submission.id)}
+                    className="h-8 w-8 p-0"
+                  >
+                    {starredSubmissions[submission.id] ? (
+                      <Star className="h-5 w-5 text-amber-500" fill="currentColor" />
+                    ) : (
+                      <StarOff className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </Button>
+                </TableCell>
                 <TableCell className="font-medium">
                   {formatDate(submission.submitted_at)}
                 </TableCell>
@@ -299,41 +422,34 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                   </TableCell>
                 ))}
                 <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDownloadJson(submission)}
-                      title="Download JSON"
-                    >
-                      <FileJson className="h-4 w-4 mr-1" />
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    
-                    {isJoinTeamForm && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleInviteInterview(submission)}
-                          className="flex items-center gap-1"
-                        >
-                          <UserCheck className="h-4 w-4" />
-                          <span className="hidden sm:inline">Invite Interview</span>
-                        </Button>
-                        
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleInviteTeam(submission)}
-                          className="flex items-center gap-1"
-                        >
-                          <Users className="h-4 w-4" />
-                          <span className="hidden sm:inline">Invite Team</span>
-                        </Button>
-                      </>
-                    )}
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <MoreVertical className="h-4 w-4" />
+                        <span className="sr-only">Open menu</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleDownloadJson(submission)}>
+                        <FileJson className="h-4 w-4 mr-2" />
+                        Download JSON
+                      </DropdownMenuItem>
+                      
+                      {isJoinTeamForm && (
+                        <>
+                          <DropdownMenuItem onClick={() => handleInviteInterview(submission)}>
+                            <UserCheck className="h-4 w-4 mr-2" />
+                            Invite to Interview
+                          </DropdownMenuItem>
+                          
+                          <DropdownMenuItem onClick={() => handleInviteTeam(submission)}>
+                            <Users className="h-4 w-4 mr-2" />
+                            Invite to Team
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}
