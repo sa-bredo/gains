@@ -29,6 +29,7 @@ export interface FormAppearance {
   backgroundColor?: string;  // Background color
   buttonCornerRounding?: number; // Corner rounding for buttons
   buttonBackgroundColor?: string; // Button background color
+  buttonTextSize?: number; // Button text size
   titleFontSize?: number; // Title font size
   descriptionFontSize?: number; // Description font size
 }

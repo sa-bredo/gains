@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -46,6 +45,7 @@ export const FormConfigSection: React.FC<FormConfigSectionProps> = ({
     backgroundColor: "#000000",
     buttonCornerRounding: 16,
     buttonBackgroundColor: "#4f46e5",
+    buttonTextSize: 16,
     titleFontSize: 28,
     descriptionFontSize: 16
   },
@@ -115,6 +115,13 @@ export const FormConfigSection: React.FC<FormConfigSectionProps> = ({
     onAppearanceChange({
       ...appearance,
       descriptionFontSize: value[0]
+    });
+  };
+
+  const handleButtonTextSizeChange = (value: number[]) => {
+    onAppearanceChange({
+      ...appearance,
+      buttonTextSize: value[0]
     });
   };
 
@@ -253,6 +260,20 @@ export const FormConfigSection: React.FC<FormConfigSectionProps> = ({
                     value={[appearance.buttonCornerRounding || 16]} 
                     onValueChange={handleButtonCornerRoundingChange}
                     max={30}
+                    step={1}
+                  />
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Button Text Size</Label>
+                    <span className="text-sm text-muted-foreground">{appearance.buttonTextSize || 16}px</span>
+                  </div>
+                  <Slider 
+                    value={[appearance.buttonTextSize || 16]} 
+                    onValueChange={handleButtonTextSizeChange}
+                    min={12}
+                    max={24}
                     step={1}
                   />
                 </div>

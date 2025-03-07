@@ -25,6 +25,7 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
       backgroundColor: "#000000",
       buttonCornerRounding: 16,
       buttonBackgroundColor: "#4f46e5",
+      buttonTextSize: 16,
       titleFontSize: 28,
       descriptionFontSize: 16
     },
@@ -68,6 +69,7 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
         backgroundColor: "#000000",
         buttonCornerRounding: 16,
         buttonBackgroundColor: "#4f46e5",
+        buttonTextSize: 16,
         titleFontSize: 28,
         descriptionFontSize: 16
       });

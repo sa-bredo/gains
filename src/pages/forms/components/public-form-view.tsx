@@ -259,6 +259,7 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
   if (isMobile && !showMobileForm) {
     const buttonCornerRounding = form.json_config.appearance?.buttonCornerRounding || 16;
     const buttonBackgroundColor = form.json_config.appearance?.buttonBackgroundColor || "#4f46e5";
+    const buttonTextSize = form.json_config.appearance?.buttonTextSize || 16;
     const titleFontSize = form.json_config.appearance?.titleFontSize || 28;
     const descriptionFontSize = form.json_config.appearance?.descriptionFontSize || 16;
     
@@ -298,7 +299,8 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
               className="mt-4 px-8 py-6 h-auto text-white font-medium"
               style={{ 
                 borderRadius: `${buttonCornerRounding}px`,
-                backgroundColor: buttonBackgroundColor 
+                backgroundColor: buttonBackgroundColor,
+                fontSize: `${buttonTextSize}px`
               }}
             >
               {form.json_config.mobileButtonText || "Tell Us About You"}
