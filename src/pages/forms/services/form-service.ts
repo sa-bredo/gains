@@ -366,5 +366,6 @@ export const useFormService = () => {
     generatePublicUrl,
     clearFormsCache,
     getSubmissionCount,
+    toggleSubmissionStar,
   };
 };

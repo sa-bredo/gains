@@ -34,9 +34,16 @@ import { useFormService } from "../services/form-service";
 interface FormsTableProps {
   forms: Form[];
   onArchive: (id: string) => void;
+  loading?: boolean; // Add the loading prop
+  onFormsChange?: () => Promise<void>; // Add the onFormsChange prop
 }
 
-export const FormsTable: React.FC<FormsTableProps> = ({ forms, onArchive }) => {
+export const FormsTable: React.FC<FormsTableProps> = ({ 
+  forms, 
+  onArchive,
+  loading = false, // Provide a default value
+  onFormsChange = async () => {} // Provide a default empty function
+}) => {
   const navigate = useNavigate();
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
