@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { Form, FormSubmission, TypedSubmissionValue } from "../types";
 import {
@@ -106,7 +105,6 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
       return { value: null, type: 'text' };
     }
 
-    // Try to get the type from the form configuration
     const fieldType = getFieldType(fieldLabel);
     if (fieldType) {
       return { value: data, type: fieldType };
@@ -140,19 +138,28 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
     setTextModalOpen(true);
   };
 
-  const toggleStar = (submissionId: string) => {
+  const toggleStar = async (submissionId: string) => {
+    const newStarredState = !starredSubmissions[submissionId];
+    
     setStarredSubmissions(prev => ({
       ...prev,
-      [submissionId]: !prev[submissionId]
+      [submissionId]: newStarredState
     }));
     
-    // Here we would typically update the database
-    // This is placeholder functionality until backend support is added
-    toast({
-      description: starredSubmissions[submissionId] 
-        ? "Removed from starred submissions" 
-        : "Added to starred submissions",
-    });
+    try {
+      await formService.toggleSubmissionStar(submissionId, newStarredState);
+    } catch (error) {
+      setStarredSubmissions(prev => ({
+        ...prev,
+        [submissionId]: !newStarredState
+      }));
+      
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update star status"
+      });
+    }
   };
 
   const renderSubmissionValue = (data: any, fieldLabel: string) => {
@@ -283,10 +290,8 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
     document.body.removeChild(link);
   };
 
-  // Placeholder handlers for team-related actions
   const handleInviteInterview = (submission: FormSubmission) => {
     console.log("Invite to interview:", submission.id);
-    // Functionality to be defined later
     toast({
       description: "Invite to interview functionality will be implemented later"
     });
@@ -294,43 +299,35 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
 
   const handleInviteTeam = (submission: FormSubmission) => {
     console.log("Invite to team:", submission.id);
-    // Functionality to be defined later
     toast({
       description: "Invite to team functionality will be implemented later"
     });
   };
 
-  // Filter submissions based on search query and starred status
   const filteredSubmissions = useMemo(() => {
     return submissions.filter(submission => {
-      // Filter by starred status if enabled
       if (starredOnly && !starredSubmissions[submission.id]) {
         return false;
       }
       
-      // Return all results if no search query
       if (!searchQuery) {
         return true;
       }
       
-      // Search in submission date
       if (submission.submitted_at.toLowerCase().includes(searchQuery.toLowerCase())) {
         return true;
       }
       
-      // Search through all data fields
       return Object.entries(submission.data).some(([key, value]) => {
         if (value === null || value === undefined) {
           return false;
         }
         
-        // Handle typed values
         if (isTypedValue(value)) {
           if (String(value.value).toLowerCase().includes(searchQuery.toLowerCase())) {
             return true;
           }
         } 
-        // Handle regular values
         else if (String(value).toLowerCase().includes(searchQuery.toLowerCase())) {
           return true;
         }

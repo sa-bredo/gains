@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Form } from "../types";
@@ -31,12 +30,14 @@ export interface FormsTableProps {
   forms: Form[];
   loading?: boolean;
   onFormsChange?: () => void;
+  onArchive?: (formId: string) => void;
 }
 
 export const FormsTable: React.FC<FormsTableProps> = ({
   forms,
   loading = false,
-  onFormsChange = () => {}
+  onFormsChange = () => {},
+  onArchive = () => {}
 }) => {
   const [formToArchive, setFormToArchive] = useState<Form | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
@@ -66,6 +67,7 @@ export const FormsTable: React.FC<FormsTableProps> = ({
       });
       
       onFormsChange();
+      onArchive(formToArchive.id);
     } catch (error) {
       console.error("Error archiving form:", error);
       toast({

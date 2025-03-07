@@ -332,6 +332,28 @@ export const useFormService = () => {
     return uuidv4().substring(0, 8);
   };
 
+  // Add a new function to toggle the star status of a submission
+  const toggleSubmissionStar = async (submissionId: string, starred: boolean): Promise<void> => {
+    try {
+      console.log(`Toggling star status for submission ${submissionId} to ${starred}`);
+      const { error } = await supabase
+        .from('form_submissions')
+        .update({ starred })
+        .eq('id', submissionId);
+
+      if (error) {
+        console.error(`Error toggling star status for submission ${submissionId}:`, error);
+        toast.error(`Failed to update star status: ${error.message}`);
+        throw error;
+      }
+      
+      toast.success(`Submission ${starred ? 'starred' : 'unstarred'} successfully`);
+    } catch (error) {
+      console.error('Error toggling star status:', error);
+      throw error;
+    }
+  };
+
   return {
     fetchForms,
     fetchFormById,
@@ -345,5 +367,6 @@ export const useFormService = () => {
     generatePublicUrl,
     clearFormsCache,
     getSubmissionCount,
+    toggleSubmissionStar,
   };
 };
