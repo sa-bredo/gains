@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { Form, FormSubmission, TypedSubmissionValue } from "../types";
 import {
@@ -21,11 +22,15 @@ import {
   Check,
   X,
   Eye,
-  File
+  File,
+  UserCheck,
+  Users,
+  BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { FileViewerModal } from "./file-viewer-modal";
+import { TextContentModal } from "./text-content-modal";
 
 export interface SubmissionsTableProps {
   form: Form;
@@ -40,6 +45,10 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
 }) => {
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<{ url: string, name: string }>({ url: "", name: "" });
+  const [textModalOpen, setTextModalOpen] = useState(false);
+  const [selectedText, setSelectedText] = useState<{ label: string, content: string }>({ label: "", content: "" });
+
+  const isJoinTeamForm = form.form_type === "Join Team";
 
   const allKeys = useMemo(() => {
     const keySet = new Set<string>();
@@ -57,6 +66,11 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
     return Array.from(keySet);
   }, [submissions, form]);
 
+  const getFieldType = (fieldLabel: string): string => {
+    const field = form.json_config.fields.find(f => f.label === fieldLabel);
+    return field?.type || 'text';
+  };
+
   const isTypedValue = (value: any): value is TypedSubmissionValue => {
     return value !== null && 
            typeof value === 'object' && 
@@ -64,13 +78,19 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
            'type' in value;
   };
 
-  const getValueAndType = (data: any): { value: any; type: string } => {
+  const getValueAndType = (data: any, fieldLabel: string): { value: any; type: string } => {
     if (isTypedValue(data)) {
       return { value: data.value, type: data.type };
     }
     
     if (data === null || data === undefined) {
       return { value: null, type: 'text' };
+    }
+
+    // Try to get the type from the form configuration
+    const fieldType = getFieldType(fieldLabel);
+    if (fieldType) {
+      return { value: data, type: fieldType };
     }
     
     if (typeof data === 'string') {
@@ -96,34 +116,44 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
     setFileViewerOpen(true);
   };
 
-  const renderSubmissionValue = (data: any) => {
-    const { value, type } = getValueAndType(data);
+  const openTextModal = (label: string, content: string) => {
+    setSelectedText({ label, content });
+    setTextModalOpen(true);
+  };
+
+  const renderSubmissionValue = (data: any, fieldLabel: string) => {
+    const { value, type } = getValueAndType(data, fieldLabel);
     
     if (value === null || value === undefined) {
       return <span className="text-muted-foreground italic">Not provided</span>;
     }
 
     switch (type) {
+      case 'textarea':
+        return (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center gap-1"
+            onClick={() => openTextModal(fieldLabel, value)}
+          >
+            <BookOpen className="h-4 w-4" />
+            Read
+          </Button>
+        );
+
       case 'file':
         return (
-          <div className="flex items-center space-x-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-8 p-1 flex items-center" 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                openFileViewer(value, value.split('/').pop());
-              }}
-              title="View file"
-            >
-              <File className="h-4 w-4 mr-1.5" />
-              <span className="text-primary hover:underline truncate max-w-[180px]">
-                {value.split('/').pop()}
-              </span>
-            </Button>
-          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center gap-1"
+            onClick={() => window.open(value, '_blank')}
+            title="Open file"
+          >
+            <File className="h-4 w-4" />
+            File
+          </Button>
         );
       
       case 'image':
@@ -219,6 +249,19 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
     document.body.removeChild(link);
   };
 
+  // Placeholder handlers for team-related actions
+  const handleInviteInterview = (submission: FormSubmission) => {
+    console.log("Invite to interview:", submission.id);
+    // Functionality to be defined later
+    alert("Invite to interview functionality will be implemented later");
+  };
+
+  const handleInviteTeam = (submission: FormSubmission) => {
+    console.log("Invite to team:", submission.id);
+    // Functionality to be defined later
+    alert("Invite to team functionality will be implemented later");
+  };
+
   if (submissions.length === 0) {
     return (
       <div className="text-center py-10">
@@ -252,19 +295,45 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                 </TableCell>
                 {allKeys.map((key) => (
                   <TableCell key={key}>
-                    {renderSubmissionValue(submission.data[key])}
+                    {renderSubmissionValue(submission.data[key], key)}
                   </TableCell>
                 ))}
                 <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDownloadJson(submission)}
-                    title="Download JSON"
-                  >
-                    <FileJson className="h-4 w-4 mr-1" />
-                    <Download className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDownloadJson(submission)}
+                      title="Download JSON"
+                    >
+                      <FileJson className="h-4 w-4 mr-1" />
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    
+                    {isJoinTeamForm && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleInviteInterview(submission)}
+                          className="flex items-center gap-1"
+                        >
+                          <UserCheck className="h-4 w-4" />
+                          <span className="hidden sm:inline">Invite Interview</span>
+                        </Button>
+                        
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleInviteTeam(submission)}
+                          className="flex items-center gap-1"
+                        >
+                          <Users className="h-4 w-4" />
+                          <span className="hidden sm:inline">Invite Team</span>
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -277,6 +346,13 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
         onClose={() => setFileViewerOpen(false)}
         fileUrl={selectedFile.url}
         fileName={selectedFile.name}
+      />
+
+      <TextContentModal
+        isOpen={textModalOpen}
+        onClose={() => setTextModalOpen(false)}
+        title={selectedText.label}
+        content={selectedText.content}
       />
     </div>
   );
