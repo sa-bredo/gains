@@ -72,5 +72,5 @@ export interface FormSubmission {
   form_id: string;
   submitted_at: string;
   data: Record<string, string | TypedSubmissionValue>;
-  starred?: boolean; // Added for star functionality (to be implemented in backend)
+  starred?: boolean; // Updated to match the database field
 }
