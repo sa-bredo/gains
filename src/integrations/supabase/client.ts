@@ -21,4 +21,19 @@ export const SUPABASE_PUBLISHABLE_KEY = SUPABASE_ANON_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createClient<Database>(
+  SUPABASE_URL, 
+  SUPABASE_ANON_KEY,
+  {
+    auth: {
+      persistSession: true,
+    },
+    global: {
+      fetch: (...args) => {
+        // Log fetch request details for debugging
+        console.log('Supabase fetch request:', args[0]);
+        return fetch(...args);
+      },
+    },
+  }
+);

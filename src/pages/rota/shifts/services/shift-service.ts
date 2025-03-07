@@ -1,4 +1,3 @@
-
 import { useCompany } from "@/contexts/CompanyContext";
 import { format, parse, addDays, addWeeks, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +9,8 @@ import { ShiftPreviewItem } from '../components/shift-preview';
 export const fetchLocations = async (companyId: string | null): Promise<Location[]> => {
   if (!companyId) return [];
   
+  console.log('Fetching locations for company ID:', companyId);
+  
   const { data, error } = await supabase
     .from('locations')
     .select('*')
@@ -17,9 +18,11 @@ export const fetchLocations = async (companyId: string | null): Promise<Location
     .order('name');
 
   if (error) {
+    console.error('Error fetching locations:', error);
     throw error;
   }
 
+  console.log('Fetched locations:', data);
   return data || [];
 };
 
@@ -39,6 +42,7 @@ export const fetchTemplateMasters = async (companyId: string | null): Promise<Sh
     .order('version', { ascending: false });
 
   if (error) {
+    console.error('Error fetching template masters:', error);
     throw error;
   }
 
