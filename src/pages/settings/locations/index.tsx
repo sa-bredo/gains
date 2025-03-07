@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -7,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { LocationsTable } from "./components/locations-table";
 import { AddLocationDialog } from "./components/add-location-dialog";
 import { Location } from "./types";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, checkLocationsForCompany } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCompany } from "@/contexts/CompanyContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function LocationsPage() {
@@ -28,20 +27,19 @@ export default function LocationsPage() {
     try {
       console.log('Fetching locations for company:', currentCompany.id);
       
-      // Create a query to fetch locations with debugging
-      let query = supabase
+      const hasLocations = await checkLocationsForCompany(currentCompany.id);
+      console.log(`Company has locations: ${hasLocations}`);
+      
+      const query = supabase
         .from('locations')
-        .select('*');
-        
-      // Apply the company filter using .eq() method
-      if (currentCompany.id) {
-        query = query.eq('company_id', currentCompany.id);
+        .select('*')
+        .eq('company_id', currentCompany.id)
+        .order('name', { ascending: true });
+      
+      if (import.meta.env.DEV) {
+        console.log('Query:', query.toSql?.());
       }
       
-      // Add ordering
-      query = query.order('name', { ascending: true });
-      
-      // Execute the query
       const { data, error } = await query;
 
       if (error) {
@@ -78,6 +76,20 @@ export default function LocationsPage() {
       };
       
       console.log('Adding location with data:', locationWithCompany);
+      
+      const { data: existingLocations, error: checkError } = await supabase
+        .from('locations')
+        .select('id')
+        .eq('company_id', currentCompany.id)
+        .eq('name', data.name)
+        .limit(1);
+        
+      if (checkError) {
+        console.error('Error checking for existing location:', checkError);
+      } else if (existingLocations && existingLocations.length > 0) {
+        toast.error(`A location named "${data.name}" already exists`);
+        return undefined;
+      }
       
       const { data: newLocation, error } = await supabase
         .from('locations')
@@ -192,6 +204,19 @@ export default function LocationsPage() {
               onAdd={handleAddLocation}
             />
           </div>
+          
+          {locations.length === 0 && !isLoading && (
+            <Alert className="mb-4">
+              <Info className="h-4 w-4" />
+              <AlertTitle>No locations found</AlertTitle>
+              <AlertDescription>
+                {canCreate('locations') 
+                  ? "You don't have any locations yet. Add your first location to get started."
+                  : "No locations have been added to this company yet."}
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <LocationsTable 
             locations={locations}
             isLoading={isLoading}

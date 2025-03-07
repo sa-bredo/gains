@@ -31,12 +31,18 @@ export const supabase = createClient<Database>(
     global: {
       fetch: (url: RequestInfo | URL, options?: RequestInit) => {
         // Log fetch request details for debugging
-        console.log('Supabase fetch request:', url);
+        console.log('Supabase fetch request:', url.toString());
         
-        // In development, log request details
+        // In development, log more detailed request information
         if (import.meta.env.DEV) {
           console.log('Supabase request options:', options);
           console.log('Authorization header:', options?.headers ? (options.headers as any)['Authorization'] : 'None');
+          console.log('API key header:', options?.headers ? (options.headers as any)['apikey'] : 'None');
+          
+          // Add a custom header for tracking
+          if (options && options.headers) {
+            (options.headers as any)['x-debug-info'] = 'enabled';
+          }
         }
         
         return fetch(url, options);
@@ -44,3 +50,27 @@ export const supabase = createClient<Database>(
     },
   }
 );
+
+// Add a function to check if a location exists for a company
+export const checkLocationsForCompany = async (companyId: string): Promise<boolean> => {
+  console.log(`Checking if company ${companyId} has any locations...`);
+  
+  try {
+    // Make a direct count query instead of fetching all records
+    const { count, error } = await supabase
+      .from('locations')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', companyId);
+    
+    if (error) {
+      console.error('Error checking locations:', error);
+      return false;
+    }
+    
+    console.log(`Found ${count} locations for company ${companyId}`);
+    return count !== null && count > 0;
+  } catch (e) {
+    console.error('Exception checking locations:', e);
+    return false;
+  }
+};
