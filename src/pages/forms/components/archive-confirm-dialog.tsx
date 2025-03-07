@@ -10,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Archive } from "lucide-react";
 
 interface ArchiveConfirmDialogProps {
   open: boolean;
@@ -27,15 +27,21 @@ export const ArchiveConfirmDialog: React.FC<ArchiveConfirmDialogProps> = ({
     <AlertDialog open={open} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Archive Form</AlertDialogTitle>
+          <AlertDialogTitle className="flex items-center gap-2">
+            <Archive className="h-5 w-5" />
+            Archive Form
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to archive this form? Archived forms will no longer be accessible to users.
-            This action can be reversed by contacting support.
+            This action will archive the form. Archived forms will no longer be accessible 
+            to users, but form data and submissions will be preserved. This action can be reversed 
+            from the archive section.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>Archive Form</AlertDialogAction>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>
+            Archive
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
