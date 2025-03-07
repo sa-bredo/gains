@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -37,7 +38,8 @@ export default function LocationsPage() {
         .order('name', { ascending: true });
       
       if (import.meta.env.DEV) {
-        console.log('Query:', query.toSql?.());
+        console.log('Query parameters:', { company_id: currentCompany.id });
+        // Remove the toSql() call that doesn't exist
       }
       
       const { data, error } = await query;
