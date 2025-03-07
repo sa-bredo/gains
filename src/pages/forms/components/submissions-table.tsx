@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+
+import React, { useState, useMemo, useEffect } from "react";
 import { Form, FormSubmission, TypedSubmissionValue } from "../types";
 import {
   Table,
@@ -65,6 +66,15 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
   
   const { toast } = useToast();
   const formService = useFormService();
+
+  // Initialize starred submissions state from fetched data
+  useEffect(() => {
+    const initialStarredState: Record<string, boolean> = {};
+    submissions.forEach(submission => {
+      initialStarredState[submission.id] = submission.starred || false;
+    });
+    setStarredSubmissions(initialStarredState);
+  }, [submissions]);
 
   const isJoinTeamForm = form.form_type === "Join Team";
 
@@ -141,6 +151,7 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
   const toggleStar = async (submissionId: string) => {
     const newStarredState = !starredSubmissions[submissionId];
     
+    // Optimistically update UI
     setStarredSubmissions(prev => ({
       ...prev,
       [submissionId]: newStarredState
@@ -148,7 +159,9 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
     
     try {
       await formService.toggleSubmissionStar(submissionId, newStarredState);
+      // Success - UI already updated
     } catch (error) {
+      // On error, revert the UI change
       setStarredSubmissions(prev => ({
         ...prev,
         [submissionId]: !newStarredState
