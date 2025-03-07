@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { FormField, FormConfig, FieldType, Form, FormType, FormAppearance } from "../types";
@@ -20,12 +21,18 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
     appearance: initialForm?.json_config?.appearance || { 
       backgroundOpacity: 10, 
       titleColor: "#FFFFFF", 
-      textColor: "#FFFFFF" 
+      textColor: "#FFFFFF",
+      backgroundColor: "#000000",
+      buttonCornerRounding: 16,
+      buttonBackgroundColor: "#4f46e5",
+      titleFontSize: 28,
+      descriptionFontSize: 16
     },
     completionMessage: initialForm?.json_config?.completionMessage || {
       title: "Thank you!",
       description: "Your response has been submitted successfully."
     },
+    mobileButtonText: initialForm?.json_config?.mobileButtonText || "Tell Us About You",
   });
   
   const [title, setTitle] = useState(initialValueRef.current.title);
@@ -37,6 +44,7 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [completionMessage, setCompletionMessage] = useState(initialValueRef.current.completionMessage);
+  const [mobileButtonText, setMobileButtonText] = useState(initialValueRef.current.mobileButtonText);
 
   const { toast: uiToast } = useToast();
   const navigate = useNavigate();
@@ -56,12 +64,18 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
       setAppearance(initialForm.json_config.appearance || { 
         backgroundOpacity: 10, 
         titleColor: "#FFFFFF", 
-        textColor: "#FFFFFF" 
+        textColor: "#FFFFFF",
+        backgroundColor: "#000000",
+        buttonCornerRounding: 16,
+        buttonBackgroundColor: "#4f46e5",
+        titleFontSize: 28,
+        descriptionFontSize: 16
       });
       setCompletionMessage(initialForm.json_config.completionMessage || {
         title: "Thank you!",
         description: "Your response has been submitted successfully."
       });
+      setMobileButtonText(initialForm.json_config.mobileButtonText || "Tell Us About You");
       
       isInitialized.current = true;
     }
@@ -154,7 +168,8 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
         fields,
         coverImage: coverImage || undefined,
         appearance,
-        completionMessage
+        completionMessage,
+        mobileButtonText
       };
       
       if (initialForm) {
@@ -218,7 +233,7 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
     } finally {
       setIsSaving(false);
     }
-  }, [title, description, fields, formType, coverImage, appearance, completionMessage, initialForm, formService, uiToast, navigate]);
+  }, [title, description, fields, formType, coverImage, appearance, completionMessage, mobileButtonText, initialForm, formService, uiToast, navigate]);
 
   return {
     title,
@@ -229,6 +244,7 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
     appearance,
     editingField,
     isSaving,
+    mobileButtonText,
     setTitle,
     setDescription,
     setFormType,
@@ -242,6 +258,7 @@ export const useFormBuilder = ({ initialForm }: UseFormBuilderProps = {}) => {
     updateFieldsOrder,
     saveForm,
     completionMessage,
-    setCompletionMessage
+    setCompletionMessage,
+    setMobileButtonText
   };
 };

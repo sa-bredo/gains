@@ -1,3 +1,4 @@
+
 import React, { memo, useMemo } from "react";
 import { Form } from "../types";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ export const FormBuilder = memo(({ form }: FormBuilderProps) => {
     appearance,
     editingField,
     isSaving,
+    mobileButtonText,
     setTitle,
     setDescription,
     setFormType,
@@ -38,7 +40,8 @@ export const FormBuilder = memo(({ form }: FormBuilderProps) => {
     updateFieldsOrder,
     saveForm,
     completionMessage,
-    setCompletionMessage
+    setCompletionMessage,
+    setMobileButtonText
   } = useFormBuilder({ initialForm: form });
 
   const editingFieldId = useMemo(() => 
@@ -56,12 +59,14 @@ export const FormBuilder = memo(({ form }: FormBuilderProps) => {
             coverImage={coverImage}
             appearance={appearance}
             completionMessage={completionMessage}
+            mobileButtonText={mobileButtonText}
             onTitleChange={setTitle}
             onDescriptionChange={setDescription}
             onFormTypeChange={setFormType}
             onCoverImageChange={setCoverImage}
             onAppearanceChange={setAppearance}
             onCompletionMessageChange={setCompletionMessage}
+            onMobileButtonTextChange={setMobileButtonText}
           />
           
           <QuestionsSection 

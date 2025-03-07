@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Form, FormField } from "../types";
@@ -125,7 +124,6 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
       setCurrentStep(currentStep - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (isMobile && showMobileForm) {
-      // On mobile, go back to the cover screen
       setShowMobileForm(false);
     }
   };
@@ -258,8 +256,12 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
     );
   }
 
-  // Mobile landing screen (cover image)
   if (isMobile && !showMobileForm) {
+    const buttonCornerRounding = form.json_config.appearance?.buttonCornerRounding || 16;
+    const buttonBackgroundColor = form.json_config.appearance?.buttonBackgroundColor || "#4f46e5";
+    const titleFontSize = form.json_config.appearance?.titleFontSize || 28;
+    const descriptionFontSize = form.json_config.appearance?.descriptionFontSize || 16;
+    
     return (
       <div className="h-screen w-full relative overflow-hidden">
         <div className="h-full">
@@ -271,15 +273,21 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
           <div className="absolute inset-0 bg-black/40"></div>
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
             <h1 
-              className="text-4xl font-bold leading-tight mb-4"
-              style={{ color: form.json_config.appearance?.titleColor || "#FFFFFF" }}
+              className="font-bold leading-tight mb-4"
+              style={{ 
+                color: form.json_config.appearance?.titleColor || "#FFFFFF",
+                fontSize: `${titleFontSize}px`
+              }}
             >
               {form.title}
             </h1>
             {form.description && (
               <p 
                 className="mb-8 max-w-md"
-                style={{ color: form.json_config.appearance?.textColor || "#FFFFFF" }}
+                style={{ 
+                  color: form.json_config.appearance?.textColor || "#FFFFFF",
+                  fontSize: `${descriptionFontSize}px`
+                }}
               >
                 {form.description}
               </p>
@@ -287,7 +295,11 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
             <Button 
               onClick={startMobileForm} 
               size="lg" 
-              className="rounded-full mt-4 px-8 py-6 h-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+              className="mt-4 px-8 py-6 h-auto text-white font-medium"
+              style={{ 
+                borderRadius: `${buttonCornerRounding}px`,
+                backgroundColor: buttonBackgroundColor 
+              }}
             >
               {form.json_config.mobileButtonText || "Tell Us About You"}
             </Button>
@@ -309,7 +321,6 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
     textColor: "#FFFFFF" 
   };
 
-  // Desktop form or Mobile questions view
   return (
     <div className="h-screen w-full flex">
       <div className="flex flex-col md:flex-row w-full h-full">
@@ -330,15 +341,21 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
                   }}
                 >
                   <h1 
-                    className="text-5xl font-bold leading-tight"
-                    style={{ color: appearance.titleColor || "#FFFFFF" }}
+                    className="font-bold leading-tight"
+                    style={{ 
+                      color: appearance.titleColor || "#FFFFFF",
+                      fontSize: `${appearance.titleFontSize || 28}px` 
+                    }}
                   >
                     {formTitle}
                   </h1>
                   {formDescription && (
                     <p 
                       className="mt-4 max-w-md"
-                      style={{ color: appearance.textColor || "#FFFFFF" }}
+                      style={{ 
+                        color: appearance.textColor || "#FFFFFF",
+                        fontSize: `${appearance.descriptionFontSize || 16}px`
+                      }}
                     >
                       {formDescription}
                     </p>

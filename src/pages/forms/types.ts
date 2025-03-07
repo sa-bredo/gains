@@ -26,7 +26,11 @@ export interface FormAppearance {
   backgroundOpacity?: number; // Between 0 and 100
   titleColor?: string;
   textColor?: string;
-  backgroundColor?: string;  // New field for background color
+  backgroundColor?: string;  // Background color
+  buttonCornerRounding?: number; // Corner rounding for buttons
+  buttonBackgroundColor?: string; // Button background color
+  titleFontSize?: number; // Title font size
+  descriptionFontSize?: number; // Description font size
 }
 
 export interface CompletionMessage {
@@ -41,7 +45,7 @@ export interface FormConfig {
   coverImage?: string;
   appearance?: FormAppearance;
   completionMessage?: CompletionMessage;
-  mobileButtonText?: string; // Add a field for custom mobile CTA button text
+  mobileButtonText?: string; // Custom mobile CTA button text
 }
 
 export interface Form {

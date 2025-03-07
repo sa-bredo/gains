@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,8 @@ interface FormConfigSectionProps {
   onCoverImageChange: (value: string) => void;
   onAppearanceChange: (value: FormAppearance) => void;
   onCompletionMessageChange: (value: CompletionMessage) => void;
+  mobileButtonText?: string;
+  onMobileButtonTextChange: (value: string) => void;
 }
 
 export const FormConfigSection: React.FC<FormConfigSectionProps> = ({ 
@@ -40,7 +43,11 @@ export const FormConfigSection: React.FC<FormConfigSectionProps> = ({
     backgroundOpacity: 10, 
     titleColor: "#FFFFFF", 
     textColor: "#FFFFFF",
-    backgroundColor: "#000000"
+    backgroundColor: "#000000",
+    buttonCornerRounding: 16,
+    buttonBackgroundColor: "#4f46e5",
+    titleFontSize: 28,
+    descriptionFontSize: 16
   },
   completionMessage = {
     title: "Thank you!",
@@ -52,6 +59,8 @@ export const FormConfigSection: React.FC<FormConfigSectionProps> = ({
   onCoverImageChange,
   onAppearanceChange,
   onCompletionMessageChange,
+  mobileButtonText = "Tell Us About You",
+  onMobileButtonTextChange,
 }) => {
   const handleOpacityChange = (value: number[]) => {
     onAppearanceChange({
@@ -78,6 +87,34 @@ export const FormConfigSection: React.FC<FormConfigSectionProps> = ({
     onAppearanceChange({
       ...appearance,
       backgroundColor: value
+    });
+  };
+
+  const handleButtonCornerRoundingChange = (value: number[]) => {
+    onAppearanceChange({
+      ...appearance,
+      buttonCornerRounding: value[0]
+    });
+  };
+
+  const handleButtonBackgroundColorChange = (value: string) => {
+    onAppearanceChange({
+      ...appearance,
+      buttonBackgroundColor: value
+    });
+  };
+
+  const handleTitleFontSizeChange = (value: number[]) => {
+    onAppearanceChange({
+      ...appearance,
+      titleFontSize: value[0]
+    });
+  };
+
+  const handleDescriptionFontSizeChange = (value: number[]) => {
+    onAppearanceChange({
+      ...appearance,
+      descriptionFontSize: value[0]
     });
   };
 
@@ -157,6 +194,18 @@ export const FormConfigSection: React.FC<FormConfigSectionProps> = ({
                 </div>
               )}
             </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Mobile Start Button Text</label>
+              <Input
+                value={mobileButtonText}
+                onChange={(e) => onMobileButtonTextChange(e.target.value)}
+                placeholder="Tell Us About You"
+              />
+              <p className="text-xs text-muted-foreground">
+                Customize the text that appears on the mobile start button
+              </p>
+            </div>
           </TabsContent>
           
           <TabsContent value="appearance" className="space-y-6">
@@ -190,6 +239,65 @@ export const FormConfigSection: React.FC<FormConfigSectionProps> = ({
               value={appearance.textColor || "#FFFFFF"}
               onChange={handleTextColorChange}
             />
+
+            <div className="pt-4 border-t border-border">
+              <h3 className="text-sm font-medium mb-4">Mobile Button Styling</h3>
+              
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Button Corner Rounding</Label>
+                    <span className="text-sm text-muted-foreground">{appearance.buttonCornerRounding || 16}px</span>
+                  </div>
+                  <Slider 
+                    value={[appearance.buttonCornerRounding || 16]} 
+                    onValueChange={handleButtonCornerRoundingChange}
+                    max={30}
+                    step={1}
+                  />
+                </div>
+                
+                <ColorPicker
+                  label="Button Background Color"
+                  value={appearance.buttonBackgroundColor || "#4f46e5"}
+                  onChange={handleButtonBackgroundColorChange}
+                />
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-border">
+              <h3 className="text-sm font-medium mb-4">Font Sizes</h3>
+              
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Title Font Size</Label>
+                    <span className="text-sm text-muted-foreground">{appearance.titleFontSize || 28}px</span>
+                  </div>
+                  <Slider 
+                    value={[appearance.titleFontSize || 28]} 
+                    onValueChange={handleTitleFontSizeChange}
+                    min={16}
+                    max={48}
+                    step={1}
+                  />
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Description Font Size</Label>
+                    <span className="text-sm text-muted-foreground">{appearance.descriptionFontSize || 16}px</span>
+                  </div>
+                  <Slider 
+                    value={[appearance.descriptionFontSize || 16]} 
+                    onValueChange={handleDescriptionFontSizeChange}
+                    min={12}
+                    max={24}
+                    step={1}
+                  />
+                </div>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="completion" className="space-y-4">
