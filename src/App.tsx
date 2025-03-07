@@ -65,8 +65,8 @@ function App() {
           <Route path="/knowledge" element={<NotFound />} />
           <Route path="/forms" element={<FormsPage />} />
           <Route path="/forms/new" element={<NewFormPage />} />
-          <Route path="/forms/edit/:id" element={<EditFormPage />} />
-          <Route path="/forms/:id/submissions" element={<FormSubmissionsPage />} />
+          <Route path="/forms/edit" element={<EditFormPage />} />
+          <Route path="/forms/submissions" element={<FormSubmissionsPage />} />
         </Route>
       
         {/* This is crucial - catch all unmatched routes */}
