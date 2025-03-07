@@ -34,16 +34,9 @@ import { useFormService } from "../services/form-service";
 interface FormsTableProps {
   forms: Form[];
   onArchive: (id: string) => void;
-  loading?: boolean; 
-  onFormsChange?: () => Promise<void>; 
 }
 
-export const FormsTable: React.FC<FormsTableProps> = ({ 
-  forms, 
-  onArchive,
-  loading = false,
-  onFormsChange = async () => {}
-}) => {
+export const FormsTable: React.FC<FormsTableProps> = ({ forms, onArchive }) => {
   const navigate = useNavigate();
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
@@ -56,12 +49,10 @@ export const FormsTable: React.FC<FormsTableProps> = ({
   };
 
   const handleEdit = (id: string) => {
-    // Fix: Use the correct route format for editing a form
     navigate(`/forms/edit?id=${id}`);
   };
 
   const handleView = (id: string) => {
-    // Fix: Use the correct route format for viewing submissions
     navigate(`/forms/submissions?id=${id}`);
   };
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -9,7 +8,6 @@ import { Plus } from "lucide-react";
 import { FormsTable } from "./components/forms-table";
 import { useFormService } from "./services/form-service";
 import { Form } from "./types";
-import { toast } from "sonner";
 
 const FormsPage: React.FC = () => {
   const [forms, setForms] = useState<Form[]>([]);
@@ -80,23 +78,6 @@ const FormsPage: React.FC = () => {
     }
   };
 
-  // Handle form archiving
-  const handleArchiveForm = async (id: string) => {
-    try {
-      setLoading(true);
-      await formService.archiveForm(id);
-      toast.success("Form archived successfully");
-      
-      // Remove the archived form from the state
-      setForms(prevForms => prevForms.filter(form => form.id !== id));
-    } catch (error) {
-      console.error("Error archiving form:", error);
-      toast.error("Failed to archive form");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
       <div className="min-h-screen flex w-full">
         <AppSidebar />
@@ -120,7 +101,6 @@ const FormsPage: React.FC = () => {
                 forms={forms}
                 loading={loading}
                 onFormsChange={handleFormsChange}
-                onArchive={handleArchiveForm}
             />
           </div>
         </SidebarInset>

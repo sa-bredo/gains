@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -11,11 +10,7 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const FormSubmissionsPage: React.FC = () => {
-  // Updated: Use useLocation and URLSearchParams to get id from query parameter
-  const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const id = queryParams.get('id');
-  
+  const { id } = useParams<{ id: string }>();
   const [form, setForm] = useState<Form | null>(null);
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,7 +161,7 @@ const FormSubmissionsPage: React.FC = () => {
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <h1 className="text-2xl font-bold">Form Submissions: {form?.title || ''}</h1>
+              <h1 className="text-2xl font-bold">Form Submissions: {form.title}</h1>
             </div>
           </div>
           
