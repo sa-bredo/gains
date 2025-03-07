@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Form } from "../types";
 import {
   Table,
@@ -10,170 +10,210 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDate } from "../utils/date-utils";
 import { Button } from "@/components/ui/button";
-import { 
-  Activity, 
-  Archive, 
-  ArrowUpRightFromSquare, 
-  Copy, 
-  Edit,
-  MessageSquare 
-} from "lucide-react";
-import { toast } from "sonner";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArchiveConfirmDialog } from "./archive-confirm-dialog";
+import { Eye, ExternalLink, Link as LinkIcon, Archive, UserPlus, ListChecks } from "lucide-react";
+import { formatDate } from "../utils/date-utils";
+import { useToast } from "@/hooks/use-toast";
 import { useFormService } from "../services/form-service";
 
-interface FormsTableProps {
+export interface FormsTableProps {
   forms: Form[];
-  onArchive: (id: string) => void;
+  loading?: boolean;
+  onFormsChange?: () => void;
 }
 
-export const FormsTable: React.FC<FormsTableProps> = ({ forms, onArchive }) => {
-  const navigate = useNavigate();
-  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
-  const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
+export const FormsTable: React.FC<FormsTableProps> = ({
+  forms,
+  loading = false,
+  onFormsChange = () => {}
+}) => {
+  const [formToArchive, setFormToArchive] = useState<Form | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
+  
+  const { toast } = useToast();
   const formService = useFormService();
+  const navigate = useNavigate();
 
-  const handleCopyLink = (publicUrl: string) => {
-    const fullUrl = `${window.location.origin}/form/${publicUrl}`;
-    navigator.clipboard.writeText(fullUrl);
-    toast.success("Form link copied to clipboard");
+  const copyFormLink = (form: Form) => {
+    const url = `${window.location.origin}/form/${form.public_url}`;
+    navigator.clipboard.writeText(url).then(() => {
+      toast({
+        description: "Form link copied to clipboard"
+      });
+    });
   };
 
-  const handleEdit = (id: string) => {
-    navigate(`/forms/edit?id=${id}`);
-  };
-
-  const handleView = (id: string) => {
-    navigate(`/forms/submissions?id=${id}`);
-  };
-
-  const handleShowArchiveDialog = (id: string) => {
-    setSelectedFormId(id);
-    setArchiveDialogOpen(true);
-  };
-
-  const handleConfirmArchive = () => {
-    if (selectedFormId) {
-      onArchive(selectedFormId);
-      setArchiveDialogOpen(false);
-      setSelectedFormId(null);
+  const handleArchiveForm = async () => {
+    if (!formToArchive) return;
+    
+    try {
+      setIsArchiving(true);
+      await formService.archiveForm(formToArchive.id);
+      
+      toast({
+        description: "Form archived successfully"
+      });
+      
+      onFormsChange();
+    } catch (error) {
+      console.error("Error archiving form:", error);
+      toast({
+        title: "Error",
+        description: "Failed to archive form",
+        variant: "destructive"
+      });
+    } finally {
+      setIsArchiving(false);
+      setFormToArchive(null);
     }
   };
 
-  const openPublicUrl = (publicUrl: string) => {
-    const fullUrl = `${window.location.origin}/form/${publicUrl}`;
-    window.open(fullUrl, "_blank");
+  const handleRowClick = (form: Form) => {
+    navigate(`/forms/edit/${form.id}`);
+  };
+
+  const getFormTypeIcon = (formType: string | undefined) => {
+    switch (formType) {
+      case 'Join Team':
+        return <UserPlus className="h-4 w-4 text-blue-500 mr-2" />;
+      case 'Survey':
+        return <ListChecks className="h-4 w-4 text-green-500 mr-2" />;
+      default:
+        return <ListChecks className="h-4 w-4 text-gray-500 mr-2" />;
+    }
   };
 
   return (
-    <div>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Title</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead>Last Updated</TableHead>
+            <TableHead>Submissions</TableHead>
+            <TableHead className="text-center">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {forms.length === 0 ? (
             <TableRow>
-              <TableHead>Form Title</TableHead>
-              <TableHead>Public URL</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead>Last Updated</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Submissions</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableCell colSpan={6} className="text-center py-6">
+                <p className="text-muted-foreground">No forms found</p>
+                <Button asChild className="mt-2">
+                  <Link to="/forms/new">Create a form</Link>
+                </Button>
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {forms.map((form) => (
-              <TableRow key={form.id}>
+          ) : (
+            forms.map((form) => (
+              <TableRow 
+                key={form.id}
+                onClick={() => handleRowClick(form)}
+                className="cursor-pointer"
+              >
                 <TableCell className="font-medium">{form.title}</TableCell>
                 <TableCell>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs text-muted-foreground truncate max-w-[120px]">
-                      {form.public_url}
-                    </span>
-                    <div className="flex space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => handleCopyLink(form.public_url)}
-                        title="Copy link"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => openPublicUrl(form.public_url)}
-                        title="Open in new tab"
-                      >
-                        <ArrowUpRightFromSquare className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+                  <Badge variant="outline" className="flex items-center w-fit">
+                    {getFormTypeIcon(form.form_type)}
+                    {form.form_type || 'Survey'}
+                  </Badge>
                 </TableCell>
                 <TableCell>{formatDate(form.created_at)}</TableCell>
                 <TableCell>{formatDate(form.updated_at)}</TableCell>
                 <TableCell>
-                  <Badge
-                    variant={form.form_type === "Join Team" ? "default" : "secondary"}
-                  >
-                    {form.form_type || "Survey"}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="flex items-center gap-1 hover:bg-muted"
-                    onClick={() => handleView(form.id)}
-                  >
-                    <MessageSquare className="h-4 w-4 mr-1" />
-                    {form.submission_count || 0}
-                  </Button>
+                  <Badge variant="secondary">{form.submission_count || 0}</Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        Actions
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEdit(form.id)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit Form
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleView(form.id)}>
-                        <Activity className="h-4 w-4 mr-2" />
-                        View Submissions
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleShowArchiveDialog(form.id)}>
-                        <Archive className="h-4 w-4 mr-2" />
-                        Archive Form
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      title="View Submissions"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/forms/${form.id}/submissions`);
+                      }}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      title="Copy Link"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyFormLink(form);
+                      }}
+                    >
+                      <LinkIcon className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      title="Preview"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(`/form/${form.public_url}`, '_blank');
+                      }}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      title="Archive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFormToArchive(form);
+                      }}
+                    >
+                      <Archive className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            ))
+          )}
+        </TableBody>
+      </Table>
 
-      <ArchiveConfirmDialog
-        open={archiveDialogOpen}
-        onClose={() => setArchiveDialogOpen(false)}
-        onConfirm={handleConfirmArchive}
-      />
-    </div>
+      <AlertDialog open={!!formToArchive} onOpenChange={() => setFormToArchive(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive Form</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to archive the form "{formToArchive?.title}"? Archived forms will no longer appear in your forms list but their data will be preserved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleArchiveForm}
+              disabled={isArchiving}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isArchiving ? "Archiving..." : "Archive"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };

@@ -305,27 +305,6 @@ export const useFormService = () => {
     }
   };
 
-  // Toggle the starred status of a submission
-  const toggleSubmissionStar = async (submissionId: string, starred: boolean): Promise<void> => {
-    try {
-      console.log(`Toggling starred status to ${starred} for submission with ID: ${submissionId}`);
-      const { error } = await supabase
-        .from('form_submissions')
-        .update({ starred })
-        .eq('id', submissionId);
-
-      if (error) {
-        console.error(`Error updating starred status for submission with ID ${submissionId}:`, error);
-        throw error;
-      }
-      
-      console.log(`Starred status updated successfully for submission with ID ${submissionId}`);
-    } catch (error) {
-      console.error('Error toggling submission star:', error);
-      throw error;
-    }
-  };
-
   // Get submission count for a form
   const getSubmissionCount = async (formId: string): Promise<number> => {
     try {

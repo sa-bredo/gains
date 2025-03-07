@@ -299,21 +299,18 @@ export type Database = {
           data: Json
           form_id: string
           id: string
-          starred: boolean
           submitted_at: string | null
         }
         Insert: {
           data?: Json
           form_id: string
           id?: string
-          starred?: boolean
           submitted_at?: string | null
         }
         Update: {
           data?: Json
           form_id?: string
           id?: string
-          starred?: boolean
           submitted_at?: string | null
         }
         Relationships: [

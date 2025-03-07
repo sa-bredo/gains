@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { Form, FormSubmission, TypedSubmissionValue } from "../types";
 import {
   Table,
@@ -29,8 +29,7 @@ import {
   Star,
   Search,
   MoreVertical,
-  StarOff,
-  XCircle
+  StarOff
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -63,21 +62,12 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
   const [selectedText, setSelectedText] = useState<{ label: string, content: string }>({ label: "", content: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [starredOnly, setStarredOnly] = useState(false);
-  const [localStarredStatus, setLocalStarredStatus] = useState<Record<string, boolean>>({});
+  const [starredSubmissions, setStarredSubmissions] = useState<Record<string, boolean>>({});
   
   const { toast } = useToast();
   const formService = useFormService();
 
   const isJoinTeamForm = form.form_type === "Join Team";
-
-  // Initialize the local starred status from the submissions
-  useEffect(() => {
-    const starredMap: Record<string, boolean> = {};
-    submissions.forEach(submission => {
-      starredMap[submission.id] = submission.starred || false;
-    });
-    setLocalStarredStatus(starredMap);
-  }, [submissions]);
 
   const allKeys = useMemo(() => {
     const keySet = new Set<string>();
@@ -150,38 +140,19 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
     setTextModalOpen(true);
   };
 
-  const toggleStar = async (submissionId: string) => {
-    const currentStarred = localStarredStatus[submissionId] || false;
-    const newStarredStatus = !currentStarred;
-    
-    // Update local state immediately for responsiveness
-    setLocalStarredStatus(prev => ({
+  const toggleStar = (submissionId: string) => {
+    setStarredSubmissions(prev => ({
       ...prev,
-      [submissionId]: newStarredStatus
+      [submissionId]: !prev[submissionId]
     }));
     
-    try {
-      // Update in the database
-      await formService.toggleSubmissionStar(submissionId, newStarredStatus);
-      
-      toast({
-        description: newStarredStatus 
-          ? "Added to starred submissions" 
-          : "Removed from starred submissions",
-      });
-    } catch (error) {
-      // Revert local state on error
-      setLocalStarredStatus(prev => ({
-        ...prev,
-        [submissionId]: currentStarred
-      }));
-      
-      toast({
-        variant: "destructive",
-        description: "Failed to update starred status",
-      });
-      console.error("Error toggling star:", error);
-    }
+    // Here we would typically update the database
+    // This is placeholder functionality until backend support is added
+    toast({
+      description: starredSubmissions[submissionId] 
+        ? "Removed from starred submissions" 
+        : "Added to starred submissions",
+    });
   };
 
   const renderSubmissionValue = (data: any, fieldLabel: string) => {
@@ -333,7 +304,7 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
   const filteredSubmissions = useMemo(() => {
     return submissions.filter(submission => {
       // Filter by starred status if enabled
-      if (starredOnly && !localStarredStatus[submission.id]) {
+      if (starredOnly && !starredSubmissions[submission.id]) {
         return false;
       }
       
@@ -367,11 +338,7 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
         return false;
       });
     });
-  }, [submissions, searchQuery, starredOnly, localStarredStatus]);
-
-  const clearSearch = () => {
-    setSearchQuery("");
-  };
+  }, [submissions, searchQuery, starredOnly, starredSubmissions]);
 
   if (submissions.length === 0) {
     return (
@@ -388,23 +355,14 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
       </p>
       
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center mb-4">
-        <div className="relative flex-1" style={{ maxWidth: "300px" }}>
+        <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search submissions..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 pr-9"
+            className="pl-9"
           />
-          {searchQuery && (
-            <button
-              onClick={clearSearch}
-              className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-              aria-label="Clear search"
-            >
-              <XCircle className="h-4 w-4" />
-            </button>
-          )}
         </div>
         <Button
           variant="outline"
@@ -448,7 +406,7 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                     onClick={() => toggleStar(submission.id)}
                     className="h-8 w-8 p-0"
                   >
-                    {localStarredStatus[submission.id] ? (
+                    {starredSubmissions[submission.id] ? (
                       <Star className="h-5 w-5 text-amber-500" fill="currentColor" />
                     ) : (
                       <StarOff className="h-5 w-5 text-muted-foreground" />
