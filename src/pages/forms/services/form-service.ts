@@ -22,7 +22,8 @@ export const useFormService = () => {
       console.log('Fetching forms from Supabase');
       const { data, error } = await supabase
         .from('forms')
-        .select('*')
+        .select('*, form_submissions(count)')
+        .eq('archived', false)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -32,10 +33,11 @@ export const useFormService = () => {
 
       console.log('Forms fetched successfully:', data);
       
-      // Update cache
+      // Process the data to include submission count
       const formData = data.map(form => ({
         ...form,
-        json_config: form.json_config as unknown as FormConfig
+        json_config: form.json_config as unknown as FormConfig,
+        submission_count: form.form_submissions?.[0]?.count || 0
       })) as Form[];
       
       formsCache = formData;
@@ -209,7 +211,31 @@ export const useFormService = () => {
     }
   };
 
-  // Delete a form
+  // Archive a form (instead of deleting)
+  const archiveForm = async (id: string): Promise<void> => {
+    try {
+      console.log(`Archiving form with ID: ${id}`);
+      const { error } = await supabase
+        .from('forms')
+        .update({ archived: true })
+        .eq('id', id);
+
+      if (error) {
+        console.error(`Error archiving form with ID ${id}:`, error);
+        throw error;
+      }
+      
+      console.log(`Form with ID ${id} archived successfully`);
+      
+      // Clear cache after archiving a form
+      clearFormsCache();
+    } catch (error) {
+      console.error('Error archiving form:', error);
+      throw error;
+    }
+  };
+
+  // Delete a form (kept for backwards compatibility)
   const deleteForm = async (id: string): Promise<void> => {
     try {
       console.log(`Deleting form with ID: ${id}`);
@@ -279,6 +305,28 @@ export const useFormService = () => {
     }
   };
 
+  // Get submission count for a form
+  const getSubmissionCount = async (formId: string): Promise<number> => {
+    try {
+      console.log(`Fetching submission count for form with ID: ${formId}`);
+      const { count, error } = await supabase
+        .from('form_submissions')
+        .select('*', { count: 'exact', head: true })
+        .eq('form_id', formId);
+
+      if (error) {
+        console.error(`Error counting submissions for form with ID ${formId}:`, error);
+        throw error;
+      }
+      
+      console.log(`Form ID ${formId} has ${count} submissions`);
+      return count || 0;
+    } catch (error) {
+      console.error('Error getting submission count:', error);
+      return 0;
+    }
+  };
+
   // Generate a unique public URL
   const generatePublicUrl = (): string => {
     return uuidv4().substring(0, 8);
@@ -291,9 +339,11 @@ export const useFormService = () => {
     createForm,
     updateForm,
     deleteForm,
+    archiveForm,
     submitForm,
     fetchFormSubmissions,
     generatePublicUrl,
     clearFormsCache,
+    getSubmissionCount,
   };
 };

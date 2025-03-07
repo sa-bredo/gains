@@ -12,16 +12,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Eye, ExternalLink, Link as LinkIcon, MoreHorizontal, Pencil, Trash2, UserPlus, ListChecks } from "lucide-react";
-import { formatDate } from "../utils/date-utils";
-import { useToast } from "@/hooks/use-toast";
-import { useFormService } from "../services/form-service";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -32,6 +22,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { Eye, ExternalLink, Link as LinkIcon, Archive, UserPlus, ListChecks } from "lucide-react";
+import { formatDate } from "../utils/date-utils";
+import { useToast } from "@/hooks/use-toast";
+import { useFormService } from "../services/form-service";
 
 export interface FormsTableProps {
   forms: Form[];
@@ -44,8 +38,8 @@ export const FormsTable: React.FC<FormsTableProps> = ({
   loading = false,
   onFormsChange = () => {}
 }) => {
-  const [formToDelete, setFormToDelete] = useState<Form | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [formToArchive, setFormToArchive] = useState<Form | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
   
   const { toast } = useToast();
   const formService = useFormService();
@@ -60,56 +54,28 @@ export const FormsTable: React.FC<FormsTableProps> = ({
     });
   };
 
-  const handleDeleteForm = async () => {
-    if (!formToDelete) return;
+  const handleArchiveForm = async () => {
+    if (!formToArchive) return;
     
     try {
-      setIsDeleting(true);
-      await formService.deleteForm(formToDelete.id);
+      setIsArchiving(true);
+      await formService.archiveForm(formToArchive.id);
       
       toast({
-        description: "Form deleted successfully"
+        description: "Form archived successfully"
       });
       
       onFormsChange();
     } catch (error) {
-      console.error("Error deleting form:", error);
+      console.error("Error archiving form:", error);
       toast({
         title: "Error",
-        description: "Failed to delete form",
+        description: "Failed to archive form",
         variant: "destructive"
       });
     } finally {
-      setIsDeleting(false);
-      setFormToDelete(null);
-    }
-  };
-
-  const handleAction = (action: string, form: Form, e?: React.MouseEvent) => {
-    // If there's an event, stop it from propagating to the row's onClick
-    if (e) {
-      e.stopPropagation();
-    }
-    
-    switch(action) {
-      case 'edit':
-        navigate(`/forms/edit/${form.id}`);
-        break;
-      case 'submissions':
-        navigate(`/forms/${form.id}/submissions`);
-        break;
-      case 'copy':
-        copyFormLink(form);
-        break;
-      case 'preview':
-        // Open in new tab
-        window.open(`/form/${form.public_url}`, '_blank');
-        break;
-      case 'delete':
-        setFormToDelete(form);
-        break;
-      default:
-        break;
+      setIsArchiving(false);
+      setFormToArchive(null);
     }
   };
 
@@ -137,13 +103,14 @@ export const FormsTable: React.FC<FormsTableProps> = ({
             <TableHead>Type</TableHead>
             <TableHead>Created</TableHead>
             <TableHead>Last Updated</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead>Submissions</TableHead>
+            <TableHead className="text-center">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {forms.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-6">
+              <TableCell colSpan={6} className="text-center py-6">
                 <p className="text-muted-foreground">No forms found</p>
                 <Button asChild className="mt-2">
                   <Link to="/forms/new">Create a form</Link>
@@ -166,44 +133,60 @@ export const FormsTable: React.FC<FormsTableProps> = ({
                 </TableCell>
                 <TableCell>{formatDate(form.created_at)}</TableCell>
                 <TableCell>{formatDate(form.updated_at)}</TableCell>
+                <TableCell>
+                  <Badge variant="secondary">{form.submission_count || 0}</Badge>
+                </TableCell>
                 <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        className="h-8 w-8 p-0"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={(e) => handleAction('edit', form, e)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        <span>Edit</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => handleAction('submissions', form, e)}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        <span>View Submissions</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => handleAction('copy', form, e)}>
-                        <LinkIcon className="mr-2 h-4 w-4" />
-                        <span>Copy Link</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => handleAction('preview', form, e)}>
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        <span>Preview</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={(e) => handleAction('delete', form, e)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        <span>Delete</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      title="View Submissions"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/forms/${form.id}/submissions`);
+                      }}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      title="Copy Link"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyFormLink(form);
+                      }}
+                    >
+                      <LinkIcon className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      title="Preview"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(`/form/${form.public_url}`, '_blank');
+                      }}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      title="Archive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFormToArchive(form);
+                      }}
+                    >
+                      <Archive className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))
@@ -211,22 +194,22 @@ export const FormsTable: React.FC<FormsTableProps> = ({
         </TableBody>
       </Table>
 
-      <AlertDialog open={!!formToDelete} onOpenChange={() => setFormToDelete(null)}>
+      <AlertDialog open={!!formToArchive} onOpenChange={() => setFormToArchive(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Form</AlertDialogTitle>
+            <AlertDialogTitle>Archive Form</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the form "{formToDelete?.title}"? This action cannot be undone.
+              Are you sure you want to archive the form "{formToArchive?.title}"? Archived forms will no longer appear in your forms list but their data will be preserved.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteForm}
-              disabled={isDeleting}
+              onClick={handleArchiveForm}
+              disabled={isArchiving}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isArchiving ? "Archiving..." : "Archive"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

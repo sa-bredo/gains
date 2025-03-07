@@ -52,6 +52,8 @@ export interface Form {
   public_url: string;
   json_config: FormConfig;
   form_type?: FormType;
+  archived?: boolean;
+  submission_count?: number;
 }
 
 export interface TypedSubmissionValue {

@@ -325,6 +325,7 @@ export type Database = {
       }
       forms: {
         Row: {
+          archived: boolean
           completion_message: Json | null
           created_at: string | null
           description: string | null
@@ -336,6 +337,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          archived?: boolean
           completion_message?: Json | null
           created_at?: string | null
           description?: string | null
@@ -347,6 +349,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          archived?: boolean
           completion_message?: Json | null
           created_at?: string | null
           description?: string | null
