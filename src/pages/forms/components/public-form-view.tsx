@@ -1,11 +1,13 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Form, FormField } from "../types";
 import { useFormService } from "../services/form-service";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DynamicInput } from "./dynamic-input";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PublicFormViewProps {
   publicUrl: string;
@@ -20,9 +22,11 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
   const [isComplete, setIsComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [showMobileForm, setShowMobileForm] = useState(false);
   
   const formFetched = useRef(false);
   const isMounted = useRef(true);
+  const isMobile = useIsMobile();
 
   const { toast } = useToast();
   const formService = useFormService();
@@ -120,7 +124,14 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (isMobile && showMobileForm) {
+      // On mobile, go back to the cover screen
+      setShowMobileForm(false);
     }
+  };
+
+  const startMobileForm = () => {
+    setShowMobileForm(true);
   };
 
   const handleSubmit = async () => {
@@ -173,42 +184,44 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
     return (
       <div className="h-screen w-full flex">
         <div className="flex flex-col md:flex-row w-full h-full">
-          <div className="md:w-1/2 relative h-full">
-            <div className="h-full">
-              <img
-                src={form.json_config.coverImage || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"}
-                alt={form.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-black/10"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div 
-                  className="rounded-xl p-8 max-w-md"
-                  style={{ 
-                    backgroundColor: `${form.json_config.appearance?.backgroundColor || '#000000'}${Math.round((form.json_config.appearance?.backgroundOpacity || 10) * 255 / 100).toString(16).padStart(2, '0')}`,
-                  }}
-                >
-                  <h1 
-                    className="text-5xl font-bold leading-tight"
-                    style={{ color: form.json_config.appearance?.titleColor || "#FFFFFF" }}
+          {!isMobile && (
+            <div className="md:w-1/2 relative h-full">
+              <div className="h-full">
+                <img
+                  src={form.json_config.coverImage || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"}
+                  alt={form.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/10"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div 
+                    className="rounded-xl p-8 max-w-md"
+                    style={{ 
+                      backgroundColor: `${form.json_config.appearance?.backgroundColor || '#000000'}${Math.round((form.json_config.appearance?.backgroundOpacity || 10) * 255 / 100).toString(16).padStart(2, '0')}`,
+                    }}
                   >
-                    {form.title}
-                  </h1>
-                  {form.description && (
-                    <p 
-                      className="mt-4 max-w-md"
-                      style={{ color: form.json_config.appearance?.textColor || "#FFFFFF" }}
+                    <h1 
+                      className="text-5xl font-bold leading-tight"
+                      style={{ color: form.json_config.appearance?.titleColor || "#FFFFFF" }}
                     >
-                      {form.description}
-                    </p>
-                  )}
+                      {form.title}
+                    </h1>
+                    {form.description && (
+                      <p 
+                        className="mt-4 max-w-md"
+                        style={{ color: form.json_config.appearance?.textColor || "#FFFFFF" }}
+                      >
+                        {form.description}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
-          <div className="md:w-1/2 bg-[#d3e4fd]/30 h-full overflow-y-auto flex flex-col">
-            <div className="p-12 flex flex-col items-center justify-center h-full">
+          <div className={`${isMobile ? 'w-full' : 'md:w-1/2'} bg-white h-full overflow-y-auto flex flex-col`}>
+            <div className="p-8 md:p-12 flex flex-col items-center justify-center h-full">
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -245,6 +258,45 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
     );
   }
 
+  // Mobile landing screen (cover image)
+  if (isMobile && !showMobileForm) {
+    return (
+      <div className="h-screen w-full relative overflow-hidden">
+        <div className="h-full">
+          <img
+            src={form.json_config.coverImage || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"}
+            alt={form.title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/40"></div>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+            <h1 
+              className="text-4xl font-bold leading-tight mb-4"
+              style={{ color: form.json_config.appearance?.titleColor || "#FFFFFF" }}
+            >
+              {form.title}
+            </h1>
+            {form.description && (
+              <p 
+                className="mb-8 max-w-md"
+                style={{ color: form.json_config.appearance?.textColor || "#FFFFFF" }}
+              >
+                {form.description}
+              </p>
+            )}
+            <Button 
+              onClick={startMobileForm} 
+              size="lg" 
+              className="rounded-full mt-4 px-8 py-6 h-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+            >
+              {form.json_config.mobileButtonText || "Tell Us About You"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const currentField = form.json_config.fields[currentStep];
   const hasFieldsToShow = form.json_config.fields.length > 0;
   const hasCoverImage = !!form.json_config.coverImage;
@@ -256,57 +308,71 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
     titleColor: "#FFFFFF", 
     textColor: "#FFFFFF" 
   };
-  
-  const opacityValue = (appearance.backgroundOpacity || 10) / 100;
-  const bgOpacityClass = `bg-black/[${opacityValue}]`;
 
+  // Desktop form or Mobile questions view
   return (
     <div className="h-screen w-full flex">
       <div className="flex flex-col md:flex-row w-full h-full">
-        <div className="md:w-1/2 relative h-full">
-          <div className="h-full">
-            <img
-              src={form.json_config.coverImage || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"}
-              alt={formTitle}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-black/10"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div 
-                className="rounded-xl p-8 max-w-md"
-                style={{ 
-                  backgroundColor: `${appearance.backgroundColor || '#000000'}${Math.round((appearance.backgroundOpacity || 10) * 255 / 100).toString(16).padStart(2, '0')}`,
-                }}
-              >
-                <h1 
-                  className="text-5xl font-bold leading-tight"
-                  style={{ color: appearance.titleColor || "#FFFFFF" }}
+        {!isMobile && (
+          <div className="md:w-1/2 relative h-full">
+            <div className="h-full">
+              <img
+                src={form.json_config.coverImage || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"}
+                alt={formTitle}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/10"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div 
+                  className="rounded-xl p-8 max-w-md"
+                  style={{ 
+                    backgroundColor: `${appearance.backgroundColor || '#000000'}${Math.round((appearance.backgroundOpacity || 10) * 255 / 100).toString(16).padStart(2, '0')}`,
+                  }}
                 >
-                  {formTitle}
-                </h1>
-                {formDescription && (
-                  <p 
-                    className="mt-4 max-w-md"
-                    style={{ color: appearance.textColor || "#FFFFFF" }}
+                  <h1 
+                    className="text-5xl font-bold leading-tight"
+                    style={{ color: appearance.titleColor || "#FFFFFF" }}
                   >
-                    {formDescription}
-                  </p>
-                )}
+                    {formTitle}
+                  </h1>
+                  {formDescription && (
+                    <p 
+                      className="mt-4 max-w-md"
+                      style={{ color: appearance.textColor || "#FFFFFF" }}
+                    >
+                      {formDescription}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="md:w-1/2 bg-[#d3e4fd]/30 h-full overflow-y-auto flex flex-col">
-          <div className="p-12 flex flex-col flex-grow">
-            <div className="mb-12">
-              <div className="h-1 w-full bg-gray-200 rounded-full flex items-center justify-center">
-                <div 
-                  className="h-full bg-primary rounded-full transition-all duration-300" 
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
+        <div className={`${isMobile ? 'w-full' : 'md:w-1/2'} ${isMobile ? 'bg-white' : 'bg-[#d3e4fd]/30'} h-full overflow-y-auto flex flex-col`}>
+          {isMobile && (
+            <div className="p-4 pt-6">
+              <button 
+                onClick={goToPreviousStep}
+                className="flex items-center text-gray-500 hover:text-gray-700 mb-2"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </button>
             </div>
+          )}
+          
+          <div className={`p-6 ${isMobile ? 'pt-0' : 'p-12'} flex flex-col flex-grow`}>
+            {!isMobile && (
+              <div className="mb-12">
+                <div className="h-1 w-full bg-gray-200 rounded-full flex items-center justify-center">
+                  <div 
+                    className="h-full bg-primary rounded-full transition-all duration-300" 
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+            )}
             
             <div className="flex-grow flex flex-col">
               <div className="max-w-md mx-auto w-full">
@@ -329,8 +395,8 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
                       />
                     </div>
                     
-                    <div className="flex flex-col items-center space-y-6 mt-8">
-                      {currentStep > 0 && (
+                    {!isMobile && currentStep > 0 && (
+                      <div className="flex flex-col items-center space-y-6 mt-8">
                         <button 
                           onClick={goToPreviousStep}
                           className="flex items-center text-gray-500 hover:text-gray-700 mt-2"
@@ -338,8 +404,8 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ publicUrl, isPre
                           <ArrowLeft className="h-4 w-4 mr-1" />
                           Previous Question
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </motion.div>
                 </AnimatePresence>
               </div>

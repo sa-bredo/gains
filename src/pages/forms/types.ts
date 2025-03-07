@@ -41,6 +41,7 @@ export interface FormConfig {
   coverImage?: string;
   appearance?: FormAppearance;
   completionMessage?: CompletionMessage;
+  mobileButtonText?: string; // Add a field for custom mobile CTA button text
 }
 
 export interface Form {
