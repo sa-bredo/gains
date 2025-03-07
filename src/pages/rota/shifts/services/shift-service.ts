@@ -11,11 +11,21 @@ export const fetchLocations = async (companyId: string | null): Promise<Location
   
   console.log('Fetching locations for company ID:', companyId);
   
-  const { data, error } = await supabase
+  // Create a query to fetch locations
+  let query = supabase
     .from('locations')
-    .select('*')
-    .eq('company_id', companyId)
-    .order('name');
+    .select('*');
+    
+  // Apply the company filter using .eq() method
+  if (companyId) {
+    query = query.eq('company_id', companyId);
+  }
+  
+  // Add ordering
+  query = query.order('name');
+  
+  // Execute the query
+  const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching locations:', error);
@@ -185,28 +195,34 @@ export const fetchShiftsWithDateRange = async (
       query = query.eq('location_id', locationId);
     } else {
       // If no specific location is selected, filter by company_id
-      // Fix: Instead of using .in() with a subquery (which causes the type error),
-      // we'll first get the location IDs and then use those
+      console.log(`Finding locations for company ${companyId}`);
       const { data: locationIds, error: locError } = await supabase
         .from('locations')
         .select('id')
         .eq('company_id', companyId);
         
       if (locError) {
+        console.error('Error fetching location IDs:', locError);
         throw locError;
       }
       
       if (locationIds && locationIds.length > 0) {
         const ids = locationIds.map(loc => loc.id);
+        console.log('Filtering shifts for location IDs:', ids);
         query = query.in('location_id', ids);
+      } else {
+        console.log('No locations found for this company');
       }
     }
     
     const { data, error } = await query;
     
     if (error) {
+      console.error('Error fetching shifts:', error);
       throw error;
     }
+    
+    console.log('Fetched shifts:', data?.length || 0);
     
     // Further filter results to ensure only shifts for the company's locations are included
     return data?.filter(shift => 

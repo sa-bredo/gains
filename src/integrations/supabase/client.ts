@@ -32,6 +32,13 @@ export const supabase = createClient<Database>(
       fetch: (url: RequestInfo | URL, options?: RequestInit) => {
         // Log fetch request details for debugging
         console.log('Supabase fetch request:', url);
+        
+        // In development, log request details
+        if (import.meta.env.DEV) {
+          console.log('Supabase request options:', options);
+          console.log('Authorization header:', options?.headers ? (options.headers as any)['Authorization'] : 'None');
+        }
+        
         return fetch(url, options);
       },
     },

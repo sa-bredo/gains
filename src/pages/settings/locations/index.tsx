@@ -27,15 +27,29 @@ export default function LocationsPage() {
     setIsLoading(true);
     try {
       console.log('Fetching locations for company:', currentCompany.id);
-      const { data, error } = await supabase
-        .from('locations')
-        .select('*')
-        .eq('company_id', currentCompany.id)
-        .order('name', { ascending: true });
-
-      if (error) throw error;
       
-      console.log('Fetched locations:', data);
+      // Create a query to fetch locations with debugging
+      let query = supabase
+        .from('locations')
+        .select('*');
+        
+      // Apply the company filter using .eq() method
+      if (currentCompany.id) {
+        query = query.eq('company_id', currentCompany.id);
+      }
+      
+      // Add ordering
+      query = query.order('name', { ascending: true });
+      
+      // Execute the query
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error details:', error);
+        throw error;
+      }
+      
+      console.log('Fetched locations data:', data);
       setLocations(data || []);
     } catch (error) {
       console.error('Error fetching locations:', error);
@@ -62,6 +76,8 @@ export default function LocationsPage() {
         ...data,
         company_id: currentCompany.id
       };
+      
+      console.log('Adding location with data:', locationWithCompany);
       
       const { data: newLocation, error } = await supabase
         .from('locations')
