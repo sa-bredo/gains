@@ -29,10 +29,10 @@ export const supabase = createClient<Database>(
       persistSession: true,
     },
     global: {
-      fetch: (...args) => {
+      fetch: (url: RequestInfo | URL, options?: RequestInit) => {
         // Log fetch request details for debugging
-        console.log('Supabase fetch request:', args[0]);
-        return fetch(...args);
+        console.log('Supabase fetch request:', url);
+        return fetch(url, options);
       },
     },
   }
