@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -16,6 +17,10 @@ import { AlertTriangle, Save, ArrowLeft, Edit, Trash2, Copy, MoreVertical, Chevr
 import { StaffAutocomplete } from '@/components/staff-autocomplete';
 import { TimeDropdown } from '@/components/time-dropdown';
 import { fetchStaffMembers } from '../services/api/staff';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export interface ShiftPreviewItem {
   date: string;
@@ -364,9 +369,36 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Date</label>
-                <div className="p-2 border rounded-md">
-                  {format(editingShift.date, 'EEE, MMM d, yyyy')}
-                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !editingShift.date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editingShift.date ? format(editingShift.date, 'PPP') : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={editingShift.date}
+                      onSelect={(date) => {
+                        if (date) {
+                          setEditingShift({
+                            ...editingShift,
+                            date,
+                            day_of_week: format(date, 'EEEE')
+                          });
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
