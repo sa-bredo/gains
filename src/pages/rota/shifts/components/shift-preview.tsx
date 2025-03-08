@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -76,9 +77,15 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
   const [editingShiftIndex, setEditingShiftIndex] = useState<number>(-1);
   
   useEffect(() => {
+    console.log("ShiftPreview received shifts:", shifts);
+    setLocalShifts(shifts);
+  }, [shifts]);
+  
+  useEffect(() => {
     const loadStaff = async () => {
       try {
         const staff = await fetchStaffMembers();
+        console.log("Loaded staff members for preview:", staff);
         setAvailableStaffMembers(staff);
       } catch (error) {
         console.error("Error loading staff members:", error);
@@ -121,23 +128,36 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
   
   const handleBulkAction = (action: string) => {
     console.log(`Bulk action: ${action} for ${selectedCount} shifts`);
+    
+    // Get the indices of selected shifts
+    const selectedIndices = Object.entries(selectedShifts)
+      .filter(([_, selected]) => selected)
+      .map(([index]) => parseInt(index));
+    
+    if (action === 'delete') {
+      // Remove selected shifts
+      const updatedShifts = localShifts.filter((_, index) => !selectedIndices.includes(index));
+      setLocalShifts(updatedShifts);
+      setSelectedShifts({});
+    }
   };
   
   const handleDeleteShift = (shift: PreviewShift, index: number) => {
+    console.log("Opening delete dialog for shift:", shift);
     setConfirmDeleteShift(shift);
+    setEditingShiftIndex(index);
     setDeleteDialogOpen(true);
   };
   
   const confirmDelete = () => {
-    if (confirmDeleteShift) {
-      const updatedShifts = localShifts.filter(s => 
-        s.date.getTime() !== confirmDeleteShift.date.getTime() || 
-        s.start_time !== confirmDeleteShift.start_time ||
-        s.employee_id !== confirmDeleteShift.employee_id
-      );
+    if (confirmDeleteShift && editingShiftIndex >= 0) {
+      console.log("Deleting shift at index:", editingShiftIndex);
+      const updatedShifts = [...localShifts];
+      updatedShifts.splice(editingShiftIndex, 1);
       setLocalShifts(updatedShifts);
       setDeleteDialogOpen(false);
       setConfirmDeleteShift(null);
+      setEditingShiftIndex(-1);
     }
   };
   

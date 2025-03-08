@@ -94,8 +94,8 @@ export function StaffAutocomplete({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-        <Command>
-          <CommandInput placeholder="Search staff..." />
+        <Command className="bg-popover">
+          <CommandInput placeholder="Search staff..." className="bg-transparent" />
           <CommandList>
             <CommandEmpty>
               {loading ? "Loading..." : "No staff found."}
