@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
@@ -37,11 +36,10 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
   const locationsFetched = useRef(false);
   const isMounted = useRef(true);
 
-  // Load locations and template masters using the ref to prevent multiple fetches
   useEffect(() => {
     if (!currentCompany || locationsFetched.current || !isMounted.current) return;
     
-    locationsFetched.current = true; // Mark it as fetched
+    locationsFetched.current = true;
     
     const fetchInitialData = async () => {
       try {
@@ -56,7 +54,6 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
         if (!isMounted.current) return;
         setTemplateMasters(mastersData);
         
-        // Auto-select the first location if available
         if (locationsData.length > 0 && !selectedLocation) {
           setSelectedLocation(locationsData[0].id);
         }
@@ -79,7 +76,6 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
     fetchInitialData();
   }, [currentCompany, shiftService, toast, selectedLocation]);
 
-  // Set up isMounted ref for cleanup
   useEffect(() => {
     isMounted.current = true;
     return () => {
@@ -87,12 +83,10 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
     };
   }, []);
 
-  // Auto-select the highest version when location changes
   useEffect(() => {
     if (selectedLocation) {
       const versions = getVersionsForLocation();
       if (versions.length > 0) {
-        // Find the highest version and select it
         const highestVersion = Math.max(...versions);
         setSelectedVersion(highestVersion);
       }
@@ -111,7 +105,6 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
 
     try {
       setIsLoading(true);
-      // Fetch templates for the selected location and version
       const templates = await shiftService.fetchTemplatesForLocationAndVersion(
         selectedLocation, 
         selectedVersion
@@ -128,24 +121,25 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
         return;
       }
       
-      // Generate preview shifts based on templates and date range
       const shiftsPreview = shiftService.generateShiftsPreview(
         templates,
         startDate,
         parseInt(weeks)
       );
       
-      // Fetch existing shifts to check for conflicts
       const existingShifts = await shiftService.fetchShifts(
         startDate,
         null,
         selectedLocation
       );
       
-      // Check for conflicts between new shifts and existing shifts
+      console.log("Existing shifts for conflict detection:", existingShifts);
+      
       const shiftsWithConflictInfo = await checkForShiftConflicts(shiftsPreview, existingShifts);
       
-      // Map the shifts to the preview format with location names
+      console.log("Shifts with conflict info:", shiftsWithConflictInfo);
+      console.log("Number of conflicts detected:", shiftsWithConflictInfo.filter(s => s.hasConflict).length);
+      
       const mappedShifts = shiftService.mapShiftsToPreview(shiftsWithConflictInfo, locations);
       
       if (!isMounted.current) return;
@@ -167,31 +161,39 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
     }
   };
 
-  // Check for conflicts between new shifts and existing shifts
   const checkForShiftConflicts = async (newShifts, existingShifts) => {
+    console.log("Starting conflict check between new shifts and existing shifts:");
+    console.log("New shifts count:", newShifts.length);
+    console.log("Existing shifts count:", existingShifts.length);
+    
     return newShifts.map(newShift => {
       const conflicts = existingShifts.filter(existingShift => {
-        // Check if same date and employee
         if (newShift.date === existingShift.date && 
             newShift.employee_id === existingShift.employee_id &&
             existingShift.employee_id !== null) {
           
-          // Compare time ranges to see if they overlap
           const newStart = convertTimeToMinutes(newShift.start_time);
           const newEnd = convertTimeToMinutes(newShift.end_time);
           const existingStart = convertTimeToMinutes(existingShift.start_time);
           const existingEnd = convertTimeToMinutes(existingShift.end_time);
           
-          // Check for any overlap
-          return (
-            (newStart <= existingEnd && newEnd >= existingStart) ||
-            (existingStart <= newEnd && existingEnd >= newStart)
-          );
+          const hasOverlap = (newStart <= existingEnd && newEnd >= existingStart) ||
+                             (existingStart <= newEnd && existingEnd >= newStart);
+          
+          if (hasOverlap) {
+            console.log("Conflict detected for:", {
+              employee: newShift.employee_id,
+              date: newShift.date,
+              newShift: `${newShift.start_time}-${newShift.end_time}`,
+              existingShift: `${existingShift.start_time}-${existingShift.end_time}`
+            });
+          }
+          
+          return hasOverlap;
         }
         return false;
       });
       
-      // If conflicts are found, add hasConflict flag and conflict details
       if (conflicts.length > 0) {
         return {
           ...newShift,
@@ -215,29 +217,26 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
     });
   };
 
-  // Helper function to convert HH:MM:SS to minutes for easy comparison
   const convertTimeToMinutes = (timeStr) => {
     const [hours, minutes] = timeStr.split(':').map(Number);
     return (hours * 60) + minutes;
   };
 
-  // Determine the type of overlap between shifts
   const getOverlapType = (newStart, newEnd, existingStart, existingEnd) => {
     if (newStart <= existingStart && newEnd >= existingEnd) {
-      return 'complete'; // New shift completely covers the existing shift
+      return 'complete';
     } else if (existingStart <= newStart && existingEnd >= newEnd) {
-      return 'contained'; // New shift is completely contained within the existing shift
+      return 'contained';
     } else if (newStart < existingStart) {
-      return 'partial-end'; // New shift overlaps with the start of the existing shift
+      return 'partial-end';
     } else {
-      return 'partial-start'; // New shift overlaps with the end of the existing shift
+      return 'partial-start';
     }
   };
 
   const handleSaveShifts = async () => {
     setIsSubmitting(true);
     try {
-      // Format shifts for database insertion
       const shiftsToCreate = shiftService.formatShiftsForCreation(
         previewShifts.map(shift => ({
           date: format(shift.date, 'yyyy-MM-dd'),
@@ -251,7 +250,6 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
         }))
       );
       
-      // Create shifts in the database
       await shiftService.createShifts(shiftsToCreate);
       
       if (!isMounted.current) return;
@@ -280,7 +278,6 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
     }
   };
 
-  // Get versions for the selected location
   const getVersionsForLocation = () => {
     if (!selectedLocation) return [];
     
@@ -289,7 +286,6 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
       .map(master => master.version);
   };
 
-  // Generate weeks options
   const weeksOptions = Array.from({ length: 12 }, (_, i) => ({
     value: (i + 1).toString(),
     label: i === 0 ? '1 week' : `${i + 1} weeks`,
@@ -325,7 +321,6 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
               value={selectedLocation}
               onValueChange={value => {
                 setSelectedLocation(value);
-                // Version will be auto-selected by the useEffect
               }}
             >
               <SelectTrigger>
