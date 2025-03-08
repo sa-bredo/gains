@@ -114,49 +114,56 @@ serve(async (req) => {
     }
     
     // Store the bot token and workspace info in the config table
-    const { error: dbError } = await supabase
-      .from("config")
-      .upsert([
-        {
-          company_id,
-          key: "slack_workspace_id",
-          display_name: "Slack Workspace ID",
-          value: tokenData.team.id
-        },
-        {
-          company_id,
-          key: "slack_bot_token",
-          display_name: "Slack Bot Token",
-          value: tokenData.access_token
-        },
-        {
-          company_id,
-          key: "slack_app_id",
-          display_name: "Slack App ID",
-          value: tokenData.app_id
-        },
-        {
-          company_id,
-          key: "slack_workspace_name",
-          display_name: "Slack Workspace Name",
-          value: tokenData.team.name
-        },
-        {
-          company_id,
-          key: "slack_team_url",
-          display_name: "Slack Team URL",
-          value: `https://${tokenData.team.domain}.slack.com`
-        },
-        {
-          company_id,
-          key: "slack_connected_at",
-          display_name: "Slack Connected At",
-          value: new Date().toISOString()
-        }
-      ]);
+    const configItems = [
+      {
+        company_id,
+        key: "slack_workspace_id",
+        display_name: "Slack Workspace ID",
+        value: tokenData.team.id
+      },
+      {
+        company_id,
+        key: "slack_bot_token",
+        display_name: "Slack Bot Token",
+        value: tokenData.access_token
+      },
+      {
+        company_id,
+        key: "slack_app_id",
+        display_name: "Slack App ID",
+        value: tokenData.app_id
+      },
+      {
+        company_id,
+        key: "slack_workspace_name",
+        display_name: "Slack Workspace Name",
+        value: tokenData.team.name
+      },
+      {
+        company_id,
+        key: "slack_team_url",
+        display_name: "Slack Team URL",
+        value: `https://${tokenData.team.domain}.slack.com`
+      },
+      {
+        company_id,
+        key: "slack_connected_at",
+        display_name: "Slack Connected At",
+        value: new Date().toISOString()
+      }
+    ];
     
-    if (dbError) {
-      throw new Error(`Failed to store Slack token: ${dbError.message}`);
+    // Insert or update each config item one at a time
+    for (const configItem of configItems) {
+      const { error } = await supabase
+        .from("config")
+        .upsert(configItem, {
+          onConflict: "company_id,key"
+        });
+        
+      if (error) {
+        throw new Error(`Failed to store Slack config (${configItem.key}): ${error.message}`);
+      }
     }
     
     // Generate success response

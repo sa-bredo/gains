@@ -35,7 +35,7 @@ serve(async (req) => {
     // Get employee information
     const { data: employee, error: employeeError } = await supabase
       .from("employees")
-      .select("email")
+      .select("email, integrations")
       .eq("id", employee_id)
       .single();
     
@@ -84,11 +84,13 @@ serve(async (req) => {
       slack_connected_at: new Date().toISOString()
     };
     
+    // Initialize or update the integrations object
+    const integrations = employee.integrations || {};
+    integrations.slack = slackInfo;
+    
     const { error: updateError } = await supabase
       .from("employees")
-      .update({
-        integrations: { slack: slackInfo }
-      })
+      .update({ integrations })
       .eq("id", employee_id);
     
     if (updateError) {
