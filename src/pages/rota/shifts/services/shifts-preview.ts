@@ -73,12 +73,13 @@ export const mapShiftsToPreview = (
       employee_id: shift.employee_id,
       employee_name: shift.employee_name || 'Unassigned',
       status: 'new',
-      hasConflict: false
+      hasConflict: shift.hasConflict || false,
+      conflictDetails: shift.conflictDetails || []
     };
   });
 };
 
-// Format shifts for database insertion
+// Format shifts for creation
 export const formatShiftsForCreation = (shifts: ShiftPreviewItem[]) => {
   console.log('Formatting shifts for creation:', shifts);
   return shifts.map(shift => ({

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -100,6 +99,9 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
   };
   
   const conflictCount = localShifts.filter(shift => shift.hasConflict).length;
+  
+  console.log("Conflict count in ShiftPreview:", conflictCount);
+  console.log("Shifts with conflicts:", localShifts.filter(shift => shift.hasConflict));
   
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -300,6 +302,8 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
                 
                 const isOddWeek = weekNum % 2 === 1;
                 const weekBackgroundColor = isOddWeek ? 'bg-sky-50' : '';
+                
+                console.log(`Shift ${index} - hasConflict:`, shift.hasConflict);
                 
                 return (
                   <TableRow 
