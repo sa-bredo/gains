@@ -23,8 +23,15 @@ export function useTeamMembers() {
       if (error) throw new Error(error.message);
       
       console.log("Fetched team members:", data);
-      setTeamMembers(data || []);
-      return data;
+      
+      // Type cast the data to ensure it matches our TeamMember interface
+      const typedData = data?.map(member => ({
+        ...member,
+        integrations: member.integrations || null
+      })) as TeamMember[];
+      
+      setTeamMembers(typedData || []);
+      return typedData;
     } catch (err) {
       console.error('Error fetching team members:', err);
       const errorObj = err instanceof Error ? err : new Error('Unknown error occurred');
@@ -50,7 +57,14 @@ export function useTeamMembers() {
       if (error) throw new Error(error.message);
       
       console.log("Fetched active staff:", data);
-      return data || [];
+      
+      // Type cast the data to ensure it matches our TeamMember interface
+      const typedData = data?.map(member => ({
+        ...member,
+        integrations: member.integrations || null
+      })) as TeamMember[];
+      
+      return typedData || [];
     } catch (err) {
       console.error('Error fetching active staff:', err);
       const errorObj = err instanceof Error ? err : new Error('Unknown error occurred');

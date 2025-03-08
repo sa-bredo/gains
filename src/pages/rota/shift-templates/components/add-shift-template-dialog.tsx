@@ -50,7 +50,7 @@ export function AddShiftTemplateDialog({
     const getActiveStaff = async () => {
       try {
         const staff = await fetchActiveStaff();
-        // Filter staff to only include front of house and managers
+        // Cast the data to the correct TeamMember type and filter
         const filteredStaff = staff.filter(member => 
           member.end_job_date === null && 
           (member.role?.toLowerCase() === 'front_of_house' || 

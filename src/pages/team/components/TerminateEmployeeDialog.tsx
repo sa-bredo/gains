@@ -1,47 +1,41 @@
 
-import React from 'react';
-import { format } from 'date-fns';
-import { Calendar } from '@/components/ui/calendar';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { TeamMember } from '../types';
+import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TeamMember } from '../types';
 
 interface TerminateEmployeeDialogProps {
+  teamMember: TeamMember;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  teamMember: TeamMember;
-  onTerminate: (id: string, date: string) => Promise<any>;
-  onSuccess: () => void;
+  onConfirm: (endDate: string) => void;
 }
 
 export function TerminateEmployeeDialog({ 
+  teamMember, 
   open, 
-  onOpenChange, 
-  teamMember,
-  onTerminate,
-  onSuccess
+  onOpenChange,
+  onConfirm 
 }: TerminateEmployeeDialogProps) {
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [terminationDate, setTerminationDate] = React.useState<Date | undefined>(
-    teamMember.end_job_date ? new Date(teamMember.end_job_date) : undefined
-  );
+  const [date, setDate] = useState<Date>(new Date());
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const handleTerminate = async () => {
-    if (!terminationDate) return;
+  const handleTerminate = () => {
+    setIsSubmitting(true);
+    
+    // Format date as YYYY-MM-DD for backend
+    const formattedDate = format(date, 'yyyy-MM-dd');
     
     try {
-      setIsSubmitting(true);
-      const formattedDate = format(terminationDate, 'yyyy-MM-dd');
-      await onTerminate(teamMember.id, formattedDate);
-      onSuccess();
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Error terminating employee:', error);
+      onConfirm(formattedDate);
     } finally {
       setIsSubmitting(false);
+      onOpenChange(false);
     }
   };
 
@@ -49,34 +43,34 @@ export function TerminateEmployeeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-destructive">Terminate Employee</DialogTitle>
+          <DialogTitle>Terminate Employee</DialogTitle>
           <DialogDescription>
-            Set the termination date for {teamMember.first_name} {teamMember.last_name}.
-            This will mark the employee as terminated on the selected date.
+            Set the end date for {teamMember.first_name} {teamMember.last_name}.
+            After this date, they will no longer be considered an active employee.
           </DialogDescription>
         </DialogHeader>
         
         <div className="py-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Termination Date</label>
+            <p className="text-sm font-medium">End Date</p>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal",
-                    !terminationDate && "text-muted-foreground"
+                    !date && "text-muted-foreground"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {terminationDate ? format(terminationDate, 'PPP') : <span>Select date</span>}
+                  {date ? format(date, "PPP") : "Select a date"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
-                  selected={terminationDate}
-                  onSelect={setTerminationDate}
+                  selected={date}
+                  onSelect={(d) => d && setDate(d)}
                   initialFocus
                 />
               </PopoverContent>
@@ -85,19 +79,26 @@ export function TerminateEmployeeDialog({
         </div>
         
         <DialogFooter>
-          <Button
-            variant="outline"
+          <Button 
+            variant="outline" 
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
           >
             Cancel
           </Button>
-          <Button
-            variant="destructive"
+          <Button 
+            variant="destructive" 
             onClick={handleTerminate}
-            disabled={isSubmitting || !terminationDate}
+            disabled={isSubmitting}
           >
-            {isSubmitting ? "Processing..." : "Terminate Employee"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              'Terminate Employee'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

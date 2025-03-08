@@ -1,72 +1,70 @@
 
-import React from 'react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 import { TeamMember } from '../types';
 
 interface DeleteTeamMemberDialogProps {
   teamMember: TeamMember;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // Update the return type to match the handler in TeamPage
-  onDelete: (id: string) => Promise<void>;
-  onSuccess: () => void;
+  onConfirm: () => void;
 }
 
-export function DeleteTeamMemberDialog({
-  teamMember,
-  open,
+export function DeleteTeamMemberDialog({ 
+  teamMember, 
+  open, 
   onOpenChange,
-  onDelete,
-  onSuccess,
+  onConfirm 
 }: DeleteTeamMemberDialogProps) {
-  const [isDeleting, setIsDeleting] = React.useState(false);
-
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   const handleDelete = async () => {
+    setIsDeleting(true);
     try {
-      setIsDeleting(true);
-      await onDelete(teamMember.id);
+      await onConfirm();
       onOpenChange(false);
-      onSuccess();
-    } catch (error) {
-      console.error('Error deleting team member:', error);
     } finally {
       setIsDeleting(false);
     }
   };
-
+  
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will permanently delete <strong>{teamMember.first_name} {teamMember.last_name}</strong> from the team. 
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Delete Team Member</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete {teamMember.first_name} {teamMember.last_name}?
             This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction 
+          </DialogDescription>
+        </DialogHeader>
+        
+        <DialogFooter>
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
             disabled={isDeleting}
-            onClick={(e) => {
-              e.preventDefault();
-              handleDelete();
-            }}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {isDeleting ? 'Deleting...' : 'Delete'}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+            Cancel
+          </Button>
+          <Button 
+            variant="destructive" 
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              'Delete'
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

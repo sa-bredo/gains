@@ -1,3 +1,4 @@
+
 export interface TeamMember {
   id: string;
   first_name: string;
@@ -27,7 +28,7 @@ export interface TeamMember {
       slack_connected: boolean;
       slack_connected_at: string;
     }
-  };
+  } | null;
 }
 
 export interface TeamMemberFormValues {

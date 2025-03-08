@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,7 +73,7 @@ export function SlackIntegrationCard({ isAdmin = false }: SlackIntegrationCardPr
   };
   
   // Check Slack configuration when component mounts
-  useState(() => {
+  useEffect(() => {
     if (currentCompany?.id) {
       checkSlackConfiguration();
     }

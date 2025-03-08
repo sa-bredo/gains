@@ -13,7 +13,7 @@ import { SlackConnectionButton } from './SlackConnectionButton';
 
 interface TeamMembersListProps {
   teamMembers: TeamMember[];
-  onEdit: (member: TeamMember) => void;
+  onEdit: (id: string, updates: Partial<TeamMember>) => Promise<void>;
   onDelete: (id: string) => void;
   onTerminate: (id: string, endDate: string) => void;
   onRefresh: () => void;
@@ -44,8 +44,22 @@ export function TeamMembersList({ teamMembers, onEdit, onDelete, onTerminate, on
   };
 
   const handleEditSubmit = async (id: string, updates: Partial<TeamMember>) => {
-    await onEdit({ ...memberToEdit!, ...updates });
+    await onEdit(id, updates);
     setEditDialogOpen(false);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (memberToDelete) {
+      onDelete(memberToDelete.id);
+      setDeleteDialogOpen(false);
+    }
+  };
+
+  const handleTerminateConfirm = (endDate: string) => {
+    if (memberToTerminate) {
+      onTerminate(memberToTerminate.id, endDate);
+      setTerminateDialogOpen(false);
+    }
   };
 
   const isSlackConnected = (member: TeamMember) => {
@@ -68,7 +82,7 @@ export function TeamMembersList({ teamMembers, onEdit, onDelete, onTerminate, on
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-4">
-                <TeamMemberAvatar member={member} onUpdate={onRefresh} />
+                <TeamMemberAvatar teamMember={member} onUpdate={onRefresh} />
                 <div>
                   <h3 className="text-lg font-semibold">{member.first_name} {member.last_name}</h3>
                   <p className="text-sm text-muted-foreground">{member.role}</p>
@@ -124,16 +138,16 @@ export function TeamMembersList({ teamMembers, onEdit, onDelete, onTerminate, on
           teamMember={memberToDelete}
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}
-          onConfirm={() => onDelete(memberToDelete.id)}
+          onConfirm={handleDeleteConfirm}
         />
       )}
 
       {memberToTerminate && (
         <TerminateEmployeeDialog
-          employee={memberToTerminate}
+          teamMember={memberToTerminate}
           open={terminateDialogOpen}
           onOpenChange={setTerminateDialogOpen}
-          onConfirm={(date) => onTerminate(memberToTerminate.id, date)}
+          onConfirm={handleTerminateConfirm}
         />
       )}
     </div>

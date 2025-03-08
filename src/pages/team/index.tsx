@@ -84,10 +84,10 @@ export default function TeamPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           <TeamMembersFilter 
-            onRoleFilterChange={setFilterRole} 
-            onSearchChange={setSearchTerm}
             selectedRole={filterRole}
             searchTerm={searchTerm}
+            setFilterRole={setFilterRole}
+            setSearchTerm={setSearchTerm}
           />
           
           {isLoading ? (
@@ -118,7 +118,8 @@ export default function TeamPage() {
       <AddTeamMemberDialog 
         open={showAddDialog} 
         onOpenChange={setShowAddDialog} 
-        onSubmit={handleAddTeamMember}
+        onAdd={handleAddTeamMember}
+        onSuccess={refetchTeamMembers}
       />
     </div>
   );

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -49,6 +50,7 @@ export function ShiftTemplatesTable({
     const getActiveStaff = async () => {
       try {
         const staff = await fetchActiveStaff();
+        // Cast the data to ensure it matches the TeamMember interface
         setActiveStaff(staff);
       } catch (error) {
         console.error("Error fetching active staff:", error);
