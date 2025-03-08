@@ -11,7 +11,7 @@ import { SlackIntegrationCard } from './components/SlackIntegrationCard';
 import { useCompany } from "@/contexts/CompanyContext";
 
 export default function TeamPage() {
-  const { currentCompany, isLoading: isCompanyLoading } = useCompany();
+  const { currentCompany, isLoadingCompanies } = useCompany();
   const { 
     teamMembers, 
     isLoading, 
@@ -81,7 +81,7 @@ export default function TeamPage() {
     return matchesRole && matchesSearch;
   });
   
-  if (isCompanyLoading) {
+  if (isLoadingCompanies) {
     return (
       <div className="container mx-auto py-12 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
