@@ -50,7 +50,9 @@ export function StaffAutocomplete({
     const loadStaffMembers = async () => {
       setLoading(true);
       try {
+        // Fetch staff members from the API
         const staff = await fetchStaffMembers();
+        console.log("Fetched staff members:", staff); // Debug log
         setStaffMembers(staff);
       } catch (error) {
         console.error("Error loading staff members:", error);
@@ -59,8 +61,11 @@ export function StaffAutocomplete({
       }
     };
 
-    loadStaffMembers();
-  }, []);
+    // Fetch staff when the component mounts or when the dropdown is opened
+    if (open || staffMembers.length === 0) {
+      loadStaffMembers();
+    }
+  }, [open]);
 
   // Find the selected staff member
   const selectedStaff = value 
