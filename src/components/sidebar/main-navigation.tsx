@@ -120,4 +120,4 @@ export const MainNavigation: FC<MainNavigationProps> = ({ items = defaultNavItem
       </SidebarMenu>
     </SidebarGroup>
   );
-};
+}
