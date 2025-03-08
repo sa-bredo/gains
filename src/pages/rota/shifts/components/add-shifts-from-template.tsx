@@ -12,6 +12,7 @@ import { Location, ShiftTemplateMaster } from '../../shift-templates/types';
 import { ShiftPreview } from './shift-preview';
 import { useShiftService } from '../services/shift-service';
 import { useToast } from '@/hooks/use-toast';
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface AddShiftsFromTemplateProps {
   onBack: () => void;
@@ -32,12 +33,13 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
   
   const shiftService = useShiftService();
   const { toast } = useToast();
+  const { currentCompany } = useCompany();
   const dataFetchedRef = useRef(false);
   const isMounted = useRef(true);
 
   // Load locations and template masters - using ref to prevent multiple fetches
   const loadInitialData = useCallback(async () => {
-    if (dataFetchedRef.current || !isMounted.current) return; // Only fetch once
+    if (dataFetchedRef.current || !isMounted.current || !currentCompany) return; // Only fetch once
     
     try {
       setIsLoading(true);
@@ -72,7 +74,7 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
         setIsLoading(false);
       }
     }
-  }, [shiftService, toast, selectedLocation]);
+  }, [shiftService, toast, selectedLocation, currentCompany]);
 
   // Set up isMounted ref and initial data loading
   useEffect(() => {
@@ -84,7 +86,6 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
     // Cleanup function
     return () => {
       isMounted.current = false;
-      dataFetchedRef.current = false; // Reset for next mount
     };
   }, [loadInitialData]);
 

@@ -1,5 +1,5 @@
 
-import React, { memo, useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -19,72 +19,12 @@ function ShiftsPage() {
   const { toast } = useToast();
   const [shifts, setShifts] = useState([]);
   const [isAddShiftDialogOpen, setIsAddShiftDialogOpen] = useState(false);
-  const [locations, setLocations] = useState([]);
-  const [staffMembers, setStaffMembers] = useState([]);
   const [currentView, setCurrentView] = useState<'view' | 'add'>('view');
   const { currentCompany } = useCompany();
   const shiftService = useShiftService();
   
-  // Refs to track data fetching
-  const dataFetchedRef = useRef(false);
+  // Ref to track component mounting state
   const isMounted = useRef(true);
-
-  // Fetch locations and staff members when component mounts or company changes
-  useEffect(() => {
-    // Reset the fetch state when company changes
-    if (currentCompany) {
-      dataFetchedRef.current = false;
-    }
-    
-    const fetchInitialData = async () => {
-      if (!currentCompany || !isMounted.current || dataFetchedRef.current) {
-        return;
-      }
-      
-      try {
-        console.log('Fetching locations and staff for company:', currentCompany.id);
-        dataFetchedRef.current = true;
-        
-        const locationsData = await shiftService.fetchLocations();
-        if (isMounted.current) {
-          setLocations(locationsData);
-        }
-        
-        const staffData = await shiftService.fetchStaffMembers();
-        if (isMounted.current) {
-          setStaffMembers(staffData);
-        }
-        
-        console.log('Fetched locations:', locationsData.length, 'staff members:', staffData.length);
-      } catch (error) {
-        console.error('Error fetching initial data:', error);
-        if (isMounted.current) {
-          toast({
-            title: 'Error',
-            description: 'Failed to load initial data. Please try again later.',
-            variant: 'destructive',
-          });
-        }
-      }
-    };
-    
-    if (currentCompany && !dataFetchedRef.current) {
-      fetchInitialData();
-    }
-    
-    // Cleanup function
-    return () => {
-      isMounted.current = false;
-    };
-  }, [currentCompany, shiftService, toast]);
-
-  // Reset the mounting state when the component mounts
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
 
   // Using react-query to fetch shifts with company filtering and prevent refetching
   const { data, isLoading, error, refetch } = useQuery({
@@ -118,32 +58,40 @@ function ShiftsPage() {
     }
   }, [error, toast]);
 
-  const handleAddComplete = () => {
+  // Set up and clean up the mounted state
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  const handleAddComplete = useCallback(() => {
     setCurrentView('view');
     refetch();
-  };
+  }, [refetch]);
 
-  // Use useMemo instead of React.useMemo for better TypeScript support
+  // Use useMemo for ShiftsTable to prevent unnecessary rerenders
   const memoizedShiftsTable = useMemo(() => {
     return (
       <ShiftsTable 
         shifts={shifts} 
-        isLoading={isLoading} 
-        locations={locations} 
-        staffMembers={staffMembers} 
+        isLoading={isLoading}
       />
     );
-  }, [shifts, isLoading, locations, staffMembers]);
+  }, [shifts, isLoading]);
 
-  // Create a memoized version of AddShiftsFromTemplate to prevent unnecessary re-renders
+  // Create a memoized version of AddShiftsFromTemplate
   const memoizedAddShiftsTemplate = useMemo(() => {
+    if (currentView !== 'add') return null;
+    
     return (
       <AddShiftsFromTemplate 
         onBack={() => setCurrentView('view')}
         onComplete={handleAddComplete}
       />
     );
-  }, [handleAddComplete]);
+  }, [currentView, handleAddComplete]);
 
   console.log('Rendering ShiftsPage with shifts:', shifts.length);
 
@@ -184,7 +132,6 @@ function ShiftsPage() {
             <Tabs defaultValue="view">
               <TabsList className="mb-6">
                 <TabsTrigger value="view">View Shifts</TabsTrigger>
-                <TabsTrigger value="add">Add Shifts</TabsTrigger>
               </TabsList>
               
               <TabsContent value="view">
@@ -195,10 +142,6 @@ function ShiftsPage() {
                 ) : (
                   memoizedShiftsTable
                 )}
-              </TabsContent>
-              
-              <TabsContent value="add">
-                {memoizedAddShiftsTemplate}
               </TabsContent>
             </Tabs>
           )}
