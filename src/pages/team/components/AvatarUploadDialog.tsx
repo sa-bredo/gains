@@ -20,14 +20,14 @@ interface AvatarUploadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   teamMember: TeamMember;
-  onAvatarUpdate: (avatarUrl: string) => Promise<void>;
+  onSuccess: () => void;
 }
 
 export const AvatarUploadDialog: React.FC<AvatarUploadDialogProps> = ({
   open,
   onOpenChange,
   teamMember,
-  onAvatarUpdate,
+  onSuccess,
 }) => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(teamMember.avatar_url || null);
@@ -83,7 +83,7 @@ export const AvatarUploadDialog: React.FC<AvatarUploadDialogProps> = ({
       const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
       const publicURL = data.publicUrl;
 
-      await onAvatarUpdate(publicURL);
+      await onSuccess();
 
       toast({
         title: 'Upload successful',
@@ -118,12 +118,10 @@ export const AvatarUploadDialog: React.FC<AvatarUploadDialogProps> = ({
               <Skeleton className="h-24 w-24 rounded-full" />
             ) : (
               <TeamMemberAvatar 
-                name={`${teamMember.first_name} ${teamMember.last_name}`}
-                src={preview || teamMember.avatar_url} 
+                teamMember={teamMember}
+                onUpdate={onSuccess}
                 size="lg"
-                firstName={teamMember.first_name}
-                lastName={teamMember.last_name}
-                avatarUrl={teamMember.avatar_url}
+                showUploadButton={false}
               />
             )}
           </div>

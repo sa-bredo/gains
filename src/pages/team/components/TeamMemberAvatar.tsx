@@ -52,12 +52,14 @@ export function TeamMemberAvatar({
         </button>
       )}
       
-      <AvatarUploadDialog 
-        open={showUploadDialog}
-        onOpenChange={setShowUploadDialog}
-        employeeId={teamMember.id}
-        onSuccess={onUpdate}
-      />
+      {showUploadDialog && (
+        <AvatarUploadDialog 
+          open={showUploadDialog}
+          onOpenChange={setShowUploadDialog}
+          teamMember={teamMember}
+          onSuccess={onUpdate}
+        />
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { MessageTemplate, SlackConfig, SlackEmployeeIntegration } from '../types';
 import { toast } from 'sonner';
+import { Json } from '@/integrations/supabase/types';
 
 export const getSlackConfig = async (companyId: string): Promise<SlackConfig | null> => {
   try {
@@ -93,17 +94,20 @@ export const disconnectSlack = async (companyId: string): Promise<boolean> => {
     }
     
     for (const employee of employees) {
-      if (employee.integrations && typeof employee.integrations === 'object' && employee.integrations.slack) {
-        const updatedIntegrations = { ...employee.integrations };
-        delete updatedIntegrations.slack;
-        
-        const { error: updateError } = await supabase
-          .from('employees')
-          .update({ integrations: updatedIntegrations })
-          .eq('id', employee.id);
+      if (employee.integrations) {
+        const integrationObj = typeof employee.integrations === 'object' ? employee.integrations : {};
+        if (integrationObj && typeof integrationObj === 'object' && 'slack' in integrationObj) {
+          const updatedIntegrations = { ...integrationObj };
+          delete updatedIntegrations.slack;
           
-        if (updateError) {
-          console.error(`Error updating employee ${employee.id}:`, updateError);
+          const { error: updateError } = await supabase
+            .from('employees')
+            .update({ integrations: updatedIntegrations })
+            .eq('id', employee.id);
+            
+          if (updateError) {
+            console.error(`Error updating employee ${employee.id}:`, updateError);
+          }
         }
       }
     }
@@ -213,7 +217,12 @@ export const getSlackEmployees = async (): Promise<any[]> => {
     }
     
     return data.map(employee => {
-      const slackInfo = employee.integrations && typeof employee.integrations === 'object' ? employee.integrations.slack : null;
+      let slackInfo = null;
+      
+      if (employee.integrations) {
+        const integrationObj = typeof employee.integrations === 'object' ? employee.integrations : {};
+        slackInfo = 'slack' in integrationObj ? integrationObj.slack : null;
+      }
       
       return {
         id: employee.id,
@@ -286,13 +295,19 @@ export const disconnectEmployeeFromSlack = async (employeeId: string): Promise<b
       return false;
     }
     
-    if (!employee.integrations || typeof employee.integrations !== 'object' || !employee.integrations.slack) {
+    if (!employee.integrations) {
+      // Employee isn't connected to Slack
+      return true;
+    }
+    
+    const integrationObj = typeof employee.integrations === 'object' ? employee.integrations : {};
+    if (!('slack' in integrationObj)) {
       // Employee isn't connected to Slack
       return true;
     }
     
     // Remove the Slack integration data
-    const updatedIntegrations = { ...employee.integrations };
+    const updatedIntegrations = { ...integrationObj };
     delete updatedIntegrations.slack;
     
     const { error } = await supabase
