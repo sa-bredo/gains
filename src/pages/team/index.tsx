@@ -1,15 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTeamMembers } from './hooks/useTeamMembers';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { AddTeamMemberDialog } from './components/AddTeamMemberDialog';
 import { TeamMembersList } from './components/TeamMembersList';
 import { TeamMembersFilter } from './components/TeamMembersFilter';
 import { TeamMember } from './types';
 import { SlackIntegrationCard } from './components/SlackIntegrationCard';
+import { useCompany } from "@/contexts/CompanyContext";
 
 export default function TeamPage() {
+  const { currentCompany, isLoading: isCompanyLoading } = useCompany();
   const { 
     teamMembers, 
     isLoading, 
@@ -62,6 +64,13 @@ export default function TeamPage() {
     }
   };
   
+  // Force a refresh when company changes
+  useEffect(() => {
+    if (currentCompany?.id) {
+      refetchTeamMembers();
+    }
+  }, [currentCompany?.id, refetchTeamMembers]);
+  
   const filteredTeamMembers = teamMembers.filter((member) => {
     const matchesRole = !filterRole || member.role === filterRole;
     const matchesSearch = !searchTerm || 
@@ -71,6 +80,24 @@ export default function TeamPage() {
     
     return matchesRole && matchesSearch;
   });
+  
+  if (isCompanyLoading) {
+    return (
+      <div className="container mx-auto py-12 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-lg">Loading workspace data...</span>
+      </div>
+    );
+  }
+  
+  if (!currentCompany?.id) {
+    return (
+      <div className="container mx-auto py-12 text-center">
+        <h2 className="text-2xl font-bold mb-4">No Workspace Selected</h2>
+        <p className="text-muted-foreground mb-6">Please select a workspace to view team members.</p>
+      </div>
+    );
+  }
   
   return (
     <div className="container mx-auto py-6 space-y-8">
@@ -91,12 +118,16 @@ export default function TeamPage() {
           />
           
           {isLoading ? (
-            <div className="text-center py-12">
+            <div className="text-center py-12 flex flex-col items-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
               <p>Loading team members...</p>
             </div>
           ) : error ? (
             <div className="text-center py-12 text-red-500">
               <p>Error loading team members: {error.message}</p>
+              <Button variant="outline" className="mt-4" onClick={refetchTeamMembers}>
+                Try Again
+              </Button>
             </div>
           ) : (
             <TeamMembersList 

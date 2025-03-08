@@ -1,19 +1,29 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TeamMember, TeamMemberFormValues } from '../types';
 import { useToast } from '@/hooks/use-toast';
+import { useCompany } from '@/contexts/CompanyContext';
 
 export function useTeamMembers() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
+  const { currentCompany } = useCompany();
 
   const fetchTeamMembers = useCallback(async () => {
     try {
+      if (!currentCompany?.id) {
+        console.log('No company ID available, skipping team members fetch');
+        setTeamMembers([]);
+        setIsLoading(false);
+        return [];
+      }
+      
       setIsLoading(true);
       setError(null);
+      
+      console.log('Fetching team members for company:', currentCompany.id);
       
       const { data, error } = await supabase
         .from('employees')
@@ -22,7 +32,7 @@ export function useTeamMembers() {
       
       if (error) throw new Error(error.message);
       
-      console.log("Fetched team members:", data);
+      console.log("Fetched team members:", data?.length || 0);
       
       // Type cast the data to ensure it matches our TeamMember interface
       const typedData = data?.map(member => ({
@@ -40,7 +50,7 @@ export function useTeamMembers() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentCompany?.id]);
 
   const fetchActiveStaff = useCallback(async () => {
     try {
@@ -77,6 +87,10 @@ export function useTeamMembers() {
 
   async function addTeamMember(newMember: TeamMemberFormValues) {
     try {
+      if (!currentCompany?.id) {
+        throw new Error("No workspace selected. Please select a workspace first.");
+      }
+      
       console.log("Adding team member:", newMember);
       
       // Strip any undefined values to avoid Supabase errors
@@ -213,8 +227,14 @@ export function useTeamMembers() {
   }
 
   useEffect(() => {
-    fetchTeamMembers();
-  }, [fetchTeamMembers]);
+    if (currentCompany?.id) {
+      fetchTeamMembers();
+    } else {
+      console.log('No company ID available, skipping initial fetch');
+      setTeamMembers([]);
+      setIsLoading(false);
+    }
+  }, [currentCompany?.id, fetchTeamMembers]);
 
   return {
     teamMembers,
