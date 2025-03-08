@@ -21,20 +21,28 @@ export function SlackIntegrationCard({ isAdmin = false }: SlackIntegrationCardPr
     try {
       setIsLoading(true);
       
+      if (!currentCompany?.id) {
+        console.log('No company ID available');
+        setSlackConnected(false);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from("config")
         .select("value")
         .eq("key", "slack_bot_token")
-        .eq("company_id", currentCompany?.id)
-        .single();
+        .eq("company_id", currentCompany.id)
+        .maybeSingle(); // Using maybeSingle instead of single to handle cases when no rows are found
       
-      if (error) {
+      // If we get an error that's not related to "no rows", still log it
+      if (error && error.code !== 'PGRST116') {
         console.error("Error checking Slack configuration:", error);
         setSlackConnected(false);
         return;
       }
       
-      setSlackConnected(!!data);
+      // If we have data and it has a value, Slack is connected
+      setSlackConnected(!!data?.value);
     } catch (err) {
       console.error("Error checking Slack configuration:", err);
       setSlackConnected(false);
@@ -72,7 +80,7 @@ export function SlackIntegrationCard({ isAdmin = false }: SlackIntegrationCardPr
     }
   };
   
-  // Check Slack configuration when component mounts
+  // Check Slack configuration when component mounts or company changes
   useEffect(() => {
     if (currentCompany?.id) {
       checkSlackConfiguration();

@@ -26,15 +26,26 @@ export function SlackConnectionButton({
     try {
       setIsLoading(true);
       
+      if (!currentCompany?.id) {
+        toast.error("No workspace selected. Please select a workspace first.");
+        return;
+      }
+      
       // Check if the workspace is connected to Slack
       const { data: configData, error: configError } = await supabase
         .from("config")
         .select("value")
         .eq("key", "slack_bot_token")
-        .eq("company_id", currentCompany?.id)
-        .single();
+        .eq("company_id", currentCompany.id)
+        .maybeSingle(); // Using maybeSingle instead of single
       
-      if (configError || !configData) {
+      if (configError && configError.code !== 'PGRST116') {
+        console.error("Error checking Slack configuration:", configError);
+        toast.error("Failed to check Slack configuration. Please try again.");
+        return;
+      }
+      
+      if (!configData?.value) {
         toast.error("This workspace is not connected to Slack. Please ask an admin to set up the Slack integration.");
         return;
       }
@@ -43,7 +54,7 @@ export function SlackConnectionButton({
       const { data, error } = await supabase.functions.invoke("connect-slack-employee", {
         body: {
           employee_id: employeeId,
-          workspace_id: currentCompany?.id
+          workspace_id: currentCompany.id
         }
       });
       
