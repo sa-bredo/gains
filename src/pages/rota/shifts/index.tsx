@@ -30,23 +30,25 @@ function ShiftsPage() {
   const { currentCompany } = useCompany();
   const shiftService = useShiftService();
   
-  // Refs to track if data has been fetched
-  const locationsFetched = useRef(false);
+  // Refs to track data fetching
+  const dataFetchedRef = useRef(false);
   const isMounted = useRef(true);
 
   // Fetch locations and staff members when component mounts or company changes
   useEffect(() => {
     // Reset the fetch state when company changes
-    locationsFetched.current = false;
+    if (currentCompany) {
+      dataFetchedRef.current = false;
+    }
     
     const fetchInitialData = async () => {
-      if (!currentCompany || !isMounted.current || locationsFetched.current) {
+      if (!currentCompany || !isMounted.current || dataFetchedRef.current) {
         return;
       }
       
       try {
         console.log('Fetching locations and staff for company:', currentCompany.id);
-        locationsFetched.current = true;
+        dataFetchedRef.current = true;
         
         const locationsData = await shiftService.fetchLocations();
         if (isMounted.current) {
@@ -71,7 +73,7 @@ function ShiftsPage() {
       }
     };
     
-    if (currentCompany && !locationsFetched.current) {
+    if (currentCompany && !dataFetchedRef.current) {
       fetchInitialData();
     }
     
@@ -89,14 +91,16 @@ function ShiftsPage() {
     };
   }, []);
 
-  // Using react-query to fetch shifts with company filtering
+  // Using react-query to fetch shifts with company filtering and prevent refetching
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['shifts', currentCompany?.id],
     queryFn: () => {
       console.log('Fetching shifts for company:', currentCompany?.id);
       return shiftService.fetchShifts(null, null, null);
     },
-    enabled: !!currentCompany
+    enabled: !!currentCompany,
+    staleTime: 300000, // 5 minutes
+    cacheTime: 600000, // 10 minutes
   });
 
   // Update the shifts state when data is fetched
@@ -123,6 +127,18 @@ function ShiftsPage() {
     setCurrentView('view');
     refetch();
   };
+
+  // Avoid unnecessary re-renders with memoized component
+  const memoizedShiftsTable = React.useMemo(() => {
+    return (
+      <ShiftsTable 
+        shifts={shifts} 
+        isLoading={isLoading} 
+        locations={locations} 
+        staffMembers={staffMembers} 
+      />
+    );
+  }, [shifts, isLoading, locations, staffMembers]);
 
   console.log('Rendering ShiftsPage with shifts:', shifts.length);
 
@@ -158,10 +174,12 @@ function ShiftsPage() {
           </div>
 
           {currentView === 'add' ? (
-            <AddShiftsFromTemplate 
-              onBack={() => setCurrentView('view')}
-              onComplete={handleAddComplete}
-            />
+            <MemoizedShiftComponent>
+              <AddShiftsFromTemplate 
+                onBack={() => setCurrentView('view')}
+                onComplete={handleAddComplete}
+              />
+            </MemoizedShiftComponent>
           ) : (
             <Tabs defaultValue="view">
               <TabsList className="mb-6">
@@ -176,21 +194,18 @@ function ShiftsPage() {
                   </div>
                 ) : (
                   <MemoizedShiftComponent>
-                    <ShiftsTable 
-                      shifts={shifts} 
-                      isLoading={isLoading} 
-                      locations={locations} 
-                      staffMembers={staffMembers} 
-                    />
+                    {memoizedShiftsTable}
                   </MemoizedShiftComponent>
                 )}
               </TabsContent>
               
               <TabsContent value="add">
-                <AddShiftsFromTemplate 
-                  onBack={() => setCurrentView('view')}
-                  onComplete={handleAddComplete}
-                />
+                <MemoizedShiftComponent>
+                  <AddShiftsFromTemplate 
+                    onBack={() => setCurrentView('view')}
+                    onComplete={handleAddComplete}
+                  />
+                </MemoizedShiftComponent>
               </TabsContent>
             </Tabs>
           )}

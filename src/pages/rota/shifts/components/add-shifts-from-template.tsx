@@ -1,10 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -29,19 +28,32 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
   const [step, setStep] = useState<'form' | 'preview'>('form');
   const [previewShifts, setPreviewShifts] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   const shiftService = useShiftService();
   const { toast } = useToast();
+  const dataFetchedRef = useRef(false);
 
-  // Load locations and template masters
+  // Load locations and template masters - using ref to prevent multiple fetches
   useEffect(() => {
     const loadData = async () => {
+      if (dataFetchedRef.current) return; // Only fetch once
+      
       try {
+        setIsLoading(true);
+        dataFetchedRef.current = true;
+        
+        console.log("Fetching initial data for AddShiftsFromTemplate");
         const locationsData = await shiftService.fetchLocations();
         setLocations(locationsData);
         
         const mastersData = await shiftService.fetchTemplateMasters();
         setTemplateMasters(mastersData);
+        
+        // Auto-select the first location if available
+        if (locationsData.length > 0 && !selectedLocation) {
+          setSelectedLocation(locationsData[0].id);
+        }
       } catch (error) {
         console.error('Error loading data:', error);
         toast({
@@ -49,10 +61,17 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
           description: 'Could not load locations and templates',
           variant: 'destructive',
         });
+      } finally {
+        setIsLoading(false);
       }
     };
     
     loadData();
+    
+    // Cleanup function
+    return () => {
+      dataFetchedRef.current = false;
+    };
   }, [shiftService, toast]);
 
   const handlePreviewShifts = async () => {
@@ -66,6 +85,7 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
     }
 
     try {
+      setIsLoading(true);
       // Fetch templates for the selected location and version
       const templates = await shiftService.fetchTemplatesForLocationAndVersion(
         selectedLocation, 
@@ -100,6 +120,8 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
         description: 'Failed to generate shift preview',
         variant: 'destructive',
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -176,101 +198,107 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
         <Button variant="outline" onClick={onBack}>Cancel</Button>
       </div>
       
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="location">Location</Label>
-          <Select
-            value={selectedLocation}
-            onValueChange={value => {
-              setSelectedLocation(value);
-              setSelectedVersion(null);
-            }}
+      {isLoading ? (
+        <div className="flex justify-center items-center h-40">
+          <p className="text-muted-foreground">Loading data...</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="location">Location</Label>
+            <Select
+              value={selectedLocation}
+              onValueChange={value => {
+                setSelectedLocation(value);
+                setSelectedVersion(null);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select location" />
+              </SelectTrigger>
+              <SelectContent>
+                {locations.map(location => (
+                  <SelectItem key={location.id} value={location.id}>
+                    {location.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="template-version">Template Version</Label>
+            <Select
+              value={selectedVersion?.toString() || ''}
+              onValueChange={value => setSelectedVersion(parseInt(value))}
+              disabled={!selectedLocation}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select template version" />
+              </SelectTrigger>
+              <SelectContent>
+                {getVersionsForLocation().map(version => (
+                  <SelectItem key={version} value={version.toString()}>
+                    Version {version}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="start-date">Start Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="start-date"
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !startDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="weeks">Number of Weeks</Label>
+            <Select value={weeks} onValueChange={setWeeks}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select number of weeks" />
+              </SelectTrigger>
+              <SelectContent>
+                {weeksOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <Button 
+            className="w-full"
+            onClick={handlePreviewShifts}
+            disabled={!selectedLocation || !selectedVersion || !startDate || isLoading}
           >
-            <SelectTrigger>
-              <SelectValue placeholder="Select location" />
-            </SelectTrigger>
-            <SelectContent>
-              {locations.map(location => (
-                <SelectItem key={location.id} value={location.id}>
-                  {location.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            {isLoading ? 'Loading...' : 'Preview Shifts'}
+          </Button>
         </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="template-version">Template Version</Label>
-          <Select
-            value={selectedVersion?.toString() || ''}
-            onValueChange={value => setSelectedVersion(parseInt(value))}
-            disabled={!selectedLocation}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select template version" />
-            </SelectTrigger>
-            <SelectContent>
-              {getVersionsForLocation().map(version => (
-                <SelectItem key={version} value={version.toString()}>
-                  Version {version}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="start-date">Start Date</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                id="start-date"
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !startDate && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={startDate}
-                onSelect={setStartDate}
-                initialFocus
-                className="pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="weeks">Number of Weeks</Label>
-          <Select value={weeks} onValueChange={setWeeks}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select number of weeks" />
-            </SelectTrigger>
-            <SelectContent>
-              {weeksOptions.map(option => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <Button 
-          className="w-full"
-          onClick={handlePreviewShifts}
-          disabled={!selectedLocation || !selectedVersion || !startDate}
-        >
-          Preview Shifts
-        </Button>
-      </div>
+      )}
     </div>
   );
 }
