@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -116,7 +115,7 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
   const areAllSelected = localShifts.length > 0 && 
     Object.keys(selectedShifts).length === localShifts.length &&
     Object.values(selectedShifts).every(v => v);
-    
+  
   const selectedCount = Object.values(selectedShifts).filter(v => v).length;
   
   const handleBulkAction = (action: string) => {
@@ -142,12 +141,15 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
   };
   
   const handleEditShift = (shift: PreviewShift) => {
+    console.log("Opening edit dialog for shift:", shift);
     setEditingShift({...shift});
     setEditDialogOpen(true);
   };
   
   const saveEditedShift = () => {
     if (editingShift) {
+      console.log("Saving edited shift:", editingShift);
+      
       const updatedShifts = localShifts.map(shift => {
         if (shift.date.getTime() === editingShift.date.getTime() && 
             shift.start_time === editingShift.start_time &&
@@ -157,6 +159,7 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
         return shift;
       });
       
+      console.log("Updated shifts array:", updatedShifts);
       setLocalShifts(updatedShifts);
       setEditDialogOpen(false);
       setEditingShift(null);
@@ -388,6 +391,7 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
                       selected={editingShift.date}
                       onSelect={(date) => {
                         if (date) {
+                          console.log("Setting new date:", date);
                           setEditingShift({
                             ...editingShift,
                             date,
@@ -396,6 +400,7 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
                         }
                       }}
                       initialFocus
+                      className="pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -406,10 +411,13 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
                   <label className="text-sm font-medium">Start Time</label>
                   <TimeDropdown
                     value={formatTime(editingShift.start_time)}
-                    onValueChange={(value) => setEditingShift({
-                      ...editingShift,
-                      start_time: value + ':00'
-                    })}
+                    onValueChange={(value) => {
+                      console.log("Setting new start time:", value);
+                      setEditingShift({
+                        ...editingShift,
+                        start_time: value + ':00'
+                      });
+                    }}
                     placeholder="Select start time"
                   />
                 </div>
@@ -418,10 +426,13 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
                   <label className="text-sm font-medium">End Time</label>
                   <TimeDropdown
                     value={formatTime(editingShift.end_time)}
-                    onValueChange={(value) => setEditingShift({
-                      ...editingShift,
-                      end_time: value + ':00'
-                    })}
+                    onValueChange={(value) => {
+                      console.log("Setting new end time:", value);
+                      setEditingShift({
+                        ...editingShift,
+                        end_time: value + ':00'
+                      });
+                    }}
                     placeholder="Select end time"
                   />
                 </div>
@@ -432,6 +443,7 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
                 <StaffAutocomplete
                   value={editingShift.employee_id}
                   onChange={(value, displayName) => {
+                    console.log("Setting new staff member:", value, displayName);
                     setEditingShift({
                       ...editingShift,
                       employee_id: value,
