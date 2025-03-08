@@ -64,6 +64,12 @@ export function SlackCredentialsDialog({
 
     try {
       setIsLoading(true);
+      console.log('Submitting Slack credentials:', {
+        company_id: currentCompany.id,
+        client_id: values.client_id,
+        client_secret: values.client_secret,
+        redirect_uri: values.redirect_uri
+      });
       
       const { data, error } = await supabase.functions.invoke("add-slack-credentials", {
         body: {
@@ -74,8 +80,15 @@ export function SlackCredentialsDialog({
         }
       });
 
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error || "Failed to store credentials");
+      if (error) {
+        console.error('Error from edge function:', error);
+        throw error;
+      }
+      
+      if (!data || !data.success) {
+        console.error('Error response from edge function:', data);
+        throw new Error(data?.error || "Failed to store credentials");
+      }
 
       toast.success('Slack credentials stored successfully');
       form.reset();
@@ -84,7 +97,7 @@ export function SlackCredentialsDialog({
 
     } catch (error) {
       console.error('Error storing Slack credentials:', error);
-      toast.error('Failed to store Slack credentials');
+      toast.error(error instanceof Error ? error.message : 'Failed to store Slack credentials');
     } finally {
       setIsLoading(false);
     }

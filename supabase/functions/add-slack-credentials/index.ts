@@ -22,15 +22,23 @@ serve(async (req) => {
   }
   
   try {
-    const { company_id, client_id, client_secret, redirect_uri } = await req.json();
+    console.log("Processing request to add Slack credentials");
+    const requestBody = await req.json();
+    console.log("Request body received:", JSON.stringify(requestBody));
+    
+    const { company_id, client_id, client_secret, redirect_uri } = requestBody;
     
     if (!company_id) {
+      console.error("Missing company_id in request");
       throw new Error("company_id is required");
     }
     
     if (!client_id || !client_secret || !redirect_uri) {
+      console.error("Missing required credentials in request");
       throw new Error("client_id, client_secret, and redirect_uri are all required");
     }
+    
+    console.log(`Processing credentials for company_id: ${company_id}`);
     
     // Create config items for Slack credentials
     const configItems = [
@@ -56,6 +64,7 @@ serve(async (req) => {
     
     // Insert or update each config item
     for (const item of configItems) {
+      console.log(`Storing config item: ${item.key}`);
       const { error } = await supabase
         .from("config")
         .upsert(item, {
@@ -63,10 +72,12 @@ serve(async (req) => {
         });
         
       if (error) {
+        console.error(`Failed to store config (${item.key}):`, error);
         throw new Error(`Failed to store config (${item.key}): ${error.message}`);
       }
     }
     
+    console.log("Successfully stored all Slack credentials");
     return new Response(
       JSON.stringify({ 
         success: true, 
