@@ -1,101 +1,57 @@
+import React from "react";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/sidebar";
+import { Separator } from "@/components/ui/separator";
+import { SlackIntegrationCard } from "./components/SlackIntegrationCard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import React, { useEffect, useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SlackSetup } from './components/slack-setup';
-import { SlackEmployeeManager } from './components/slack-employee-manager';
-import { SlackMessaging } from './components/slack-messaging';
-import { SlackTemplates } from './components/slack-templates';
-import { SlackConfig } from './types';
-import { Card } from '@/components/ui/card';
-import { getSlackConfig } from './services/slack-service';
-import { useCompany } from '@/contexts/CompanyContext';
-import { Loader2 } from 'lucide-react';
-
-export default function SlackIntegrationPage() {
-  const { currentCompany } = useCompany();
-  const [slackConfig, setSlackConfig] = useState<SlackConfig | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('setup');
-
-  useEffect(() => {
-    if (currentCompany?.id) {
-      loadSlackConfig();
-    }
-  }, [currentCompany?.id]);
-
-  const loadSlackConfig = async () => {
-    setLoading(true);
-    try {
-      if (!currentCompany?.id) return;
-      
-      const config = await getSlackConfig(currentCompany.id);
-      setSlackConfig(config);
-      
-      // If already connected, set active tab to messaging
-      if (config?.slack_workspace_id) {
-        setActiveTab('messaging');
-      }
-    } catch (error) {
-      console.error('Error loading Slack config:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <Card className="w-full p-6 flex justify-center items-center min-h-[300px]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </Card>
-    );
-  }
-
+export default function SlackSettingsPage() {
   return (
-    <div className="container mx-auto py-6">
-      <h1 className="text-3xl font-bold mb-6">Slack Integration</h1>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="setup">Setup</TabsTrigger>
-          <TabsTrigger 
-            value="employees" 
-            disabled={!slackConfig?.slack_workspace_id}
-          >
-            Employees
-          </TabsTrigger>
-          <TabsTrigger 
-            value="messaging" 
-            disabled={!slackConfig?.slack_workspace_id}
-          >
-            Messaging
-          </TabsTrigger>
-          <TabsTrigger 
-            value="templates" 
-            disabled={!slackConfig?.slack_workspace_id}
-          >
-            Templates
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="setup" className="mt-6">
-          <SlackSetup 
-            slackConfig={slackConfig} 
-            onConfigChange={loadSlackConfig} 
-          />
-        </TabsContent>
-        
-        <TabsContent value="employees" className="mt-6">
-          <SlackEmployeeManager />
-        </TabsContent>
-        
-        <TabsContent value="messaging" className="mt-6">
-          <SlackMessaging slackConfig={slackConfig} />
-        </TabsContent>
-        
-        <TabsContent value="templates" className="mt-6">
-          <SlackTemplates />
-        </TabsContent>
-      </Tabs>
+    <div className="min-h-screen flex w-full">
+      <AppSidebar />
+      <SidebarInset className="bg-background">
+        <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="mr-2" />
+            <Separator orientation="vertical" className="h-4" />
+            <span className="font-medium">Settings / Integrations / Slack</span>
+          </div>
+        </header>
+        <div className="container mx-auto p-6">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold">Slack Integration</h1>
+            <p className="text-muted-foreground mt-2">
+              Configure and manage your workspace's integration with Slack
+            </p>
+          </div>
+          
+          <Tabs defaultValue="configuration" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="configuration">Configuration</TabsTrigger>
+              <TabsTrigger value="employee-connections">Employee Connections</TabsTrigger>
+              <TabsTrigger value="messaging">Messaging</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="configuration" className="space-y-4">
+              <SlackIntegrationCard />
+            </TabsContent>
+            
+            <TabsContent value="employee-connections">
+              {/* This will be implemented in the future */}
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Employee connection management will be available soon.</p>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="messaging">
+              {/* This will be implemented in the future */}
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Messaging configuration will be available soon.</p>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </SidebarInset>
     </div>
   );
 }

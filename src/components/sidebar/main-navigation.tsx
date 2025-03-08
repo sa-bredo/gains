@@ -16,7 +16,8 @@ import {
   Settings, 
   Users,
   MapPin,
-  FormInput
+  FormInput,
+  MessageSquare
 } from "lucide-react";
 
 interface MainNavigationProps {
@@ -90,7 +91,12 @@ const defaultNavItems: NavItem[] = [
     items: [
       { title: "Locations", url: "/settings/locations" },
       { title: "Permissions", url: "/settings/permissions" },
-      { title: "Config", url: "/settings/config" }
+      { title: "Config", url: "/settings/config" },
+      { title: "Integrations", url: "/settings/integrations/slack", 
+        items: [
+          { title: "Slack", url: "/settings/integrations/slack" }
+        ] 
+      }
     ]
   }
 ];
@@ -102,7 +108,13 @@ export const MainNavigation: FC<MainNavigationProps> = ({ items = defaultNavItem
   const navItems = items.map(item => {
     // Check if this item or any of its subitems match the current path
     const isActive = location.pathname === item.url || 
-                    (item.items?.some(subItem => location.pathname === subItem.url) || false);
+                    (item.items?.some(subItem => {
+                      // Direct match
+                      if (location.pathname === subItem.url) return true;
+                      // Check nested items
+                      if (subItem.items?.some(nestedItem => location.pathname === nestedItem.url)) return true;
+                      return false;
+                    }) || false);
     
     return {
       ...item,

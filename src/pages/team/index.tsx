@@ -7,7 +7,6 @@ import { AddTeamMemberDialog } from './components/AddTeamMemberDialog';
 import { TeamMembersList } from './components/TeamMembersList';
 import { TeamMembersFilter } from './components/TeamMembersFilter';
 import { TeamMember } from './types';
-import { SlackIntegrationCard } from './components/SlackIntegrationCard';
 import { useCompany } from "@/contexts/CompanyContext";
 import { AppSidebar } from '@/components/sidebar';
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -110,42 +109,35 @@ export default function TeamPage() {
         </Button>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2">
-          <TeamMembersFilter 
-            selectedRole={filterRole}
-            searchTerm={searchTerm}
-            setFilterRole={setFilterRole}
-            setSearchTerm={setSearchTerm}
-          />
-          
-          {isLoading ? (
-            <div className="text-center py-12 flex flex-col items-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-              <p>Loading team members...</p>
-            </div>
-          ) : error ? (
-            <div className="text-center py-12 text-red-500">
-              <p>Error loading team members: {error.message}</p>
-              <Button variant="outline" className="mt-4" onClick={refetchTeamMembers}>
-                Try Again
-              </Button>
-            </div>
-          ) : (
-            <TeamMembersList 
-              teamMembers={filteredTeamMembers}
-              onEdit={handleUpdateTeamMember}
-              onDelete={handleDeleteTeamMember}
-              onTerminate={handleTerminateTeamMember}
-              onRefresh={refetchTeamMembers}
-            />
-          )}
-        </div>
+      <div>
+        <TeamMembersFilter 
+          selectedRole={filterRole}
+          searchTerm={searchTerm}
+          setFilterRole={setFilterRole}
+          setSearchTerm={setSearchTerm}
+        />
         
-        <div className="space-y-6">
-          <SlackIntegrationCard isAdmin={true} />
-          {/* Add more cards here as needed */}
-        </div>
+        {isLoading ? (
+          <div className="text-center py-12 flex flex-col items-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+            <p>Loading team members...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12 text-red-500">
+            <p>Error loading team members: {error.message}</p>
+            <Button variant="outline" className="mt-4" onClick={refetchTeamMembers}>
+              Try Again
+            </Button>
+          </div>
+        ) : (
+          <TeamMembersList 
+            teamMembers={filteredTeamMembers}
+            onEdit={handleUpdateTeamMember}
+            onDelete={handleDeleteTeamMember}
+            onTerminate={handleTerminateTeamMember}
+            onRefresh={refetchTeamMembers}
+          />
+        )}
       </div>
       
       <AddTeamMemberDialog 
