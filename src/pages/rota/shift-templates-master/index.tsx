@@ -35,7 +35,6 @@ export default function ShiftTemplatesMasterPage() {
       
       console.log('Fetching data for company:', currentCompany.id);
       
-      // Fetch both locations and template masters
       const [locationsData, templateMastersData] = await Promise.all([
         shiftService.fetchLocations(),
         fetchShiftTemplateVersions()
@@ -67,7 +66,6 @@ export default function ShiftTemplatesMasterPage() {
       
       console.log('Fetching shift templates for company:', currentCompany.id);
       
-      // First get locations for this company
       const { data: locationsData, error: locationsError } = await supabase
         .from('locations')
         .select('id, name')
@@ -87,7 +85,6 @@ export default function ShiftTemplatesMasterPage() {
       const locationIds = locationsData.map(loc => loc.id);
       console.log('Location IDs:', locationIds);
       
-      // Then get templates for these locations
       const { data, error } = await supabase
         .from('shift_templates')
         .select(`
@@ -107,14 +104,12 @@ export default function ShiftTemplatesMasterPage() {
       
       console.log('Raw templates found:', data?.length || 0, data);
       
-      // Only process templates that belong to the current company
       const filteredData = data?.filter(template => 
         template.locations?.company_id === currentCompany.id
       );
       
       console.log('Filtered templates:', filteredData?.length || 0);
       
-      // Group templates by location and version
       const uniqueTemplates = new Map<string, ShiftTemplateMaster>();
       
       filteredData?.forEach(template => {
@@ -171,7 +166,6 @@ export default function ShiftTemplatesMasterPage() {
 
   const handleCloneTemplates = async (sourceLocationId: string, targetLocationId: string, version: number) => {
     try {
-      // Get the latest version for the target location
       const { data: versionData, error: versionError } = await supabase
         .from('shift_templates')
         .select('version')
@@ -185,7 +179,6 @@ export default function ShiftTemplatesMasterPage() {
         ? versionData[0].version + 1 
         : 1;
         
-      // Get all templates for the source location and version
       const { data: templatesData, error: templatesError } = await supabase
         .from('shift_templates')
         .select('*')
@@ -197,12 +190,9 @@ export default function ShiftTemplatesMasterPage() {
       if (templatesData && templatesData.length > 0) {
         console.log('Cloning templates from location', sourceLocationId, 'to location', targetLocationId, 'from version', version, 'to version', newVersion);
         
-        // Create new templates but without the id field and update location
         const newTemplates = templatesData.map(template => {
-          // Destructure to remove the id field
           const { id, ...templateWithoutId } = template;
           
-          // Return a new object with the updated location and version
           return {
             ...templateWithoutId,
             location_id: targetLocationId,
@@ -240,6 +230,37 @@ export default function ShiftTemplatesMasterPage() {
       toast({
         title: "Failed to clone templates",
         description: "There was a problem cloning the templates.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteTemplate = async (locationId: string, version: number) => {
+    try {
+      console.log('Deleting template version', version, 'for location', locationId);
+      
+      const { error: deleteError } = await supabase
+        .from('shift_templates')
+        .delete()
+        .eq('location_id', locationId)
+        .eq('version', version);
+        
+      if (deleteError) {
+        console.error('Error deleting templates:', deleteError);
+        throw deleteError;
+      }
+      
+      toast({
+        title: "Templates deleted successfully",
+        description: `Removed version ${version} for ${locations.find(l => l.id === locationId)?.name || 'location'}`,
+      });
+      
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting template version:', error);
+      toast({
+        title: "Failed to delete templates",
+        description: "There was a problem deleting the templates.",
         variant: "destructive",
       });
     }
@@ -283,6 +304,7 @@ export default function ShiftTemplatesMasterPage() {
             isLoading={isLoading}
             onViewTemplates={handleViewTemplates}
             onCloneTemplates={handleCloneTemplates}
+            onDeleteTemplate={handleDeleteTemplate}
           />
           
           <NewTemplateVersionDialog 

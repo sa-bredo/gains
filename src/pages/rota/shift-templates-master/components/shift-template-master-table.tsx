@@ -1,71 +1,65 @@
 
 import React, { useState } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
-import { Copy, Edit, MapPin } from 'lucide-react';
-import { ShiftTemplateMaster } from '../../shift-templates/types';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Eye, Copy, Trash } from 'lucide-react';
+import { ShiftTemplateMaster, Location } from '../../shift-templates/types';
+import { format } from 'date-fns';
 import { CloneTemplateVersionDialog } from './clone-template-version-dialog';
+import { DeleteTemplateMasterDialog } from './delete-template-master-dialog';
 
 interface ShiftTemplateMasterTableProps {
   templateMasters: ShiftTemplateMaster[];
+  locations: Location[];
   isLoading: boolean;
-  locations: { id: string; name: string }[];
   onViewTemplates: (locationId: string, version: number) => void;
-  onCloneTemplates: (sourceLocationId: string, targetLocationId: string, version: number) => Promise<void>;
+  onCloneTemplates: (sourceLocationId: string, targetLocationId: string, version: number) => void;
+  onDeleteTemplate?: (locationId: string, version: number) => Promise<void>;
 }
 
 export function ShiftTemplateMasterTable({
   templateMasters,
-  isLoading,
   locations,
+  isLoading,
   onViewTemplates,
   onCloneTemplates,
+  onDeleteTemplate
 }: ShiftTemplateMasterTableProps) {
-  const [cloneTemplate, setCloneTemplate] = useState<{locationId: string, version: number} | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<ShiftTemplateMaster | null>(null);
+  const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
+  const handleCloneClick = (template: ShiftTemplateMaster) => {
+    setSelectedTemplate(template);
+    setIsCloneDialogOpen(true);
+  };
+  
+  const handleDeleteClick = (template: ShiftTemplateMaster) => {
+    setSelectedTemplate(template);
+    setIsDeleteDialogOpen(true);
+  };
+  
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-full" />
+      <div className="flex justify-center items-center h-40">
+        <p className="text-muted-foreground">Loading templates...</p>
       </div>
     );
   }
 
   if (templateMasters.length === 0) {
     return (
-      <div className="text-center py-8">
-        <h3 className="text-lg font-medium">No shift templates yet</h3>
-        <p className="text-muted-foreground mt-1">
-          Create your first shift template to get started.
+      <div className="bg-muted/50 p-8 rounded-md flex justify-center items-center">
+        <p className="text-muted-foreground text-center">
+          No shift templates found. Click "New Shift Template" to create your first template.
         </p>
       </div>
     );
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
   return (
     <>
       <Table>
-        <TableCaption>List of all shift template masters.</TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead>Location</TableHead>
@@ -75,53 +69,71 @@ export function ShiftTemplateMasterTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {templateMasters.map((master) => (
-            <TableRow key={`${master.location_id}-${master.version}`}>
+          {templateMasters.map((template) => (
+            <TableRow key={`${template.location_id}-${template.version}`}>
+              <TableCell className="font-medium">{template.location_name}</TableCell>
+              <TableCell>{template.version}</TableCell>
               <TableCell>
-                <div className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  {master.location_name}
-                </div>
+                {template.created_at && format(new Date(template.created_at), 'MMM d, yyyy')}
               </TableCell>
-              <TableCell>{master.version}</TableCell>
-              <TableCell>{formatDate(master.created_at)}</TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end space-x-2">
+              <TableCell className="flex justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onViewTemplates(template.location_id, template.version)}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  View
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleCloneClick(template)}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Clone
+                </Button>
+                {onDeleteTemplate && (
                   <Button
-                    variant="outline"
                     size="sm"
-                    onClick={() => onViewTemplates(master.location_id, master.version)}
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    View & Edit
-                  </Button>
-                  <Button
                     variant="outline"
-                    size="sm"
-                    onClick={() => setCloneTemplate({ 
-                      locationId: master.location_id, 
-                      version: master.version 
-                    })}
+                    className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={() => handleDeleteClick(template)}
                   >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Clone
+                    <Trash className="h-4 w-4 mr-2" />
+                    Delete
                   </Button>
-                </div>
+                )}
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
-
-      {cloneTemplate && (
-        <CloneTemplateVersionDialog
-          open={!!cloneTemplate}
-          onOpenChange={(open) => !open && setCloneTemplate(null)}
-          onConfirm={onCloneTemplates}
-          locations={locations}
-          sourceLocationId={cloneTemplate.locationId}
-          sourceVersion={cloneTemplate.version}
-        />
+      
+      {selectedTemplate && (
+        <>
+          <CloneTemplateVersionDialog 
+            open={isCloneDialogOpen} 
+            onOpenChange={setIsCloneDialogOpen}
+            sourceLocationId={selectedTemplate.location_id}
+            sourceLocationName={selectedTemplate.location_name}
+            sourceVersion={selectedTemplate.version}
+            targetLocations={locations.filter(loc => loc.id !== selectedTemplate.location_id)}
+            onClone={(targetLocationId) => {
+              onCloneTemplates(selectedTemplate.location_id, targetLocationId, selectedTemplate.version);
+              setIsCloneDialogOpen(false);
+            }}
+          />
+          
+          {onDeleteTemplate && (
+            <DeleteTemplateMasterDialog
+              open={isDeleteDialogOpen}
+              onOpenChange={setIsDeleteDialogOpen}
+              templateMaster={selectedTemplate}
+              onDelete={onDeleteTemplate}
+            />
+          )}
+        </>
       )}
     </>
   );

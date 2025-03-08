@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/sidebar";
+import { Separator } from "@/components/ui/separator";
 import { Button } from '@/components/ui/button';
-import { PlusIcon, ArrowLeft } from 'lucide-react';
+import { ChevronLeft, PlusIcon, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
+import { ShiftTemplate, Location } from './types';
 import { ShiftTemplatesTable } from './components/shift-templates-table';
 import { AddShiftTemplateDialog } from './components/add-shift-template-dialog';
-import { ShiftTemplate, Location, StaffMember, ShiftTemplateFormValues } from './types';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { EditShiftTemplateDialog } from './components/edit-shift-template-dialog';
+import { DeleteShiftTemplateDialog } from './components/delete-shift-template-dialog';
+import { CloneShiftTemplateDialog } from './components/clone-shift-template-dialog';
+import { useCompany } from "@/contexts/CompanyContext";
 
 export default function ShiftTemplatesPage() {
   const { toast } = useToast();
@@ -29,7 +29,7 @@ export default function ShiftTemplatesPage() {
   
   const [shiftTemplates, setShiftTemplates] = useState<ShiftTemplate[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
-  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
+  const [staffMembers, setStaffMembers] = useState<ShiftMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -273,13 +273,11 @@ export default function ShiftTemplatesPage() {
     try {
       setIsUpdating(true);
       
-      // Create a new cloned template object without the id field
-      // This will let Supabase generate a new id automatically
       const { id, ...templateWithoutId } = template;
       
       const clonedTemplate = {
         ...templateWithoutId,
-        location_id: newLocationId, // Use the new location ID
+        location_id: newLocationId,
         name: `Copy of ${template.name || ''}`.trim() || `Copy of ${template.day_of_week} ${template.start_time}-${template.end_time}`,
       };
       
@@ -325,55 +323,67 @@ export default function ShiftTemplatesPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={handleBackToMaster}
-            className="mr-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-3xl font-bold">{getPageTitle()}</h1>
-        </div>
-        <Button 
-          onClick={() => setIsDialogOpen(true)}
-          className="flex items-center gap-2"
-          disabled={isUpdating || locations.length === 0 || !selectedLocationId || !selectedVersion}
-        >
-          <PlusIcon className="h-4 w-4" />
-          Add Shift Template
-        </Button>
-      </div>
+    <div className="min-h-screen flex w-full">
+      <AppSidebar />
+      <SidebarInset className="bg-background">
+        <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="mr-2" />
+            <Separator orientation="vertical" className="h-4" />
+            <span className="font-medium">Rota / Shift Templates</span>
+          </div>
+        </header>
+        <div className="container mx-auto p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handleBackToMaster}
+                className="mr-2"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <h1 className="text-3xl font-bold">{getPageTitle()}</h1>
+            </div>
+            <Button 
+              onClick={() => setIsDialogOpen(true)}
+              className="flex items-center gap-2"
+              disabled={isUpdating || locations.length === 0 || !selectedLocationId || !selectedVersion}
+            >
+              <PlusIcon className="h-4 w-4" />
+              Add Shift Template
+            </Button>
+          </div>
 
-      {locations.length === 0 && !isLoading && (
-        <div className="bg-muted/50 p-4 rounded-md mb-6">
-          <p className="text-sm">
-            You need to add locations before creating shift templates. Go to Settings &gt; Locations to add them.
-          </p>
+          {locations.length === 0 && !isLoading && (
+            <div className="bg-muted/50 p-4 rounded-md mb-6">
+              <p className="text-sm">
+                You need to add locations before creating shift templates. Go to Settings &gt; Locations to add them.
+              </p>
+            </div>
+          )}
+          
+          <ShiftTemplatesTable 
+            templates={shiftTemplates}
+            locations={locations}
+            staffMembers={staffMembers as any}
+            isLoading={isLoading || isUpdating}
+            onUpdate={updateShiftTemplate}
+            onDelete={deleteShiftTemplate}
+            onClone={cloneShiftTemplate}
+            selectedLocationId={selectedLocationId}
+          />
+          
+          <AddShiftTemplateDialog 
+            open={isDialogOpen}
+            onOpenChange={setIsDialogOpen}
+            onAdd={addShiftTemplate}
+            locations={locations}
+            selectedLocationId={selectedLocationId}
+          />
         </div>
-      )}
-      
-      <ShiftTemplatesTable 
-        templates={shiftTemplates}
-        locations={locations}
-        staffMembers={staffMembers as any}
-        isLoading={isLoading || isUpdating}
-        onUpdate={updateShiftTemplate}
-        onDelete={deleteShiftTemplate}
-        onClone={cloneShiftTemplate}
-        selectedLocationId={selectedLocationId}
-      />
-      
-      <AddShiftTemplateDialog 
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        onAdd={addShiftTemplate}
-        locations={locations}
-        selectedLocationId={selectedLocationId}
-      />
+      </SidebarInset>
     </div>
   );
 }

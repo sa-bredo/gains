@@ -1,3 +1,4 @@
+
 import { FC } from "react";
 import { useLocation } from "react-router-dom";
 import {
@@ -68,11 +69,9 @@ const defaultNavItems: NavItem[] = [
   {
     title: "Rota",
     icon: CalendarDays,
-    url: "/rota",
+    url: "/rota/shifts",
     items: [
-      { title: "Overview", url: "/rota" },
       { title: "Shifts", url: "/rota/shifts" },
-      { title: "Shift Templates", url: "/rota/shift-templates" },
       { title: "Shift Templates Master", url: "/rota/shift-templates-master" }
     ]
   },
