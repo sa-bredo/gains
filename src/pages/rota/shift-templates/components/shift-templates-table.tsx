@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -15,6 +14,7 @@ import { ShiftTemplate } from '../types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EditShiftTemplateDialog } from './edit-shift-template-dialog';
 import { DeleteShiftTemplateDialog } from './delete-shift-template-dialog';
+import { CloneShiftTemplateDialog } from './clone-shift-template-dialog';
 import { useTeamMembers } from '@/pages/team/hooks/useTeamMembers';
 import { TeamMember } from '@/pages/team/types';
 
@@ -25,7 +25,7 @@ interface ShiftTemplatesTableProps {
   staffMembers?: TeamMember[];
   onUpdate: (id: string, data: Partial<ShiftTemplate>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-  onClone?: (template: ShiftTemplate) => Promise<void>;
+  onClone?: (template: ShiftTemplate, newLocationId: string) => Promise<void>;
   selectedLocationId?: string;
 }
 
@@ -41,6 +41,7 @@ export function ShiftTemplatesTable({
 }: ShiftTemplatesTableProps) {
   const [editTemplate, setEditTemplate] = useState<ShiftTemplate | null>(null);
   const [deleteTemplate, setDeleteTemplate] = useState<ShiftTemplate | null>(null);
+  const [cloneTemplate, setCloneTemplate] = useState<ShiftTemplate | null>(null);
   const [activeStaff, setActiveStaff] = useState<TeamMember[]>([]);
   const { fetchActiveStaff } = useTeamMembers();
   
@@ -64,7 +65,6 @@ export function ShiftTemplatesTable({
   const getEmployeeName = (employeeId: string | null) => {
     if (!employeeId) return 'Unassigned';
     
-    // Use staffMembers prop if provided, otherwise use activeStaff
     const allStaff = staffMembers?.length ? staffMembers : activeStaff;
     const employee = allStaff.find(emp => emp.id === employeeId);
     
@@ -90,9 +90,9 @@ export function ShiftTemplatesTable({
     setDeleteTemplate(null);
   };
 
-  const handleClone = async (template: ShiftTemplate) => {
+  const handleClone = async (template: ShiftTemplate, newLocationId: string) => {
     if (onClone) {
-      await onClone(template);
+      await onClone(template, newLocationId);
     }
   };
 
@@ -116,8 +116,6 @@ export function ShiftTemplatesTable({
       </div>
     );
   }
-
-  // We don't need to sort the templates here since they're already sorted by the parent component
 
   return (
     <>
@@ -176,7 +174,7 @@ export function ShiftTemplatesTable({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleClone(template)}
+                      onClick={() => setCloneTemplate(template)}
                       title="Clone template"
                     >
                       <Copy className="h-4 w-4" />
@@ -206,6 +204,17 @@ export function ShiftTemplatesTable({
           onOpenChange={(open) => !open && setDeleteTemplate(null)}
           onDelete={() => handleDelete(deleteTemplate.id)}
           template={deleteTemplate}
+        />
+      )}
+
+      {cloneTemplate && onClone && (
+        <CloneShiftTemplateDialog
+          open={!!cloneTemplate}
+          onOpenChange={(open) => !open && setCloneTemplate(null)}
+          onClone={handleClone}
+          template={cloneTemplate}
+          locations={locations}
+          currentLocationId={selectedLocationId || cloneTemplate.location_id}
         />
       )}
     </>

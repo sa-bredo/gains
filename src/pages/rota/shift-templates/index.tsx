@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -270,7 +269,7 @@ export default function ShiftTemplatesPage() {
     }
   };
 
-  const cloneShiftTemplate = async (template: ShiftTemplate) => {
+  const cloneShiftTemplate = async (template: ShiftTemplate, newLocationId: string) => {
     try {
       setIsUpdating(true);
       
@@ -280,6 +279,7 @@ export default function ShiftTemplatesPage() {
       
       const clonedTemplate = {
         ...templateWithoutId,
+        location_id: newLocationId, // Use the new location ID
         name: `Copy of ${template.name || ''}`.trim() || `Copy of ${template.day_of_week} ${template.start_time}-${template.end_time}`,
       };
       

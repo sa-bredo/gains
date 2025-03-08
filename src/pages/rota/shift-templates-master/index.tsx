@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -170,12 +169,13 @@ export default function ShiftTemplatesMasterPage() {
     navigate(`/rota/shift-templates?location=${locationId}&version=${newVersion}&new=true`);
   };
 
-  const handleCloneTemplates = async (locationId: string, version: number) => {
+  const handleCloneTemplates = async (sourceLocationId: string, targetLocationId: string, version: number) => {
     try {
+      // Get the latest version for the target location
       const { data: versionData, error: versionError } = await supabase
         .from('shift_templates')
         .select('version')
-        .eq('location_id', locationId)
+        .eq('location_id', targetLocationId)
         .order('version', { ascending: false })
         .limit(1);
       
@@ -185,25 +185,27 @@ export default function ShiftTemplatesMasterPage() {
         ? versionData[0].version + 1 
         : 1;
         
+      // Get all templates for the source location and version
       const { data: templatesData, error: templatesError } = await supabase
         .from('shift_templates')
         .select('*')
-        .eq('location_id', locationId)
+        .eq('location_id', sourceLocationId)
         .eq('version', version);
         
       if (templatesError) throw templatesError;
       
       if (templatesData && templatesData.length > 0) {
-        console.log('Cloning templates for location', locationId, 'from version', version, 'to version', newVersion);
+        console.log('Cloning templates from location', sourceLocationId, 'to location', targetLocationId, 'from version', version, 'to version', newVersion);
         
-        // Create new templates but without the id field
+        // Create new templates but without the id field and update location
         const newTemplates = templatesData.map(template => {
           // Destructure to remove the id field
           const { id, ...templateWithoutId } = template;
           
-          // Return a new object with the updated version
+          // Return a new object with the updated location and version
           return {
             ...templateWithoutId,
+            location_id: targetLocationId,
             version: newVersion,
             created_at: new Date().toISOString()
           };
@@ -222,7 +224,7 @@ export default function ShiftTemplatesMasterPage() {
         
         toast({
           title: "Templates cloned successfully",
-          description: `Created version ${newVersion} based on version ${version}`,
+          description: `Created version ${newVersion} for ${locations.find(l => l.id === targetLocationId)?.name || 'new location'}`,
         });
         
         fetchData();
@@ -277,6 +279,7 @@ export default function ShiftTemplatesMasterPage() {
           
           <ShiftTemplateMasterTable 
             templateMasters={templateMasters}
+            locations={locations}
             isLoading={isLoading}
             onViewTemplates={handleViewTemplates}
             onCloneTemplates={handleCloneTemplates}

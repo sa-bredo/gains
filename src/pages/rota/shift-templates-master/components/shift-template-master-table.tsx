@@ -1,171 +1,128 @@
 
 import React, { useState } from 'react';
-import { ShiftTemplateMaster } from '../../shift-templates/types';
-import { Button } from '@/components/ui/button';
-import { Edit, Copy, CalendarPlus } from 'lucide-react';
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { formatDistanceToNow } from 'date-fns';
-import { AddShiftDialog } from '../../shifts/components/add-shift-dialog';
+import { Button } from '@/components/ui/button';
+import { Copy, Edit, MapPin } from 'lucide-react';
+import { ShiftTemplateMaster } from '../../shift-templates/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CloneTemplateVersionDialog } from './clone-template-version-dialog';
 
 interface ShiftTemplateMasterTableProps {
   templateMasters: ShiftTemplateMaster[];
   isLoading: boolean;
+  locations: { id: string; name: string }[];
   onViewTemplates: (locationId: string, version: number) => void;
-  onCloneTemplates: (locationId: string, version: number) => void;
+  onCloneTemplates: (sourceLocationId: string, targetLocationId: string, version: number) => Promise<void>;
 }
 
-export function ShiftTemplateMasterTable({ 
-  templateMasters, 
-  isLoading, 
+export function ShiftTemplateMasterTable({
+  templateMasters,
+  isLoading,
+  locations,
   onViewTemplates,
-  onCloneTemplates
+  onCloneTemplates,
 }: ShiftTemplateMasterTableProps) {
-  const [addShiftDialogOpen, setAddShiftDialogOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<{locationId: string, version: number} | null>(null);
+  const [cloneTemplate, setCloneTemplate] = useState<{locationId: string, version: number} | null>(null);
 
-  // Format the date for display
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return formatDistanceToNow(date, { addSuffix: true });
-    } catch (error) {
-      console.error('Error formatting date:', error, dateString);
-      return dateString;
-    }
-  };
-
-  // Handle opening the add shift dialog with prefilled location and version
-  const handleAddShift = (locationId: string, version: number) => {
-    console.log('Opening add shift dialog for:', { locationId, version });
-    setSelectedTemplate({ locationId, version });
-    setAddShiftDialogOpen(true);
-  };
-
-  console.log('ShiftTemplateMasterTable - templateMasters:', templateMasters.length);
-  
-  // Debug individual items if any exist
-  if (templateMasters.length > 0) {
-    console.log('First template master:', templateMasters[0]);
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-full" />
+      </div>
+    );
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Location</TableHead>
-              <TableHead>Version</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="w-[180px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : templateMasters.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
-                  No shift templates found. Create a new template to get started.
-                </TableCell>
-              </TableRow>
-            ) : (
-              templateMasters.map((master) => (
-                <TableRow key={`${master.location_id}-${master.version}`}>
-                  <TableCell>{master.location_name}</TableCell>
-                  <TableCell>v{master.version}</TableCell>
-                  <TableCell>{formatDate(master.created_at)}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-1">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => onViewTemplates(master.location_id, master.version)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Edit Templates</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => onCloneTemplates(master.location_id, master.version)}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Clone Templates</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleAddShift(master.location_id, master.version)}
-                            >
-                              <CalendarPlus className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Add Shifts</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+  if (templateMasters.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <h3 className="text-lg font-medium">No shift templates yet</h3>
+        <p className="text-muted-foreground mt-1">
+          Create your first shift template to get started.
+        </p>
       </div>
+    );
+  }
 
-      {/* Add Shift Dialog with prefilled values */}
-      {selectedTemplate && (
-        <AddShiftDialog
-          open={addShiftDialogOpen}
-          onOpenChange={setAddShiftDialogOpen}
-          defaultLocationId={selectedTemplate.locationId}
-          defaultVersion={selectedTemplate.version}
-          onAddComplete={() => {
-            console.log('AddShiftDialog completed');
-            setAddShiftDialogOpen(false);
-          }}
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  return (
+    <>
+      <Table>
+        <TableCaption>List of all shift template masters.</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Location</TableHead>
+            <TableHead>Version</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {templateMasters.map((master) => (
+            <TableRow key={`${master.location_id}-${master.version}`}>
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  {master.location_name}
+                </div>
+              </TableCell>
+              <TableCell>{master.version}</TableCell>
+              <TableCell>{formatDate(master.created_at)}</TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onViewTemplates(master.location_id, master.version)}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    View & Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCloneTemplate({ 
+                      locationId: master.location_id, 
+                      version: master.version 
+                    })}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Clone
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      {cloneTemplate && (
+        <CloneTemplateVersionDialog
+          open={!!cloneTemplate}
+          onOpenChange={(open) => !open && setCloneTemplate(null)}
+          onConfirm={onCloneTemplates}
+          locations={locations}
+          sourceLocationId={cloneTemplate.locationId}
+          sourceVersion={cloneTemplate.version}
         />
       )}
-    </div>
+    </>
   );
 }
