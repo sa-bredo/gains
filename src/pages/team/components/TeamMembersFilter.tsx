@@ -21,14 +21,14 @@ export function TeamMembersFilter({
     <div className="flex flex-col md:flex-row gap-4 mb-6">
       <div className="w-full md:w-1/3">
         <Select
-          value={selectedRole || ""}
-          onValueChange={(value) => setFilterRole(value === "" ? null : value)}
+          value={selectedRole || "all-roles"}
+          onValueChange={(value) => setFilterRole(value === "all-roles" ? null : value)}
         >
           <SelectTrigger>
             <SelectValue placeholder="Filter by role" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Roles</SelectItem>
+            <SelectItem value="all-roles">All Roles</SelectItem>
             {ROLE_OPTIONS.map((role) => (
               <SelectItem key={role.value} value={role.value}>
                 {role.label}

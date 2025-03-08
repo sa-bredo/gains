@@ -21,7 +21,7 @@ export function RoleField({ form }: RoleFieldProps) {
           <FormLabel>Role</FormLabel>
           <Select 
             onValueChange={field.onChange} 
-            defaultValue={field.value}
+            defaultValue={field.value || undefined}
           >
             <FormControl>
               <SelectTrigger>
