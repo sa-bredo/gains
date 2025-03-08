@@ -1,220 +1,125 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/sidebar";
-import { Separator } from "@/components/ui/separator";
-import { Button } from '@/components/ui/button';
-import { PlusIcon } from 'lucide-react';
-import { TeamMembersList } from './components/TeamMembersList';
-import { AddTeamMemberDialog } from './components/AddTeamMemberDialog';
+
+import React, { useState } from 'react';
 import { useTeamMembers } from './hooks/useTeamMembers';
-import { TeamMember } from './types';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import { AddTeamMemberDialog } from './components/AddTeamMemberDialog';
+import { TeamMembersList } from './components/TeamMembersList';
 import { TeamMembersFilter } from './components/TeamMembersFilter';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { TeamMember } from './types';
+import { SlackIntegrationCard } from './components/SlackIntegrationCard';
 
 export default function TeamPage() {
-  const { user, isAuthenticated } = useAuth();
-  const { toast } = useToast();
-  
   const { 
     teamMembers, 
     isLoading, 
     error, 
-    refetchTeamMembers,
-    addTeamMember,
-    updateTeamMember,
-    deleteTeamMember,
-    terminateTeamMember
+    addTeamMember, 
+    updateTeamMember, 
+    deleteTeamMember, 
+    terminateTeamMember,
+    refetchTeamMembers 
   } = useTeamMembers();
   
-  useEffect(() => {
-    refetchTeamMembers().catch(error => {
-      console.error("Failed to fetch team members:", error);
-      toast({
-        title: "Error loading team data",
-        description: "There was a problem loading the team data. Please try again.",
-        variant: "destructive",
-      });
-    });
-  }, [refetchTeamMembers, toast]);
-
-  const [addDialogOpen, setAddDialogOpen] = React.useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
-  const [isUpdating, setIsUpdating] = useState(false);
-
-  const currentDate = new Date().toISOString().split('T')[0];
-
-  const processedTeamMembers = useMemo(() => {
-    return teamMembers.map(member => ({
-      ...member,
-      isTerminated: member.end_job_date && member.end_job_date <= currentDate
-    }));
-  }, [teamMembers, currentDate]);
-
-  const filteredTeamMembers = useMemo(() => {
-    return processedTeamMembers.filter(member => {
-      const searchMatch = searchQuery.trim() === '' || 
-        member.first_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        member.last_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        member.email.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const roleMatch = selectedRoles.length === 0 || selectedRoles.includes(member.role);
-      
-      return searchMatch && roleMatch;
-    });
-  }, [processedTeamMembers, searchQuery, selectedRoles]);
-
-  const safeRefetch = useCallback(async () => {
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [filterRole, setFilterRole] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  const handleAddTeamMember = async (data: any) => {
     try {
-      setIsUpdating(true);
-      await refetchTeamMembers();
-    } catch (error) {
-      console.error("Error refetching team members:", error);
-      toast({
-        title: "Refresh failed",
-        description: "There was a problem refreshing the team data.",
-        variant: "destructive",
-      });
-    } finally {
-      setTimeout(() => {
-        setIsUpdating(false);
-      }, 1000);
-    }
-  }, [refetchTeamMembers, toast]);
-
-  const handleUpdateMember = async (id: string, data: Partial<TeamMember>) => {
-    try {
-      setIsUpdating(true);
-      await updateTeamMember(id, data);
-      await refetchTeamMembers();
-      toast({
-        title: "Team member updated",
-        description: "The team member has been successfully updated.",
-      });
-    } catch (error) {
-      console.error('Error updating team member:', error);
-      toast({
-        title: "Update failed",
-        description: "There was a problem updating this team member.",
-        variant: "destructive",
-      });
-    } finally {
-      setTimeout(() => {
-        setIsUpdating(false);
-      }, 1000);
+      await addTeamMember(data);
+      setShowAddDialog(false);
+      refetchTeamMembers();
+    } catch (err) {
+      console.error('Error adding team member:', err);
     }
   };
-
-  const handleDeleteMember = async (id: string) => {
+  
+  const handleUpdateTeamMember = async (id: string, updates: Partial<TeamMember>) => {
     try {
-      setIsUpdating(true);
+      await updateTeamMember(id, updates);
+      refetchTeamMembers();
+    } catch (err) {
+      console.error('Error updating team member:', err);
+    }
+  };
+  
+  const handleDeleteTeamMember = async (id: string) => {
+    try {
       await deleteTeamMember(id);
-      await refetchTeamMembers();
-      toast({
-        title: "Team member deleted",
-        description: "The team member has been successfully removed.",
-      });
-    } catch (error) {
-      console.error('Error deleting team member:', error);
-      toast({
-        title: "Delete failed",
-        description: "There was a problem deleting this team member.",
-        variant: "destructive",
-      });
-    } finally {
-      setTimeout(() => {
-        setIsUpdating(false);
-      }, 1000);
+      refetchTeamMembers();
+    } catch (err) {
+      console.error('Error deleting team member:', err);
     }
   };
-
-  const handleTerminateMember = async (id: string, endDate: string) => {
+  
+  const handleTerminateTeamMember = async (id: string, endDate: string) => {
     try {
-      setIsUpdating(true);
       await terminateTeamMember(id, endDate);
-      await refetchTeamMembers();
-      toast({
-        title: "Employment terminated",
-        description: "The team member's employment has been terminated.",
-      });
-    } catch (error) {
-      console.error('Error terminating team member:', error);
-      toast({
-        title: "Termination failed",
-        description: "There was a problem terminating this team member's employment.",
-        variant: "destructive",
-      });
-    } finally {
-      setTimeout(() => {
-        setIsUpdating(false);
-      }, 1000);
+      refetchTeamMembers();
+    } catch (err) {
+      console.error('Error terminating team member:', err);
     }
   };
-
-  const handleAddMemberSuccess = async () => {
-    await safeRefetch();
-    setAddDialogOpen(false);
-    toast({
-      title: "Team member added",
-      description: "The new team member has been successfully added.",
-    });
-  };
-
+  
+  const filteredTeamMembers = teamMembers.filter((member) => {
+    const matchesRole = !filterRole || member.role === filterRole;
+    const matchesSearch = !searchTerm || 
+      member.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.email.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesRole && matchesSearch;
+  });
+  
   return (
-    <div className="min-h-screen flex w-full">
-      <AppSidebar />
-      <SidebarInset className="bg-background">
-        <header className="flex h-16 shrink-0 items-center border-b border-border/50 px-4 transition-all ease-in-out">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="mr-2" />
-            <Separator orientation="vertical" className="h-4" />
-            <span className="font-medium">Team Management</span>
-          </div>
-        </header>
-        <div className="container mx-auto p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold">Team Management</h1>
-            <Button 
-              onClick={() => setAddDialogOpen(true)} 
-              className="flex items-center gap-2"
-              disabled={isUpdating}
-            >
-              <PlusIcon className="h-4 w-4" />
-              Add Team Member
-            </Button>
-          </div>
-
-          {error && (
-            <div className="bg-destructive/15 text-destructive p-4 rounded-md mb-6">
-              Error loading team members: {error.message}
-            </div>
-          )}
-
+    <div className="container mx-auto py-6 space-y-8">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Team Members</h1>
+        <Button onClick={() => setShowAddDialog(true)}>
+          <Plus className="h-4 w-4 mr-2" /> Add Team Member
+        </Button>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
           <TeamMembersFilter 
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            selectedRoles={selectedRoles}
-            setSelectedRoles={setSelectedRoles}
+            onRoleFilterChange={setFilterRole} 
+            onSearchChange={setSearchTerm}
+            selectedRole={filterRole}
+            searchTerm={searchTerm}
           />
-
-          <TeamMembersList 
-            teamMembers={filteredTeamMembers} 
-            isLoading={isLoading || isUpdating} 
-            onUpdate={handleUpdateMember}
-            onDelete={handleDeleteMember}
-            onTerminate={handleTerminateMember}
-            refetchTeamMembers={safeRefetch}
-          />
-
-          <AddTeamMemberDialog 
-            open={addDialogOpen} 
-            onOpenChange={setAddDialogOpen} 
-            onAdd={addTeamMember}
-            onSuccess={handleAddMemberSuccess}
-          />
+          
+          {isLoading ? (
+            <div className="text-center py-12">
+              <p>Loading team members...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12 text-red-500">
+              <p>Error loading team members: {error.message}</p>
+            </div>
+          ) : (
+            <TeamMembersList 
+              teamMembers={filteredTeamMembers}
+              onEdit={handleUpdateTeamMember}
+              onDelete={handleDeleteTeamMember}
+              onTerminate={handleTerminateTeamMember}
+              onRefresh={refetchTeamMembers}
+            />
+          )}
         </div>
-      </SidebarInset>
+        
+        <div className="space-y-6">
+          <SlackIntegrationCard isAdmin={true} />
+          {/* Add more cards here as needed */}
+        </div>
+      </div>
+      
+      <AddTeamMemberDialog 
+        open={showAddDialog} 
+        onOpenChange={setShowAddDialog} 
+        onSubmit={handleAddTeamMember}
+      />
     </div>
   );
 }

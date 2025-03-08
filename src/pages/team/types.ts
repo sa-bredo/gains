@@ -1,4 +1,3 @@
-
 export interface TeamMember {
   id: string;
   first_name: string;
@@ -20,6 +19,15 @@ export interface TeamMember {
   contract_signed?: boolean;
   contract_url?: string;
   insurance_url?: string;
+  integrations?: {
+    slack?: {
+      slack_user_id: string;
+      slack_username: string;
+      slack_email: string;
+      slack_connected: boolean;
+      slack_connected_at: string;
+    }
+  };
 }
 
 export interface TeamMemberFormValues {
@@ -42,7 +50,6 @@ export interface ApiError {
   details?: any;
 }
 
-// Updated ROLE_OPTIONS to match the new roles
 export const ROLE_OPTIONS = [
   { value: 'admin', label: 'Admin' },
   { value: 'manager', label: 'Manager' },
@@ -51,7 +58,6 @@ export const ROLE_OPTIONS = [
   { value: 'instructor', label: 'Instructor' }
 ];
 
-// Helper function for formatting dates
 export const formatDate = (dateString: string): string => {
   if (!dateString) return '';
   return new Date(dateString).toLocaleDateString();
