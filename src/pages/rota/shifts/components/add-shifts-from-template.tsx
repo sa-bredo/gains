@@ -34,60 +34,58 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
   const shiftService = useShiftService();
   const { toast } = useToast();
   const { currentCompany } = useCompany();
-  const dataFetchedRef = useRef(false);
+  const locationsFetched = useRef(false);
   const isMounted = useRef(true);
 
-  // Load locations and template masters - using ref to prevent multiple fetches
-  const loadInitialData = useCallback(async () => {
-    if (dataFetchedRef.current || !isMounted.current || !currentCompany) return; // Only fetch once
+  // Load locations and template masters using the ref to prevent multiple fetches
+  useEffect(() => {
+    if (!currentCompany || locationsFetched.current || !isMounted.current) return;
     
-    try {
-      setIsLoading(true);
-      dataFetchedRef.current = true;
-      
-      console.log("Fetching initial data for AddShiftsFromTemplate");
-      const locationsData = await shiftService.fetchLocations();
-      
-      if (!isMounted.current) return;
-      setLocations(locationsData);
-      
-      const mastersData = await shiftService.fetchTemplateMasters();
-      
-      if (!isMounted.current) return;
-      setTemplateMasters(mastersData);
-      
-      // Auto-select the first location if available
-      if (locationsData.length > 0 && !selectedLocation) {
-        setSelectedLocation(locationsData[0].id);
+    locationsFetched.current = true; // Mark it as fetched
+    
+    const fetchInitialData = async () => {
+      try {
+        setIsLoading(true);
+        console.log("Fetching initial data for AddShiftsFromTemplate");
+        
+        const locationsData = await shiftService.fetchLocations();
+        if (!isMounted.current) return;
+        setLocations(locationsData);
+        
+        const mastersData = await shiftService.fetchTemplateMasters();
+        if (!isMounted.current) return;
+        setTemplateMasters(mastersData);
+        
+        // Auto-select the first location if available
+        if (locationsData.length > 0 && !selectedLocation) {
+          setSelectedLocation(locationsData[0].id);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        if (isMounted.current) {
+          toast({
+            title: 'Failed to load data',
+            description: 'Could not load locations and templates',
+            variant: 'destructive',
+          });
+        }
+      } finally {
+        if (isMounted.current) {
+          setIsLoading(false);
+        }
       }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      if (isMounted.current) {
-        toast({
-          title: 'Failed to load data',
-          description: 'Could not load locations and templates',
-          variant: 'destructive',
-        });
-      }
-    } finally {
-      if (isMounted.current) {
-        setIsLoading(false);
-      }
-    }
-  }, [shiftService, toast, selectedLocation, currentCompany]);
+    };
+    
+    fetchInitialData();
+  }, [currentCompany, shiftService, toast, selectedLocation]);
 
-  // Set up isMounted ref and initial data loading
+  // Set up isMounted ref for cleanup
   useEffect(() => {
     isMounted.current = true;
-    
-    // Load data on mount
-    loadInitialData();
-    
-    // Cleanup function
     return () => {
       isMounted.current = false;
     };
-  }, [loadInitialData]);
+  }, []);
 
   const handlePreviewShifts = async () => {
     if (!selectedLocation || !selectedVersion || !startDate) {

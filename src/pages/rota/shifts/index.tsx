@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -85,9 +85,14 @@ function ShiftsPage() {
     };
   }, []);
 
-  const handleAddComplete = useCallback(() => {
-    setCurrentView('view');
-    refetch();
+  // Memoize the handleAddComplete function to prevent unnecessary re-renders
+  const handleAddComplete = useMemo(() => {
+    return () => {
+      if (isMounted.current) {
+        setCurrentView('view');
+        refetch();
+      }
+    };
   }, [refetch]);
 
   // Determine if any data is loading
