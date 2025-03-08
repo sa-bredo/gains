@@ -12,23 +12,23 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { Loader2 } from 'lucide-react';
 
 export default function SlackIntegrationPage() {
-  const { company } = useCompany();
+  const { currentCompany } = useCompany();
   const [slackConfig, setSlackConfig] = useState<SlackConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('setup');
 
   useEffect(() => {
-    if (company?.id) {
+    if (currentCompany?.id) {
       loadSlackConfig();
     }
-  }, [company?.id]);
+  }, [currentCompany?.id]);
 
   const loadSlackConfig = async () => {
     setLoading(true);
     try {
-      if (!company?.id) return;
+      if (!currentCompany?.id) return;
       
-      const config = await getSlackConfig(company.id);
+      const config = await getSlackConfig(currentCompany.id);
       setSlackConfig(config);
       
       // If already connected, set active tab to messaging

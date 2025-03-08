@@ -1,480 +1,332 @@
 
 import React, { useEffect, useState } from 'react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getSlackEmployees, getMessageTemplates, sendSlackMessage } from '../services/slack-service';
+import { SlackConfig, MessageTemplate } from '../types';
+import { Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useCompany } from '@/contexts/CompanyContext';
+import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from 'sonner';
-import { getMessageTemplates, getSlackEmployees, sendSlackMessage } from '../services/slack-service';
-import { MessageTemplate, SlackConfig } from '../types';
-import { useAuth } from '@/contexts/AuthContext';
-import { SendHorizontal, Check } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-
-type RecipientType = 'employee' | 'channel' | 'group';
+import { useAuth } from '@clerk/clerk-react';
 
 interface SlackMessagingProps {
   slackConfig: SlackConfig | null;
 }
 
-interface SlackEmployeeWithInfo {
+interface SlackEmployee {
   id: string;
-  employee_id: string;
   first_name: string;
   last_name: string;
   email: string;
-  slack_user_id: string | null;
-  slack_username: string | null;
   slack_connected: boolean;
-  slack_connected_at: string | null;
+  slack_user_id: string | null;
+}
+
+interface SlackChannel {
+  id: string;
+  name: string;
+  is_private: boolean;
+  member_count: number;
 }
 
 export function SlackMessaging({ slackConfig }: SlackMessagingProps) {
-  const { user } = useAuth();
-  const [message, setMessage] = useState('');
-  const [recipientType, setRecipientType] = useState<RecipientType>('employee');
+  const { currentCompany } = useCompany();
+  const { userId } = useAuth();
+  const [messageType, setMessageType] = useState<'employee' | 'channel'>('employee');
+  const [loading, setLoading] = useState(false);
+  const [employees, setEmployees] = useState<SlackEmployee[]>([]);
+  const [channels, setChannels] = useState<SlackChannel[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
-  const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
-  const [employees, setEmployees] = useState<SlackEmployeeWithInfo[]>([]);
+  const [selectedChannel, setSelectedChannel] = useState<string>('');
+  const [message, setMessage] = useState('');
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
-  const [channels] = useState<{ id: string; name: string }[]>([]);
-  const [loadingEmployees, setLoadingEmployees] = useState(false);
-  const [loadingTemplates, setLoadingTemplates] = useState(false);
-  const [sendingMessage, setSendingMessage] = useState(false);
-  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [sending, setSending] = useState(false);
+  const { toast } = useToast();
   
   useEffect(() => {
-    loadEmployees();
-    loadTemplates();
+    loadData();
   }, []);
   
-  const loadEmployees = async () => {
-    setLoadingEmployees(true);
+  useEffect(() => {
+    if (selectedTemplate) {
+      const template = templates.find(t => t.id === selectedTemplate);
+      if (template) {
+        setMessage(template.content);
+      }
+    }
+  }, [selectedTemplate, templates]);
+  
+  const loadData = async () => {
+    setLoading(true);
     try {
+      // Load employees
       const empData = await getSlackEmployees();
-      setEmployees(empData || []);
+      setEmployees(empData.filter(e => e.slack_connected));
+      
+      // Load message templates
+      const templateData = await getMessageTemplates();
+      setTemplates(templateData);
+      
+      // For now, we'll add some dummy channels
+      // In a real implementation, you'd fetch these from the Slack API
+      setChannels([
+        { id: 'general', name: 'general', is_private: false, member_count: 25 },
+        { id: 'random', name: 'random', is_private: false, member_count: 20 },
+        { id: 'announcements', name: 'announcements', is_private: false, member_count: 30 },
+      ]);
     } catch (error) {
-      console.error('Error loading employees:', error);
-      toast.error('Failed to load employees');
+      console.error('Error loading data:', error);
+      toast({
+        title: 'Error loading data',
+        description: 'Could not fetch employees or channels.',
+        variant: 'destructive',
+      });
     } finally {
-      setLoadingEmployees(false);
+      setLoading(false);
     }
-  };
-  
-  const loadTemplates = async () => {
-    setLoadingTemplates(true);
-    try {
-      const templatesData = await getMessageTemplates();
-      setTemplates(templatesData || []);
-    } catch (error) {
-      console.error('Error loading templates:', error);
-      toast.error('Failed to load message templates');
-    } finally {
-      setLoadingTemplates(false);
-    }
-  };
-  
-  const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMessage(e.target.value);
-  };
-  
-  const handleRecipientTypeChange = (value: string) => {
-    setRecipientType(value as RecipientType);
-    // Reset selections when changing recipient type
-    setSelectedEmployees([]);
-    setSelectedChannels([]);
-  };
-  
-  const handleEmployeeCheckChange = (employeeId: string) => {
-    setSelectedEmployees((prev) =>
-      prev.includes(employeeId)
-        ? prev.filter((id) => id !== employeeId)
-        : [...prev, employeeId]
-    );
-  };
-  
-  const handleChannelCheckChange = (channelId: string) => {
-    setSelectedChannels((prev) =>
-      prev.includes(channelId)
-        ? prev.filter((id) => id !== channelId)
-        : [...prev, channelId]
-    );
-  };
-  
-  const handleSelectTemplate = (templateId: string) => {
-    const template = templates.find((t) => t.id === templateId);
-    if (template) {
-      setMessage(template.content);
-    }
-    setSelectedTemplate('');
-    setShowTemplateDialog(false);
   };
   
   const handleSendMessage = async () => {
     if (!message.trim()) {
-      toast.error('Please enter a message');
+      toast({
+        title: 'Message Required',
+        description: 'Please enter a message to send.',
+        variant: 'destructive',
+      });
       return;
     }
     
-    if (recipientType === 'employee' && selectedEmployees.length === 0) {
-      toast.error('Please select at least one employee');
+    if (messageType === 'employee' && selectedEmployees.length === 0) {
+      toast({
+        title: 'Recipients Required',
+        description: 'Please select at least one employee to message.',
+        variant: 'destructive',
+      });
       return;
     }
     
-    if (recipientType === 'channel' && selectedChannels.length === 0) {
-      toast.error('Please select at least one channel');
+    if (messageType === 'channel' && !selectedChannel) {
+      toast({
+        title: 'Channel Required',
+        description: 'Please select a channel to message.',
+        variant: 'destructive',
+      });
       return;
     }
     
-    if (!slackConfig?.slack_workspace_id || !user?.id) {
-      toast.error('Slack configuration is missing');
+    if (!currentCompany?.id || !userId) {
+      toast({
+        title: 'Authentication Error',
+        description: 'You must be logged in to send messages.',
+        variant: 'destructive',
+      });
       return;
     }
     
-    setSendingMessage(true);
+    setSending(true);
     try {
-      // Get the recipients based on type
-      const recipients = recipientType === 'employee' ? selectedEmployees : selectedChannels;
+      const recipients = messageType === 'employee' ? selectedEmployees : [selectedChannel];
       
       const result = await sendSlackMessage(
         recipients,
-        recipientType,
+        messageType,
         message,
-        slackConfig.slack_workspace_id,
-        user.id
+        currentCompany.id,
+        userId
       );
       
       if (result.success) {
-        toast.success('Message sent successfully');
+        toast({
+          title: 'Message Sent',
+          description: `Successfully sent message to ${messageType === 'employee' ? 'employees' : 'channel'}.`,
+          variant: 'default',
+        });
+        
+        // Reset form
         setMessage('');
         setSelectedEmployees([]);
-        setSelectedChannels([]);
+        setSelectedChannel('');
+        setSelectedTemplate('');
       } else {
-        toast.error('Failed to send message');
+        toast({
+          title: 'Error Sending Message',
+          description: 'Failed to send message. Please try again.',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message');
+      toast({
+        title: 'Error Sending Message',
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: 'destructive',
+      });
     } finally {
-      setSendingMessage(false);
+      setSending(false);
     }
   };
   
-  const getConnectedEmployees = () => {
-    return employees.filter((employee) => employee.slack_connected);
+  const toggleEmployeeSelection = (employeeId: string) => {
+    if (selectedEmployees.includes(employeeId)) {
+      setSelectedEmployees(selectedEmployees.filter(id => id !== employeeId));
+    } else {
+      setSelectedEmployees([...selectedEmployees, employeeId]);
+    }
   };
   
-  const allEmployeesSelected = 
-    selectedEmployees.length === getConnectedEmployees().length && 
-    getConnectedEmployees().length > 0;
-  
-  const handleSelectAllEmployees = () => {
-    if (allEmployeesSelected) {
+  const selectAllEmployees = () => {
+    if (selectedEmployees.length === employees.length) {
       setSelectedEmployees([]);
     } else {
-      setSelectedEmployees(
-        getConnectedEmployees().map((employee) => employee.employee_id)
-      );
-    }
-  };
-  
-  const allChannelsSelected = 
-    selectedChannels.length === channels.length && channels.length > 0;
-  
-  const handleSelectAllChannels = () => {
-    if (allChannelsSelected) {
-      setSelectedChannels([]);
-    } else {
-      setSelectedChannels(channels.map((channel) => channel.id));
+      setSelectedEmployees(employees.map(e => e.id));
     }
   };
   
   return (
-    <Card className="w-full">
+    <Card>
       <CardHeader>
-        <CardTitle>Slack Messaging</CardTitle>
+        <CardTitle>Send Slack Messages</CardTitle>
         <CardDescription>
-          Send messages to employees or channels in Slack
+          Send direct messages to employees or post to channels
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="compose" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="compose">Compose Message</TabsTrigger>
-            <TabsTrigger value="history">Message History</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="compose" className="mt-6">
-            <div className="grid gap-6">
-              <div className="grid grid-cols-4 gap-4">
-                <div className="col-span-1">
-                  <Label htmlFor="recipient-type">Send To</Label>
-                  <Select 
-                    value={recipientType} 
-                    onValueChange={handleRecipientTypeChange}
-                  >
-                    <SelectTrigger className="w-full mt-2">
-                      <SelectValue placeholder="Select recipients" />
+        {loading ? (
+          <div className="flex justify-center items-center h-40">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label>Message Template (Optional)</Label>
+              <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a template or write your own message" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No template (custom message)</SelectItem>
+                  {templates.map(template => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="message">Message</Label>
+              <Textarea
+                id="message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Enter your message..."
+                className="min-h-[120px]"
+              />
+            </div>
+            
+            <Tabs value={messageType} onValueChange={(v) => setMessageType(v as 'employee' | 'channel')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="employee">Message Employees</TabsTrigger>
+                <TabsTrigger value="channel">Message Channel</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="employee" className="space-y-4 pt-4">
+                <div className="flex justify-between items-center">
+                  <Label>Select Employees</Label>
+                  {employees.length > 0 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={selectAllEmployees}
+                    >
+                      {selectedEmployees.length === employees.length ? 'Deselect All' : 'Select All'}
+                    </Button>
+                  )}
+                </div>
+                
+                {employees.length === 0 ? (
+                  <div className="text-center p-4 border rounded-md bg-slate-50">
+                    <p className="text-sm text-gray-500">No employees are connected to Slack.</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => window.location.href = '/settings/integrations/slack?tab=employees'}
+                    >
+                      Connect Employees
+                    </Button>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-[250px] border rounded-md p-2">
+                    <div className="space-y-2">
+                      {employees.map(employee => (
+                        <div key={employee.id} className="flex items-center space-x-3 p-2 hover:bg-slate-50 rounded-md">
+                          <Checkbox
+                            id={`employee-${employee.id}`}
+                            checked={selectedEmployees.includes(employee.id)}
+                            onCheckedChange={() => toggleEmployeeSelection(employee.id)}
+                          />
+                          <div className="flex items-center space-x-3 flex-1">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={`https://ui-avatars.com/api/?name=${employee.first_name}+${employee.last_name}`} />
+                              <AvatarFallback>{employee.first_name[0]}{employee.last_name[0]}</AvatarFallback>
+                            </Avatar>
+                            <Label 
+                              htmlFor={`employee-${employee.id}`}
+                              className="flex-1 cursor-pointer"
+                            >
+                              {employee.first_name} {employee.last_name}
+                            </Label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="channel" className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="channel">Select Channel</Label>
+                  <Select value={selectedChannel} onValueChange={setSelectedChannel}>
+                    <SelectTrigger id="channel">
+                      <SelectValue placeholder="Select a channel" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="employee">Employees</SelectItem>
-                      <SelectItem value="channel">Channels</SelectItem>
-                      <SelectItem value="group">Groups</SelectItem>
+                      {channels.map(channel => (
+                        <SelectItem key={channel.id} value={channel.id}>
+                          #{channel.name} ({channel.member_count} members)
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-                
-                <div className="col-span-3">
-                  <div className="flex justify-between">
-                    <Label>
-                      {recipientType === 'employee' && 'Select Employees'}
-                      {recipientType === 'channel' && 'Select Channels'}
-                      {recipientType === 'group' && 'Select Groups'}
-                    </Label>
-                    
-                    {recipientType === 'employee' && (
-                      <Button 
-                        variant="link" 
-                        className="h-6 p-0" 
-                        onClick={handleSelectAllEmployees}
-                      >
-                        {allEmployeesSelected ? 'Deselect All' : 'Select All'}
-                      </Button>
-                    )}
-                    
-                    {recipientType === 'channel' && (
-                      <Button 
-                        variant="link" 
-                        className="h-6 p-0" 
-                        onClick={handleSelectAllChannels}
-                      >
-                        {allChannelsSelected ? 'Deselect All' : 'Select All'}
-                      </Button>
-                    )}
-                  </div>
-                  
-                  <div className="border rounded-md p-4 mt-2 max-h-60 overflow-y-auto">
-                    {loadingEmployees && recipientType === 'employee' && (
-                      <div className="text-center py-4">Loading employees...</div>
-                    )}
-                    
-                    {recipientType === 'employee' && !loadingEmployees && (
-                      <div className="space-y-2">
-                        {getConnectedEmployees().length === 0 ? (
-                          <div className="text-center py-4">
-                            No employees connected to Slack
-                          </div>
-                        ) : (
-                          getConnectedEmployees().map((employee) => (
-                            <div 
-                              key={employee.id} 
-                              className="flex items-center space-x-2"
-                            >
-                              <Checkbox 
-                                id={`employee-${employee.id}`}
-                                checked={selectedEmployees.includes(employee.employee_id)}
-                                onCheckedChange={() => 
-                                  handleEmployeeCheckChange(employee.employee_id)
-                                }
-                              />
-                              <label 
-                                htmlFor={`employee-${employee.id}`}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
-                              >
-                                {employee.first_name} {employee.last_name}
-                                <Badge className="ml-2 bg-blue-500" variant="secondary">
-                                  {employee.slack_username || employee.email}
-                                </Badge>
-                              </label>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                    
-                    {recipientType === 'channel' && (
-                      <div className="space-y-2">
-                        {channels.length === 0 ? (
-                          <div className="text-center py-4">
-                            No channels available
-                          </div>
-                        ) : (
-                          channels.map((channel) => (
-                            <div 
-                              key={channel.id} 
-                              className="flex items-center space-x-2"
-                            >
-                              <Checkbox 
-                                id={`channel-${channel.id}`}
-                                checked={selectedChannels.includes(channel.id)}
-                                onCheckedChange={() => 
-                                  handleChannelCheckChange(channel.id)
-                                }
-                              />
-                              <label 
-                                htmlFor={`channel-${channel.id}`}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                              >
-                                #{channel.name}
-                              </label>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                    
-                    {recipientType === 'group' && (
-                      <div className="text-center py-4">
-                        Group messaging coming soon
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="message">Message</Label>
-                  
-                  <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        Use Template
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Select Template</DialogTitle>
-                        <DialogDescription>
-                          Choose a template to use for your message
-                        </DialogDescription>
-                      </DialogHeader>
-                      
-                      {loadingTemplates ? (
-                        <div className="py-4 text-center">Loading templates...</div>
-                      ) : templates.length === 0 ? (
-                        <div className="py-4 text-center">No templates available</div>
-                      ) : (
-                        <div className="py-4">
-                          <Select 
-                            value={selectedTemplate} 
-                            onValueChange={setSelectedTemplate}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a template" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {templates.map((template) => (
-                                <SelectItem key={template.id} value={template.id}>
-                                  {template.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          
-                          {selectedTemplate && (
-                            <div className="mt-4 p-3 border rounded-md bg-muted">
-                              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                                {templates.find(t => t.id === selectedTemplate)?.content}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      <DialogFooter>
-                        <Button 
-                          onClick={() => handleSelectTemplate(selectedTemplate)}
-                          disabled={!selectedTemplate}
-                        >
-                          Use Template
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-                
-                <Textarea
-                  id="message"
-                  placeholder="Type your message here..."
-                  className="min-h-[120px]"
-                  value={message}
-                  onChange={handleMessageChange}
-                />
-              </div>
-              
-              <div className="flex justify-end">
-                <Button 
-                  onClick={handleSendMessage} 
-                  disabled={sendingMessage}
-                  className="flex items-center"
-                >
-                  {sendingMessage ? (
-                    <>Sending...</>
-                  ) : (
-                    <>
-                      <SendHorizontal className="mr-2 h-4 w-4" />
-                      Send Message
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="history" className="mt-6">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Recipient</TableHead>
-                  <TableHead>Message</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-6">
-                    Message history will be displayed here
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TabsContent>
-        </Tabs>
+              </TabsContent>
+            </Tabs>
+            
+            <Button 
+              className="w-full" 
+              onClick={handleSendMessage}
+              disabled={sending || 
+                !message.trim() || 
+                (messageType === 'employee' && selectedEmployees.length === 0) ||
+                (messageType === 'channel' && !selectedChannel)}
+            >
+              {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Send Message
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

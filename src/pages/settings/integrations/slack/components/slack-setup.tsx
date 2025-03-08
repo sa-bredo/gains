@@ -1,113 +1,175 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Slack, ArrowRight, AlertCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/contexts/CompanyContext";
-import { useToast } from "@/hooks/use-toast";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { SlackConfig } from '../types';
+import { disconnectSlack } from '../services/slack-service';
+import { useCompany } from '@/contexts/CompanyContext';
+import { AlertTriangle, Check, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 interface SlackSetupProps {
-  loading: boolean;
-  onConfigUpdate: (config: SlackConfig) => void;
+  slackConfig: SlackConfig | null;
+  onConfigChange: () => Promise<void>;
 }
 
-export function SlackSetup({ loading, onConfigUpdate }: SlackSetupProps) {
+export function SlackSetup({ slackConfig, onConfigChange }: SlackSetupProps) {
   const { currentCompany } = useCompany();
+  const [disconnecting, setDisconnecting] = useState(false);
   const { toast } = useToast();
-  const [isConnecting, setIsConnecting] = useState(false);
-
-  const handleConnect = async () => {
-    if (!currentCompany) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No company selected",
-      });
-      return;
-    }
-
-    setIsConnecting(true);
-
+  
+  const handleDisconnect = async () => {
+    if (!currentCompany?.id) return;
+    
+    setDisconnecting(true);
     try {
-      // In a real implementation, this would redirect to Slack OAuth
-      // For this implementation, we'll simulate the connection process
-      const { data, error } = await supabase.functions.invoke('initiate-slack-oauth', {
-        body: { company_id: currentCompany.id },
-      });
-
-      if (error) {
-        throw new Error(error.message);
+      const success = await disconnectSlack(currentCompany.id);
+      
+      if (success) {
+        await onConfigChange();
+        toast({
+          title: 'Slack disconnected',
+          description: 'Your workspace has been successfully disconnected.',
+          variant: 'default',
+        });
+      } else {
+        toast({
+          title: 'Error disconnecting',
+          description: 'There was an error disconnecting from Slack.',
+          variant: 'destructive',
+        });
       }
-
-      // Redirect to Slack OAuth URL
-      window.location.href = data.url;
-    } catch (err) {
-      console.error('Error connecting to Slack:', err);
+    } catch (error) {
+      console.error('Error disconnecting Slack:', error);
       toast({
-        variant: "destructive",
-        title: "Connection Failed",
-        description: err instanceof Error ? err.message : "Failed to connect to Slack",
+        title: 'Error disconnecting',
+        description: 'There was an error disconnecting from Slack.',
+        variant: 'destructive',
       });
     } finally {
-      setIsConnecting(false);
+      setDisconnecting(false);
     }
   };
-
+  
+  const initiateOAuth = () => {
+    if (!currentCompany?.id) return;
+    
+    // Generate a random state to prevent CSRF attacks 
+    // and also store the company_id so we can identify it in the callback
+    const state = btoa(JSON.stringify({
+      company_id: currentCompany.id,
+      timestamp: new Date().getTime()
+    }));
+    
+    // Store the state in localStorage for verification after redirect
+    localStorage.setItem('slack_oauth_state', state);
+    
+    // Redirect to Supabase Edge Function that will initiate the OAuth flow
+    window.location.href = `/api/initiate-slack-oauth?state=${state}`;
+  };
+  
+  if (!currentCompany) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Slack Integration</CardTitle>
+          <CardDescription>Connect your Slack workspace to enable messaging features.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>No company selected</AlertTitle>
+            <AlertDescription>
+              Please select a company to configure Slack integration.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   return (
-    <Card className="max-w-2xl mx-auto">
+    <Card>
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <Slack className="h-6 w-6 text-[#4A154B]" />
-          <CardTitle>Connect to Slack</CardTitle>
-        </div>
-        <CardDescription>
-          Connect your Slack workspace to enable messaging with your team members
-        </CardDescription>
+        <CardTitle>Slack Integration</CardTitle>
+        <CardDescription>Connect your Slack workspace to enable messaging features.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Before you start</AlertTitle>
-          <AlertDescription>
-            <p className="mb-2">
-              You'll need to create a Slack app in the Slack API Console and configure it with the following permissions:
+      <CardContent>
+        {slackConfig?.slack_workspace_id ? (
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <div className="bg-green-100 p-1 rounded-full">
+                <Check className="h-4 w-4 text-green-600" />
+              </div>
+              <p className="text-sm font-medium">Connected to Slack</p>
+            </div>
+            <div className="rounded-md bg-slate-50 p-4">
+              <div className="grid grid-cols-2 gap-y-2 text-sm">
+                <div className="font-medium">Workspace</div>
+                <div>{slackConfig.slack_workspace_name}</div>
+                <div className="font-medium">Team URL</div>
+                <div>
+                  <a 
+                    href={slackConfig.slack_team_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    {slackConfig.slack_team_url}
+                  </a>
+                </div>
+                <div className="font-medium">Connected at</div>
+                <div>{new Date(slackConfig.connected_at).toLocaleString()}</div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500">
+              Connect your Slack workspace to enable messaging employees directly from this platform.
+              This integration requires a Slack app with the following scopes:
             </p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li><code className="text-xs bg-muted p-1 rounded">chat:write</code> - To send messages</li>
-              <li><code className="text-xs bg-muted p-1 rounded">users:read</code> - To access user information</li>
-              <li><code className="text-xs bg-muted p-1 rounded">users:read.email</code> - To match employees by email</li>
-              <li><code className="text-xs bg-muted p-1 rounded">im:write</code> - To open direct message channels</li>
+            <ul className="list-disc pl-5 text-sm text-gray-500 space-y-1">
+              <li>chat:write</li>
+              <li>users:read</li>
+              <li>users:read.email</li>
+              <li>im:write</li>
             </ul>
-          </AlertDescription>
-        </Alert>
-
-        <div className="flex flex-col items-center justify-center py-8">
-          <div className="text-center mb-6">
-            <p className="text-muted-foreground mb-4">
-              Connecting to Slack allows you to send messages to your team members and link their accounts to their employee profiles.
-            </p>
+            <div className="bg-slate-50 p-4 rounded-md">
+              <p className="text-sm font-medium mb-2">Instructions:</p>
+              <ol className="list-decimal pl-5 text-sm text-gray-500 space-y-1">
+                <li>Click the "Connect to Slack" button below</li>
+                <li>Authorize the application in the Slack popup</li>
+                <li>You'll be redirected back to this page once authentication is complete</li>
+              </ol>
+            </div>
           </div>
-          
-          <div className="flex items-center gap-4">
-            <Button 
-              onClick={handleConnect} 
-              disabled={isConnecting || loading || !currentCompany}
-              className="gap-2 bg-[#4A154B] hover:bg-[#611f64]"
-            >
-              <Slack className="h-4 w-4" />
-              {isConnecting ? "Connecting..." : "Connect to Slack"}
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        )}
       </CardContent>
-      <CardFooter className="flex justify-center border-t pt-4">
-        <p className="text-xs text-muted-foreground">
-          By connecting, you allow this application to access your Slack workspace according to their Terms of Service and Privacy Policy.
-        </p>
+      <CardFooter>
+        {slackConfig?.slack_workspace_id ? (
+          <Button 
+            variant="destructive"
+            onClick={handleDisconnect}
+            disabled={disconnecting}
+          >
+            {disconnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Disconnect from Slack
+          </Button>
+        ) : (
+          <Button
+            onClick={initiateOAuth}
+            className="bg-[#4A154B] hover:bg-[#611f64] text-white"
+          >
+            <img
+              src="https://cdn.brandfolder.io/5H442O3W/at/pl546j-7le8zk-btwjnu/Slack_Mark_Web.svg"
+              alt="Slack"
+              className="w-4 h-4 mr-2"
+            />
+            Connect to Slack
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

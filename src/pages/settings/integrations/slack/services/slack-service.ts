@@ -93,7 +93,7 @@ export const disconnectSlack = async (companyId: string): Promise<boolean> => {
     }
     
     for (const employee of employees) {
-      if (employee.integrations && employee.integrations.slack) {
+      if (employee.integrations && typeof employee.integrations === 'object' && employee.integrations.slack) {
         const updatedIntegrations = { ...employee.integrations };
         delete updatedIntegrations.slack;
         
@@ -127,7 +127,7 @@ export const getMessageTemplates = async (): Promise<MessageTemplate[]> => {
       return [];
     }
     
-    return data || [];
+    return (data || []) as MessageTemplate[];
   } catch (error) {
     console.error('Error fetching message templates:', error);
     return [];
@@ -136,9 +136,17 @@ export const getMessageTemplates = async (): Promise<MessageTemplate[]> => {
 
 export const createMessageTemplate = async (template: Partial<MessageTemplate>): Promise<MessageTemplate | null> => {
   try {
+    // Ensure required fields
+    const completeTemplate = {
+      type: 'slack' as const,
+      name: template.name || '',
+      content: template.content || '',
+      category: template.category || 'General' as const
+    };
+
     const { data, error } = await supabase
       .from('message_templates')
-      .insert([{ ...template, type: 'slack' }])
+      .insert([completeTemplate])
       .select()
       .single();
     
@@ -147,7 +155,7 @@ export const createMessageTemplate = async (template: Partial<MessageTemplate>):
       return null;
     }
     
-    return data;
+    return data as MessageTemplate;
   } catch (error) {
     console.error('Error creating message template:', error);
     return null;
@@ -204,18 +212,22 @@ export const getSlackEmployees = async (): Promise<any[]> => {
       return [];
     }
     
-    return data.map(employee => ({
-      id: employee.id,
-      employee_id: employee.id,
-      first_name: employee.first_name,
-      last_name: employee.last_name,
-      email: employee.email,
-      slack_user_id: employee.integrations?.slack?.slack_user_id || null,
-      slack_username: employee.integrations?.slack?.slack_username || null,
-      slack_email: employee.integrations?.slack?.slack_email || null,
-      slack_connected: !!employee.integrations?.slack?.slack_connected,
-      slack_connected_at: employee.integrations?.slack?.slack_connected_at || null,
-    }));
+    return data.map(employee => {
+      const slackInfo = employee.integrations && typeof employee.integrations === 'object' ? employee.integrations.slack : null;
+      
+      return {
+        id: employee.id,
+        employee_id: employee.id,
+        first_name: employee.first_name,
+        last_name: employee.last_name,
+        email: employee.email,
+        slack_user_id: slackInfo?.slack_user_id || null,
+        slack_username: slackInfo?.slack_username || null,
+        slack_email: slackInfo?.slack_email || null,
+        slack_connected: !!slackInfo?.slack_connected,
+        slack_connected_at: slackInfo?.slack_connected_at || null,
+      };
+    });
   } catch (error) {
     console.error('Error fetching Slack employees:', error);
     return [];
@@ -274,7 +286,7 @@ export const disconnectEmployeeFromSlack = async (employeeId: string): Promise<b
       return false;
     }
     
-    if (!employee.integrations?.slack) {
+    if (!employee.integrations || typeof employee.integrations !== 'object' || !employee.integrations.slack) {
       // Employee isn't connected to Slack
       return true;
     }
