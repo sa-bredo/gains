@@ -2,9 +2,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
-const SLACK_CLIENT_ID = Deno.env.get("SLACK_CLIENT_ID");
-const SLACK_CLIENT_SECRET = Deno.env.get("SLACK_CLIENT_SECRET");
-const REDIRECT_URI = Deno.env.get("SLACK_REDIRECT_URI");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -75,10 +72,6 @@ serve(async (req) => {
       throw new Error("Missing code or state parameter");
     }
     
-    if (!SLACK_CLIENT_ID || !SLACK_CLIENT_SECRET || !REDIRECT_URI) {
-      throw new Error("Missing required environment variables");
-    }
-    
     // Parse the state parameter
     let stateData;
     try {
@@ -92,6 +85,44 @@ serve(async (req) => {
     if (!company_id) {
       throw new Error("Invalid state data - missing company_id");
     }
+    
+    // Get Slack credentials from config table
+    const { data: clientIdData, error: clientIdError } = await supabase
+      .from("config")
+      .select("value")
+      .eq("key", "slack_client_id")
+      .eq("company_id", company_id)
+      .single();
+    
+    if (clientIdError) {
+      throw new Error("Slack Client ID not configured");
+    }
+    
+    const { data: clientSecretData, error: clientSecretError } = await supabase
+      .from("config")
+      .select("value")
+      .eq("key", "slack_client_secret")
+      .eq("company_id", company_id)
+      .single();
+    
+    if (clientSecretError) {
+      throw new Error("Slack Client Secret not configured");
+    }
+    
+    const { data: redirectUriData, error: redirectUriError } = await supabase
+      .from("config")
+      .select("value")
+      .eq("key", "slack_redirect_uri")
+      .eq("company_id", company_id)
+      .single();
+    
+    if (redirectUriError) {
+      throw new Error("Slack Redirect URI not configured");
+    }
+    
+    const SLACK_CLIENT_ID = clientIdData.value;
+    const SLACK_CLIENT_SECRET = clientSecretData.value;
+    const REDIRECT_URI = redirectUriData.value;
     
     // Exchange the code for an access token
     const tokenResponse = await fetch("https://slack.com/api/oauth.v2.access", {

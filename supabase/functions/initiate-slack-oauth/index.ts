@@ -1,9 +1,14 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
-const SLACK_CLIENT_ID = Deno.env.get("SLACK_CLIENT_ID");
-const SLACK_CLIENT_SECRET = Deno.env.get("SLACK_CLIENT_SECRET");
-const REDIRECT_URI = Deno.env.get("SLACK_REDIRECT_URI");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+const supabase = createClient(
+  SUPABASE_URL!,
+  SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,19 +22,37 @@ serve(async (req) => {
   }
   
   try {
-    if (!SLACK_CLIENT_ID) {
-      throw new Error("SLACK_CLIENT_ID not configured");
-    }
-    
-    if (!REDIRECT_URI) {
-      throw new Error("REDIRECT_URI not configured");
-    }
-    
     const { company_id } = await req.json();
     
     if (!company_id) {
       throw new Error("company_id is required");
     }
+    
+    // Get Slack credentials from config table
+    const { data: clientIdData, error: clientIdError } = await supabase
+      .from("config")
+      .select("value")
+      .eq("key", "slack_client_id")
+      .eq("company_id", company_id)
+      .single();
+    
+    if (clientIdError) {
+      throw new Error("SLACK_CLIENT_ID not configured in config table");
+    }
+    
+    const { data: redirectUriData, error: redirectUriError } = await supabase
+      .from("config")
+      .select("value")
+      .eq("key", "slack_redirect_uri")
+      .eq("company_id", company_id)
+      .single();
+    
+    if (redirectUriError) {
+      throw new Error("SLACK_REDIRECT_URI not configured in config table");
+    }
+    
+    const SLACK_CLIENT_ID = clientIdData.value;
+    const REDIRECT_URI = redirectUriData.value;
     
     // Generate a state parameter to validate the OAuth callback
     const state = btoa(JSON.stringify({ company_id, timestamp: Date.now() }));
