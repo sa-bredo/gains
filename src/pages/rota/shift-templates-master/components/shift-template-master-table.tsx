@@ -13,7 +13,7 @@ interface ShiftTemplateMasterTableProps {
   locations: Location[];
   isLoading: boolean;
   onViewTemplates: (locationId: string, version: number) => void;
-  onCloneTemplates: (sourceLocationId: string, targetLocationId: string, version: number) => void;
+  onCloneTemplates: (sourceLocationId: string, targetLocationId: string, version: number) => Promise<void>;
   onDeleteTemplate?: (locationId: string, version: number) => Promise<void>;
 }
 
@@ -116,13 +116,9 @@ export function ShiftTemplateMasterTable({
             open={isCloneDialogOpen} 
             onOpenChange={setIsCloneDialogOpen}
             sourceLocationId={selectedTemplate.location_id}
-            sourceLocationName={selectedTemplate.location_name}
             sourceVersion={selectedTemplate.version}
-            targetLocations={locations.filter(loc => loc.id !== selectedTemplate.location_id)}
-            onClone={(targetLocationId) => {
-              onCloneTemplates(selectedTemplate.location_id, targetLocationId, selectedTemplate.version);
-              setIsCloneDialogOpen(false);
-            }}
+            locations={locations}
+            onConfirm={onCloneTemplates}
           />
           
           {onDeleteTemplate && (

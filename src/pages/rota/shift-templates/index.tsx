@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, PlusIcon, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
-import { ShiftTemplate, Location } from './types';
+import { ShiftTemplate, Location, StaffMember, ShiftTemplateFormValues } from './types';
 import { ShiftTemplatesTable } from './components/shift-templates-table';
 import { AddShiftTemplateDialog } from './components/add-shift-template-dialog';
 import { EditShiftTemplateDialog } from './components/edit-shift-template-dialog';

@@ -51,6 +51,8 @@ export function CloneTemplateVersionDialog({
     }
   };
 
+  const sourceLocation = locations.find(l => l.id === sourceLocationId);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -70,7 +72,7 @@ export function CloneTemplateVersionDialog({
             <div className="col-span-3">
               <div className="flex items-center gap-2 border px-3 py-2 rounded-md">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
-                {locations.find(l => l.id === sourceLocationId)?.name || 'Unknown Location'}
+                {sourceLocation?.name || 'Unknown Location'}
               </div>
             </div>
           </div>
