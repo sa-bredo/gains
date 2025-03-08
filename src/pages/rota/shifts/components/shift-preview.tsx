@@ -73,6 +73,7 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
   const [localShifts, setLocalShifts] = useState<PreviewShift[]>(shifts);
   const [confirmDeleteShift, setConfirmDeleteShift] = useState<PreviewShift | null>(null);
   const [availableStaffMembers, setAvailableStaffMembers] = useState<Array<{ id: string; first_name: string; last_name: string; role: string }>>([]);
+  const [editingShiftIndex, setEditingShiftIndex] = useState<number>(-1);
   
   useEffect(() => {
     const loadStaff = async () => {
@@ -122,7 +123,7 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
     console.log(`Bulk action: ${action} for ${selectedCount} shifts`);
   };
   
-  const handleDeleteShift = (shift: PreviewShift) => {
+  const handleDeleteShift = (shift: PreviewShift, index: number) => {
     setConfirmDeleteShift(shift);
     setDeleteDialogOpen(true);
   };
@@ -140,29 +141,25 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
     }
   };
   
-  const handleEditShift = (shift: PreviewShift) => {
-    console.log("Opening edit dialog for shift:", shift);
+  const handleEditShift = (shift: PreviewShift, index: number) => {
+    console.log("Opening edit dialog for shift:", shift, "at index:", index);
     setEditingShift({...shift});
+    setEditingShiftIndex(index);
     setEditDialogOpen(true);
   };
   
   const saveEditedShift = () => {
-    if (editingShift) {
-      console.log("Saving edited shift:", editingShift);
+    if (editingShift && editingShiftIndex >= 0) {
+      console.log("Saving edited shift:", editingShift, "at index:", editingShiftIndex);
       
-      const updatedShifts = localShifts.map(shift => {
-        if (shift.date.getTime() === editingShift.date.getTime() && 
-            shift.start_time === editingShift.start_time &&
-            shift.employee_id === editingShift.employee_id) {
-          return editingShift;
-        }
-        return shift;
-      });
+      const updatedShifts = [...localShifts];
+      updatedShifts[editingShiftIndex] = {...editingShift};
       
       console.log("Updated shifts array:", updatedShifts);
       setLocalShifts(updatedShifts);
       setEditDialogOpen(false);
       setEditingShift(null);
+      setEditingShiftIndex(-1);
     }
   };
   
@@ -328,7 +325,7 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleEditShift(shift)}
+                          onClick={() => handleEditShift(shift, index)}
                           title="Edit shift"
                         >
                           <Edit className="h-4 w-4" />
@@ -336,7 +333,7 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDeleteShift(shift)}
+                          onClick={() => handleDeleteShift(shift, index)}
                           title="Delete shift"
                         >
                           <Trash2 className="h-4 w-4" />
