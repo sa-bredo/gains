@@ -62,14 +62,40 @@ serve(async (req) => {
       }
     ];
     
-    // Insert or update each config item
+    // First check if entries exist and delete them if they do
+    for (const item of configItems) {
+      console.log(`Checking if config item exists: ${item.key}`);
+      const { data: existingConfig, error: fetchError } = await supabase
+        .from("config")
+        .select("id")
+        .eq("company_id", company_id)
+        .eq("key", item.key)
+        .maybeSingle();
+        
+      if (fetchError) {
+        console.error(`Error fetching existing config (${item.key}):`, fetchError);
+      }
+      
+      if (existingConfig) {
+        console.log(`Found existing config for ${item.key}, deleting before inserting new value`);
+        const { error: deleteError } = await supabase
+          .from("config")
+          .delete()
+          .eq("id", existingConfig.id);
+          
+        if (deleteError) {
+          console.error(`Error deleting existing config (${item.key}):`, deleteError);
+          throw new Error(`Failed to update config (${item.key}): ${deleteError.message}`);
+        }
+      }
+    }
+    
+    // Now insert each config item
     for (const item of configItems) {
       console.log(`Storing config item: ${item.key}`);
       const { error } = await supabase
         .from("config")
-        .upsert(item, {
-          onConflict: "company_id,key"
-        });
+        .insert(item);
         
       if (error) {
         console.error(`Failed to store config (${item.key}):`, error);

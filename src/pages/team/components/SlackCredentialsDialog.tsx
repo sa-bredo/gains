@@ -71,7 +71,7 @@ export function SlackCredentialsDialog({
         redirect_uri: values.redirect_uri
       });
       
-      const { data, error } = await supabase.functions.invoke("add-slack-credentials", {
+      const response = await supabase.functions.invoke("add-slack-credentials", {
         body: {
           company_id: currentCompany.id,
           client_id: values.client_id,
@@ -80,6 +80,8 @@ export function SlackCredentialsDialog({
         }
       });
 
+      const { data, error } = response;
+      
       if (error) {
         console.error('Error from edge function:', error);
         throw error;
