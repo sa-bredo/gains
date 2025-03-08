@@ -449,6 +449,7 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
                   }}
                   placeholder="Select staff member"
                   allowUnassigned={true}
+                  className="bg-background"
                 />
               </div>
               

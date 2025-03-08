@@ -86,7 +86,7 @@ export function StaffAutocomplete({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between bg-background", className)}
+          className={cn("w-full justify-between", className)}
           disabled={disabled}
         >
           {displayValue || placeholder}
