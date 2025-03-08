@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useCompany } from '@/contexts/CompanyContext';
+import { Location, StaffMember } from '../shift-templates/types';
 
 // Main component
 function ShiftsPage() {
@@ -27,7 +28,7 @@ function ShiftsPage() {
   const isMounted = useRef(true);
 
   // Using react-query to fetch shifts with company filtering and prevent refetching
-  const { data, isLoading, error, refetch } = useQuery({
+  const { data: shiftsData, isLoading: isLoadingShifts, error: shiftsError, refetch } = useQuery({
     queryKey: ['shifts', currentCompany?.id],
     queryFn: () => {
       console.log('Fetching shifts for company:', currentCompany?.id);
@@ -35,28 +36,46 @@ function ShiftsPage() {
     },
     enabled: !!currentCompany,
     staleTime: 300000, // 5 minutes
-    gcTime: 600000, // 10 minutes (replaced cacheTime with gcTime)
+    gcTime: 600000, // 10 minutes
+  });
+
+  // Fetch locations with react-query
+  const { data: locationsData, isLoading: isLoadingLocations } = useQuery({
+    queryKey: ['locations', currentCompany?.id],
+    queryFn: () => shiftService.fetchLocations(),
+    enabled: !!currentCompany,
+    staleTime: 300000, // 5 minutes
+    gcTime: 600000, // 10 minutes
+  });
+
+  // Fetch staff members with react-query
+  const { data: staffMembersData, isLoading: isLoadingStaff } = useQuery({
+    queryKey: ['staffMembers', currentCompany?.id],
+    queryFn: () => shiftService.fetchStaffMembers(),
+    enabled: !!currentCompany,
+    staleTime: 300000, // 5 minutes
+    gcTime: 600000, // 10 minutes
   });
 
   // Update the shifts state when data is fetched
   useEffect(() => {
-    if (data && isMounted.current) {
-      console.log('Setting shifts from query data:', data.length);
-      setShifts(data);
+    if (shiftsData && isMounted.current) {
+      console.log('Setting shifts from query data:', shiftsData.length);
+      setShifts(shiftsData);
     }
-  }, [data]);
+  }, [shiftsData]);
 
   // Handle error with useEffect
   useEffect(() => {
-    if (error && isMounted.current) {
-      console.error('Error fetching shifts:', error);
+    if (shiftsError && isMounted.current) {
+      console.error('Error fetching shifts:', shiftsError);
       toast({
         title: 'Error',
         description: 'Failed to load shifts. Please try again later.',
         variant: 'destructive',
       });
     }
-  }, [error, toast]);
+  }, [shiftsError, toast]);
 
   // Set up and clean up the mounted state
   useEffect(() => {
@@ -71,15 +90,20 @@ function ShiftsPage() {
     refetch();
   }, [refetch]);
 
+  // Determine if any data is loading
+  const isLoading = isLoadingShifts || isLoadingLocations || isLoadingStaff;
+
   // Use useMemo for ShiftsTable to prevent unnecessary rerenders
   const memoizedShiftsTable = useMemo(() => {
     return (
       <ShiftsTable 
         shifts={shifts} 
         isLoading={isLoading}
+        locations={locationsData || []}
+        staffMembers={staffMembersData || []}
       />
     );
-  }, [shifts, isLoading]);
+  }, [shifts, isLoading, locationsData, staffMembersData]);
 
   // Create a memoized version of AddShiftsFromTemplate
   const memoizedAddShiftsTemplate = useMemo(() => {
