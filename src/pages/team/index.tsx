@@ -9,6 +9,8 @@ import { TeamMembersFilter } from './components/TeamMembersFilter';
 import { TeamMember } from './types';
 import { SlackIntegrationCard } from './components/SlackIntegrationCard';
 import { useCompany } from "@/contexts/CompanyContext";
+import { AppSidebar } from '@/components/sidebar';
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default function TeamPage() {
   const { currentCompany, isLoadingCompanies } = useCompany();
@@ -99,7 +101,7 @@ export default function TeamPage() {
     );
   }
   
-  return (
+  const pageContent = (
     <div className="container mx-auto py-6 space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Team Members</h1>
@@ -153,5 +155,16 @@ export default function TeamPage() {
         onSuccess={refetchTeamMembers}
       />
     </div>
+  );
+
+  return (
+    <SidebarProvider>
+      <div className="flex w-full min-h-screen">
+        <AppSidebar />
+        <SidebarInset className="bg-background">
+          {pageContent}
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }
