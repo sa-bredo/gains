@@ -87,6 +87,18 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
     };
   }, []);
 
+  // Auto-select the highest version when location changes
+  useEffect(() => {
+    if (selectedLocation) {
+      const versions = getVersionsForLocation();
+      if (versions.length > 0) {
+        // Find the highest version and select it
+        const highestVersion = Math.max(...versions);
+        setSelectedVersion(highestVersion);
+      }
+    }
+  }, [selectedLocation, templateMasters]);
+
   const handlePreviewShifts = async () => {
     if (!selectedLocation || !selectedVersion || !startDate) {
       toast({
@@ -123,8 +135,18 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
         parseInt(weeks)
       );
       
+      // Fetch existing shifts to check for conflicts
+      const existingShifts = await shiftService.fetchShifts(
+        startDate,
+        null,
+        selectedLocation
+      );
+      
+      // Check for conflicts between new shifts and existing shifts
+      const shiftsWithConflictInfo = await checkForShiftConflicts(shiftsPreview, existingShifts);
+      
       // Map the shifts to the preview format with location names
-      const mappedShifts = shiftService.mapShiftsToPreview(shiftsPreview, locations);
+      const mappedShifts = shiftService.mapShiftsToPreview(shiftsWithConflictInfo, locations);
       
       if (!isMounted.current) return;
       setPreviewShifts(mappedShifts);
@@ -142,6 +164,73 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
       if (isMounted.current) {
         setIsLoading(false);
       }
+    }
+  };
+
+  // Check for conflicts between new shifts and existing shifts
+  const checkForShiftConflicts = async (newShifts, existingShifts) => {
+    return newShifts.map(newShift => {
+      const conflicts = existingShifts.filter(existingShift => {
+        // Check if same date and employee
+        if (newShift.date === existingShift.date && 
+            newShift.employee_id === existingShift.employee_id &&
+            existingShift.employee_id !== null) {
+          
+          // Compare time ranges to see if they overlap
+          const newStart = convertTimeToMinutes(newShift.start_time);
+          const newEnd = convertTimeToMinutes(newShift.end_time);
+          const existingStart = convertTimeToMinutes(existingShift.start_time);
+          const existingEnd = convertTimeToMinutes(existingShift.end_time);
+          
+          // Check for any overlap
+          return (
+            (newStart <= existingEnd && newEnd >= existingStart) ||
+            (existingStart <= newEnd && existingEnd >= newStart)
+          );
+        }
+        return false;
+      });
+      
+      // If conflicts are found, add hasConflict flag and conflict details
+      if (conflicts.length > 0) {
+        return {
+          ...newShift,
+          hasConflict: true,
+          conflictDetails: conflicts.map(conflict => ({
+            existingShift: conflict,
+            overlapType: getOverlapType(
+              convertTimeToMinutes(newShift.start_time),
+              convertTimeToMinutes(newShift.end_time),
+              convertTimeToMinutes(conflict.start_time),
+              convertTimeToMinutes(conflict.end_time)
+            )
+          }))
+        };
+      }
+      
+      return {
+        ...newShift,
+        hasConflict: false
+      };
+    });
+  };
+
+  // Helper function to convert HH:MM:SS to minutes for easy comparison
+  const convertTimeToMinutes = (timeStr) => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return (hours * 60) + minutes;
+  };
+
+  // Determine the type of overlap between shifts
+  const getOverlapType = (newStart, newEnd, existingStart, existingEnd) => {
+    if (newStart <= existingStart && newEnd >= existingEnd) {
+      return 'complete'; // New shift completely covers the existing shift
+    } else if (existingStart <= newStart && existingEnd >= newEnd) {
+      return 'contained'; // New shift is completely contained within the existing shift
+    } else if (newStart < existingStart) {
+      return 'partial-end'; // New shift overlaps with the start of the existing shift
+    } else {
+      return 'partial-start'; // New shift overlaps with the end of the existing shift
     }
   };
 
@@ -236,7 +325,7 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
               value={selectedLocation}
               onValueChange={value => {
                 setSelectedLocation(value);
-                setSelectedVersion(null);
+                // Version will be auto-selected by the useEffect
               }}
             >
               <SelectTrigger>
