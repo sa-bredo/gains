@@ -147,6 +147,10 @@ function ShiftsPage() {
                   <Plus className="h-4 w-4 mr-2" />
                   Add Single Shift
                 </Button>
+                <Button onClick={() => setCurrentView('add')}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Shifts from Template
+                </Button>
               </div>
             )}
           </div>
