@@ -6,7 +6,7 @@ import {
   SidebarGroupLabel,
   SidebarMenu,
 } from "@/components/ui/sidebar";
-import { NavItem } from "./types";
+import { NavItem, NavSubItem } from "./types";
 import { SidebarNavItem } from "./nav-item";
 import { 
   Activity, 

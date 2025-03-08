@@ -1,42 +1,41 @@
+
+// This file is currently not used by the application
+// The main routing is handled directly in App.tsx
+
 import { lazy, Suspense } from "react";
 import { Navigate } from "react-router-dom";
-import { AppLayout } from "./layout";
-import { ProtectedRoute } from "./components/auth/protected-route";
-import { Shell } from "./components/shell";
-import { Loading } from "./components/loading";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
-const HomePage = lazy(() => import("./pages/home"));
-const AuthPage = lazy(() => import("./pages/auth"));
-const ProfilePage = lazy(() => import("./pages/profile"));
-const PlaidPage = lazy(() => import("./pages/plaid"));
-const TransactionsPage = lazy(() => import("./pages/financials/transactions"));
-const TransactionsGoCardlessPage = lazy(() => import("./pages/financials/transactions-gocardless"));
-const EmployeesPage = lazy(() => import("./pages/employees"));
-const EmployeesInvitePage = lazy(() => import("./pages/employees/invite"));
-const DocumentSigningPage = lazy(() => import("./pages/document-signing"));
-const FormsPage = lazy(() => import("./pages/forms"));
-const RotaShiftsPage = lazy(() => import("./pages/rota/shifts"));
-const RotaShiftTemplatesMasterPage = lazy(() => import("./pages/rota/shift-templates-master"));
-import TeamPage from './pages/team';
-import ConfigPage from './pages/settings/config';
-import LocationsPage from './pages/settings/locations';
-import PermissionsPage from './pages/settings/permissions';
-import SlackSettingsPage from './pages/settings/integrations/slack';
+// Placeholder for loading component
+const Loading = () => <div>Loading...</div>;
 
+// Lazy loaded pages
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const PlaidPage = lazy(() => import("@/pages/plaid"));
+const TransactionsPage = lazy(() => import("@/pages/financials/transactions"));
+const TransactionsGoCardlessPage = lazy(() => import("@/pages/financials/transactions-gocardless"));
+const EmployeesPage = lazy(() => import("@/pages/employees"));
+const DocumentSigningPage = lazy(() => import("@/pages/document-signing"));
+const FormsPage = lazy(() => import("@/pages/forms"));
+const RotaShiftsPage = lazy(() => import("@/pages/rota/shifts"));
+const RotaShiftTemplatesMasterPage = lazy(() => import("@/pages/rota/shift-templates-master"));
+const TeamPage = lazy(() => import("@/pages/team"));
+const ConfigPage = lazy(() => import("@/pages/settings/config"));
+const LocationsPage = lazy(() => import("@/pages/settings/locations"));
+const PermissionsPage = lazy(() => import("@/pages/settings/permissions"));
+const SlackSettingsPage = lazy(() => import("@/pages/settings/integrations/slack"));
+
+// This routes array is not currently used - app routing is defined in App.tsx
 const routes = [
   {
     path: "/",
-    element: (
-      <ProtectedRoute>
-        <AppLayout />
-      </ProtectedRoute>
-    ),
+    element: <ProtectedRoute />,
     children: [
       {
         index: true,
         element: (
           <Suspense fallback={<Loading />}>
-            <HomePage />
+            <Dashboard />
           </Suspense>
         ),
       },
@@ -44,15 +43,7 @@ const routes = [
         path: "dashboard",
         element: (
           <Suspense fallback={<Loading />}>
-            <HomePage />
-          </Suspense>
-        ),
-      },
-      {
-        path: "profile",
-        element: (
-          <Suspense fallback={<Loading />}>
-            <ProfilePage />
+            <Dashboard />
           </Suspense>
         ),
       },
@@ -89,14 +80,6 @@ const routes = [
         ),
       },
       {
-        path: "employees/invite",
-        element: (
-          <Suspense fallback={<Loading />}>
-            <EmployeesInvitePage />
-          </Suspense>
-        ),
-      },
-      {
         path: "document-signing",
         element: (
           <Suspense fallback={<Loading />}>
@@ -128,45 +111,51 @@ const routes = [
           </Suspense>
         ),
       },
+      {
+        path: "team",
+        element: (
+          <Suspense fallback={<Loading />}>
+            <TeamPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "settings/config",
+        element: (
+          <Suspense fallback={<Loading />}>
+            <ConfigPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "settings/locations",
+        element: (
+          <Suspense fallback={<Loading />}>
+            <LocationsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "settings/permissions",
+        element: (
+          <Suspense fallback={<Loading />}>
+            <PermissionsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "settings/integrations/slack",
+        element: (
+          <Suspense fallback={<Loading />}>
+            <SlackSettingsPage />
+          </Suspense>
+        ),
+      },
     ],
-  },
-  {
-    path: "auth",
-    element: (
-      <Shell>
-        <Suspense fallback={<Loading />}>
-          <AuthPage />
-        </Suspense>
-      </Shell>
-    ),
   },
   {
     path: "*",
     element: <Navigate to="/" replace />,
-  },
-  
-  // Team route
-  {
-    path: "team",
-    element: <ProtectedRoute><TeamPage /></ProtectedRoute>,
-  },
-  
-  // Settings routes
-  {
-    path: "settings/config",
-    element: <ProtectedRoute><ConfigPage /></ProtectedRoute>,
-  },
-  {
-    path: "settings/locations",
-    element: <ProtectedRoute><LocationsPage /></ProtectedRoute>,
-  },
-  {
-    path: "settings/permissions",
-    element: <ProtectedRoute><PermissionsPage /></ProtectedRoute>,
-  },
-  {
-    path: "settings/integrations/slack",
-    element: <ProtectedRoute><SlackSettingsPage /></ProtectedRoute>,
   },
 ];
 

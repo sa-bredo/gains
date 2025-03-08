@@ -7,10 +7,13 @@ export interface NavItem {
   url: string;
   icon: LucideIcon;
   isActive?: boolean;
-  items?: {
-    title: string;
-    url: string;
-  }[];
+  items?: NavSubItem[];
+}
+
+export interface NavSubItem {
+  title: string;
+  url: string;
+  items?: NavSubItem[];
 }
 
 export interface UserProfile {
