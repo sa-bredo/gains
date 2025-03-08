@@ -30,7 +30,7 @@ export default function ShiftTemplatesPage() {
   
   const [shiftTemplates, setShiftTemplates] = useState<ShiftTemplate[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
-  const [staffMembers, setStaffMembers] = useState<ShiftMember[]>([]);
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
