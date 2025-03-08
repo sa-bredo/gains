@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -33,46 +33,60 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
   const shiftService = useShiftService();
   const { toast } = useToast();
   const dataFetchedRef = useRef(false);
+  const isMounted = useRef(true);
 
   // Load locations and template masters - using ref to prevent multiple fetches
-  useEffect(() => {
-    const loadData = async () => {
-      if (dataFetchedRef.current) return; // Only fetch once
+  const loadInitialData = useCallback(async () => {
+    if (dataFetchedRef.current || !isMounted.current) return; // Only fetch once
+    
+    try {
+      setIsLoading(true);
+      dataFetchedRef.current = true;
       
-      try {
-        setIsLoading(true);
-        dataFetchedRef.current = true;
-        
-        console.log("Fetching initial data for AddShiftsFromTemplate");
-        const locationsData = await shiftService.fetchLocations();
-        setLocations(locationsData);
-        
-        const mastersData = await shiftService.fetchTemplateMasters();
-        setTemplateMasters(mastersData);
-        
-        // Auto-select the first location if available
-        if (locationsData.length > 0 && !selectedLocation) {
-          setSelectedLocation(locationsData[0].id);
-        }
-      } catch (error) {
-        console.error('Error loading data:', error);
+      console.log("Fetching initial data for AddShiftsFromTemplate");
+      const locationsData = await shiftService.fetchLocations();
+      
+      if (!isMounted.current) return;
+      setLocations(locationsData);
+      
+      const mastersData = await shiftService.fetchTemplateMasters();
+      
+      if (!isMounted.current) return;
+      setTemplateMasters(mastersData);
+      
+      // Auto-select the first location if available
+      if (locationsData.length > 0 && !selectedLocation) {
+        setSelectedLocation(locationsData[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      if (isMounted.current) {
         toast({
           title: 'Failed to load data',
           description: 'Could not load locations and templates',
           variant: 'destructive',
         });
-      } finally {
+      }
+    } finally {
+      if (isMounted.current) {
         setIsLoading(false);
       }
-    };
+    }
+  }, [shiftService, toast, selectedLocation]);
+
+  // Set up isMounted ref and initial data loading
+  useEffect(() => {
+    isMounted.current = true;
     
-    loadData();
+    // Load data on mount
+    loadInitialData();
     
     // Cleanup function
     return () => {
-      dataFetchedRef.current = false;
+      isMounted.current = false;
+      dataFetchedRef.current = false; // Reset for next mount
     };
-  }, [shiftService, toast]);
+  }, [loadInitialData]);
 
   const handlePreviewShifts = async () => {
     if (!selectedLocation || !selectedVersion || !startDate) {
@@ -91,6 +105,8 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
         selectedLocation, 
         selectedVersion
       );
+      
+      if (!isMounted.current) return;
       
       if (templates.length === 0) {
         toast({
@@ -111,17 +127,22 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
       // Map the shifts to the preview format with location names
       const mappedShifts = shiftService.mapShiftsToPreview(shiftsPreview, locations);
       
+      if (!isMounted.current) return;
       setPreviewShifts(mappedShifts);
       setStep('preview');
     } catch (error) {
       console.error('Error generating preview shifts:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to generate shift preview',
-        variant: 'destructive',
-      });
+      if (isMounted.current) {
+        toast({
+          title: 'Error',
+          description: 'Failed to generate shift preview',
+          variant: 'destructive',
+        });
+      }
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -145,6 +166,8 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
       // Create shifts in the database
       await shiftService.createShifts(shiftsToCreate);
       
+      if (!isMounted.current) return;
+      
       toast({
         title: 'Success',
         description: `${shiftsToCreate.length} shifts have been created`,
@@ -155,13 +178,17 @@ export function AddShiftsFromTemplate({ onBack, onComplete }: AddShiftsFromTempl
       }
     } catch (error) {
       console.error('Error saving shifts:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save shifts',
-        variant: 'destructive',
-      });
+      if (isMounted.current) {
+        toast({
+          title: 'Error',
+          description: 'Failed to save shifts',
+          variant: 'destructive',
+        });
+      }
     } finally {
-      setIsSubmitting(false);
+      if (isMounted.current) {
+        setIsSubmitting(false);
+      }
     }
   };
 

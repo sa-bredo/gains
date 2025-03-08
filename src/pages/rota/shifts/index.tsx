@@ -1,5 +1,5 @@
 
-import React, { memo, useState, useEffect, useRef } from 'react';
+import React, { memo, useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -13,11 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useCompany } from '@/contexts/CompanyContext';
-
-// Create a memoized component to break potential recursive render cycles
-export const MemoizedShiftComponent = memo(function MemoizedShiftComponent(props: any) {
-  return props.children;
-});
 
 // Main component
 function ShiftsPage() {
@@ -100,7 +95,7 @@ function ShiftsPage() {
     },
     enabled: !!currentCompany,
     staleTime: 300000, // 5 minutes
-    cacheTime: 600000, // 10 minutes
+    gcTime: 600000, // 10 minutes (replaced cacheTime with gcTime)
   });
 
   // Update the shifts state when data is fetched
@@ -128,8 +123,8 @@ function ShiftsPage() {
     refetch();
   };
 
-  // Avoid unnecessary re-renders with memoized component
-  const memoizedShiftsTable = React.useMemo(() => {
+  // Use useMemo instead of React.useMemo for better TypeScript support
+  const memoizedShiftsTable = useMemo(() => {
     return (
       <ShiftsTable 
         shifts={shifts} 
@@ -139,6 +134,16 @@ function ShiftsPage() {
       />
     );
   }, [shifts, isLoading, locations, staffMembers]);
+
+  // Create a memoized version of AddShiftsFromTemplate to prevent unnecessary re-renders
+  const memoizedAddShiftsTemplate = useMemo(() => {
+    return (
+      <AddShiftsFromTemplate 
+        onBack={() => setCurrentView('view')}
+        onComplete={handleAddComplete}
+      />
+    );
+  }, [handleAddComplete]);
 
   console.log('Rendering ShiftsPage with shifts:', shifts.length);
 
@@ -174,12 +179,7 @@ function ShiftsPage() {
           </div>
 
           {currentView === 'add' ? (
-            <MemoizedShiftComponent>
-              <AddShiftsFromTemplate 
-                onBack={() => setCurrentView('view')}
-                onComplete={handleAddComplete}
-              />
-            </MemoizedShiftComponent>
+            memoizedAddShiftsTemplate
           ) : (
             <Tabs defaultValue="view">
               <TabsList className="mb-6">
@@ -193,19 +193,12 @@ function ShiftsPage() {
                     <p>Loading shifts...</p>
                   </div>
                 ) : (
-                  <MemoizedShiftComponent>
-                    {memoizedShiftsTable}
-                  </MemoizedShiftComponent>
+                  memoizedShiftsTable
                 )}
               </TabsContent>
               
               <TabsContent value="add">
-                <MemoizedShiftComponent>
-                  <AddShiftsFromTemplate 
-                    onBack={() => setCurrentView('view')}
-                    onComplete={handleAddComplete}
-                  />
-                </MemoizedShiftComponent>
+                {memoizedAddShiftsTemplate}
               </TabsContent>
             </Tabs>
           )}
