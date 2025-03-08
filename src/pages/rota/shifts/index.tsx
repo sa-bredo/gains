@@ -174,12 +174,6 @@ function ShiftsPage() {
               </TabsContent>
             </Tabs>
           )}
-
-          <AddShiftDialog
-            open={isAddShiftDialogOpen}
-            onOpenChange={setIsAddShiftDialogOpen}
-            onAddComplete={handleAddComplete}
-          />
         </div>
       </SidebarInset>
     </div>
