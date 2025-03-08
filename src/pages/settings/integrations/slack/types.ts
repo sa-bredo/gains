@@ -1,6 +1,6 @@
 
 export interface SlackConfig {
-  id: string;
+  id?: string;
   company_id: string;
   slack_workspace_id: string;
   slack_bot_token: string;
@@ -13,8 +13,7 @@ export interface SlackConfig {
   created_at?: string;
 }
 
-export interface SlackEmployee {
-  employee_id: string;
+export interface SlackEmployeeIntegration {
   slack_user_id: string;
   slack_username: string;
   slack_email: string;
@@ -22,8 +21,9 @@ export interface SlackEmployee {
   slack_connected_at: string;
 }
 
-export interface SlackMessageTemplate {
+export interface MessageTemplate {
   id: string;
+  type: 'slack' | 'email' | 'sms';
   name: string;
   content: string;
   category: 'Scheduling' | 'HR' | 'General';
@@ -31,11 +31,12 @@ export interface SlackMessageTemplate {
   updated_at?: string;
 }
 
-export interface SlackMessage {
+export interface Message {
   id: string;
+  type: 'slack' | 'email' | 'sms';
   recipient_id: string; // Can be employee_id or channel_id
-  recipient_type: 'employee' | 'channel';
-  message: string;
+  recipient_type: 'employee' | 'channel' | 'group';
+  content: string;
   status: 'pending' | 'sent' | 'delivered' | 'failed';
   error?: string;
   sent_by: string;

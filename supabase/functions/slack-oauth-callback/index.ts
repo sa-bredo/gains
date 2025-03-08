@@ -113,20 +113,47 @@ serve(async (req) => {
       throw new Error(`Failed to exchange code for token: ${tokenData.error}`);
     }
     
-    // Store the bot token and workspace info in the database
+    // Store the bot token and workspace info in the config table
     const { error: dbError } = await supabase
-      .from("slack_config")
-      .upsert({
-        company_id,
-        slack_workspace_id: tokenData.team.id,
-        slack_bot_token: tokenData.access_token,
-        slack_signing_secret: "",  // This should be set in the Supabase secrets
-        slack_app_id: tokenData.app_id,
-        slack_workspace_name: tokenData.team.name,
-        slack_team_url: `https://${tokenData.team.domain}.slack.com`,
-        connected_at: new Date().toISOString(),
-      })
-      .select();
+      .from("config")
+      .upsert([
+        {
+          company_id,
+          key: "slack_workspace_id",
+          display_name: "Slack Workspace ID",
+          value: tokenData.team.id
+        },
+        {
+          company_id,
+          key: "slack_bot_token",
+          display_name: "Slack Bot Token",
+          value: tokenData.access_token
+        },
+        {
+          company_id,
+          key: "slack_app_id",
+          display_name: "Slack App ID",
+          value: tokenData.app_id
+        },
+        {
+          company_id,
+          key: "slack_workspace_name",
+          display_name: "Slack Workspace Name",
+          value: tokenData.team.name
+        },
+        {
+          company_id,
+          key: "slack_team_url",
+          display_name: "Slack Team URL",
+          value: `https://${tokenData.team.domain}.slack.com`
+        },
+        {
+          company_id,
+          key: "slack_connected_at",
+          display_name: "Slack Connected At",
+          value: new Date().toISOString()
+        }
+      ]);
     
     if (dbError) {
       throw new Error(`Failed to store Slack token: ${dbError.message}`);

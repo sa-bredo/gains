@@ -246,6 +246,7 @@ export type Database = {
           hourly_rate: number | null
           id: string
           insurance_url: string | null
+          integrations: Json | null
           invited: boolean | null
           last_name: string
           mobile_number: string | null
@@ -266,6 +267,7 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           insurance_url?: string | null
+          integrations?: Json | null
           invited?: boolean | null
           last_name: string
           mobile_number?: string | null
@@ -286,6 +288,7 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           insurance_url?: string | null
+          integrations?: Json | null
           invited?: boolean | null
           last_name?: string
           mobile_number?: string | null
@@ -483,6 +486,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      message_templates: {
+        Row: {
+          category: string
+          content: string
+          created_at: string | null
+          id: string
+          name: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string | null
+          id?: string
+          name: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          error: string | null
+          id: string
+          recipient_id: string
+          recipient_type: string
+          sent_at: string | null
+          sent_by: string | null
+          status: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          recipient_id: string
+          recipient_type: string
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          recipient_id?: string
+          recipient_type?: string
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       resources: {
         Row: {

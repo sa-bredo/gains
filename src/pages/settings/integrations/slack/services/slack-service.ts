@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { SlackConfig, SlackEmployee, SlackMessageTemplate, SlackMessage, SlackChannelInfo } from '../types';
+import { SlackConfig, SlackEmployeeIntegration, MessageTemplate, SlackChannelInfo } from '../types';
 
 /**
  * Fetch Slack configuration for the current company
@@ -8,17 +8,48 @@ import { SlackConfig, SlackEmployee, SlackMessageTemplate, SlackMessage, SlackCh
 export const fetchSlackConfig = async (companyId: string): Promise<SlackConfig | null> => {
   try {
     const { data, error } = await supabase
-      .from('slack_config')
+      .from('config')
       .select('*')
       .eq('company_id', companyId)
-      .single();
+      .in('key', [
+        'slack_workspace_id',
+        'slack_bot_token',
+        'slack_signing_secret',
+        'slack_app_id',
+        'slack_workspace_name',
+        'slack_team_url',
+        'slack_connected_at'
+      ]);
     
     if (error) {
       console.error('Error fetching Slack config:', error);
       return null;
     }
     
-    return data;
+    if (!data || data.length === 0) {
+      return null;
+    }
+    
+    // Transform the array of config items into a SlackConfig object
+    const configMap: Record<string, string> = {};
+    data.forEach(item => {
+      configMap[item.key] = item.value;
+    });
+    
+    if (!configMap.slack_workspace_id) {
+      return null;
+    }
+    
+    return {
+      company_id: companyId,
+      slack_workspace_id: configMap.slack_workspace_id,
+      slack_bot_token: configMap.slack_bot_token || '',
+      slack_signing_secret: configMap.slack_signing_secret || '',
+      slack_app_id: configMap.slack_app_id || '',
+      slack_workspace_name: configMap.slack_workspace_name || '',
+      slack_team_url: configMap.slack_team_url || '',
+      connected_at: configMap.slack_connected_at || new Date().toISOString()
+    };
   } catch (err) {
     console.error('Exception in fetchSlackConfig:', err);
     return null;
@@ -61,9 +92,13 @@ export const disconnectEmployeeFromSlack = async (
   employeeId: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    const { data, error } = await supabase.functions.invoke('disconnect-slack-employee', {
-      body: { employee_id: employeeId },
-    });
+    // Update the employee's integrations to remove slack connection
+    const { error } = await supabase
+      .from('employees')
+      .update({
+        integrations: supabase.rpc('jsonb_delete_path', { target: 'integrations', path: ['slack'] })
+      })
+      .eq('id', employeeId);
     
     if (error) {
       return { success: false, error: error.message };
@@ -86,15 +121,44 @@ export const fetchSlackChannels = async (
   workspaceId: string
 ): Promise<{ channels: SlackChannelInfo[]; error?: string }> => {
   try {
-    const { data, error } = await supabase.functions.invoke('get-slack-channels', {
-      body: { workspace_id: workspaceId },
-    });
+    // Get the Slack bot token
+    const { data: configData, error: configError } = await supabase
+      .from('config')
+      .select('value')
+      .eq('key', 'slack_bot_token')
+      .eq('company_id', workspaceId)
+      .single();
     
-    if (error) {
-      return { channels: [], error: error.message };
+    if (configError) {
+      return { channels: [], error: configError.message };
     }
     
-    return { channels: data || [] };
+    const slack_bot_token = configData.value;
+    
+    // Call Slack API to get channels
+    const response = await fetch('https://slack.com/api/conversations.list', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${slack_bot_token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (!data.ok) {
+      return { channels: [], error: data.error };
+    }
+    
+    // Format the response
+    const channels: SlackChannelInfo[] = data.channels.map((channel: any) => ({
+      id: channel.id,
+      name: channel.name,
+      is_private: channel.is_private,
+      member_count: channel.num_members || 0
+    }));
+    
+    return { channels };
   } catch (err) {
     console.error('Error fetching Slack channels:', err);
     return { 
@@ -108,18 +172,20 @@ export const fetchSlackChannels = async (
  * Send a Slack message to employees or a channel
  */
 export const sendSlackMessage = async (
-  recipientType: 'employee' | 'channel',
+  recipientType: 'employee' | 'channel' | 'group',
   recipients: string[],
   message: string,
-  workspaceId: string
-): Promise<{ success: boolean; error?: string }> => {
+  workspaceId: string,
+  userId: string
+): Promise<{ success: boolean; error?: string; results?: any[] }> => {
   try {
     const { data, error } = await supabase.functions.invoke('send-slack-message', {
       body: {
         recipient_type: recipientType,
         recipients,
         message,
-        workspace_id: workspaceId
+        workspace_id: workspaceId,
+        user_id: userId
       },
     });
     
@@ -127,7 +193,7 @@ export const sendSlackMessage = async (
       return { success: false, error: error.message };
     }
     
-    return { success: true };
+    return data;
   } catch (err) {
     console.error('Error sending Slack message:', err);
     return { 
@@ -141,11 +207,11 @@ export const sendSlackMessage = async (
  * Create a message template
  */
 export const createMessageTemplate = async (
-  template: Omit<SlackMessageTemplate, 'id' | 'created_at' | 'updated_at'>
-): Promise<{ success: boolean; template?: SlackMessageTemplate; error?: string }> => {
+  template: Omit<MessageTemplate, 'id' | 'created_at' | 'updated_at'>
+): Promise<{ success: boolean; template?: MessageTemplate; error?: string }> => {
   try {
     const { data, error } = await supabase
-      .from('slack_message_templates')
+      .from('message_templates')
       .insert([template])
       .select();
     
@@ -153,7 +219,7 @@ export const createMessageTemplate = async (
       return { success: false, error: error.message };
     }
     
-    return { success: true, template: data[0] };
+    return { success: true, template: data[0] as MessageTemplate };
   } catch (err) {
     console.error('Error creating message template:', err);
     return { 
@@ -166,21 +232,22 @@ export const createMessageTemplate = async (
 /**
  * Fetch message templates
  */
-export const fetchMessageTemplates = async (): Promise<{ 
-  templates: SlackMessageTemplate[]; 
+export const fetchMessageTemplates = async (type: 'slack' | 'email' | 'sms' = 'slack'): Promise<{ 
+  templates: MessageTemplate[]; 
   error?: string 
 }> => {
   try {
     const { data, error } = await supabase
-      .from('slack_message_templates')
+      .from('message_templates')
       .select('*')
+      .eq('type', type)
       .order('created_at', { ascending: false });
     
     if (error) {
       return { templates: [], error: error.message };
     }
     
-    return { templates: data || [] };
+    return { templates: data as MessageTemplate[] || [] };
   } catch (err) {
     console.error('Error fetching message templates:', err);
     return { 
@@ -198,19 +265,18 @@ export const isEmployeeConnectedToSlack = async (
 ): Promise<{ connected: boolean; error?: string }> => {
   try {
     const { data, error } = await supabase
-      .from('slack_employees')
-      .select('slack_connected')
-      .eq('employee_id', employeeId)
+      .from('employees')
+      .select('integrations')
+      .eq('id', employeeId)
       .single();
     
     if (error) {
-      if (error.code === 'PGRST116') { // No rows found
-        return { connected: false };
-      }
       return { connected: false, error: error.message };
     }
     
-    return { connected: data?.slack_connected || false };
+    return { 
+      connected: !!data?.integrations?.slack?.slack_connected
+    };
   } catch (err) {
     console.error('Error checking employee Slack connection:', err);
     return { 
@@ -224,39 +290,37 @@ export const isEmployeeConnectedToSlack = async (
  * Fetch employees with their Slack connection status
  */
 export const fetchEmployeesWithSlackStatus = async (): Promise<{
-  employees: (Partial<SlackEmployee> & { id: string; first_name: string; last_name: string; email: string; role: string })[];
+  employees: Array<{
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    role: string;
+    slack?: SlackEmployeeIntegration;
+  }>;
   error?: string;
 }> => {
   try {
-    // Fetch employees
+    // Fetch employees with their integrations
     const { data: employeesData, error: employeesError } = await supabase
       .from('employees')
-      .select('id, first_name, last_name, email, role');
+      .select('id, first_name, last_name, email, role, integrations');
     
     if (employeesError) {
       return { employees: [], error: employeesError.message };
     }
     
-    // Fetch Slack employee mapping
-    const { data: slackEmployeeData, error: slackError } = await supabase
-      .from('slack_employees')
-      .select('*');
+    // Format the data
+    const formattedEmployees = employeesData.map(employee => ({
+      id: employee.id,
+      first_name: employee.first_name,
+      last_name: employee.last_name,
+      email: employee.email,
+      role: employee.role,
+      slack: employee.integrations?.slack as SlackEmployeeIntegration || undefined
+    }));
     
-    if (slackError) {
-      return { employees: [], error: slackError.message };
-    }
-    
-    // Combine the data
-    const combinedData = employeesData.map(employee => {
-      const slackData = slackEmployeeData.find(se => se.employee_id === employee.id);
-      return {
-        ...employee,
-        ...(slackData || {}),
-        slack_connected: !!slackData?.slack_connected,
-      };
-    });
-    
-    return { employees: combinedData };
+    return { employees: formattedEmployees };
   } catch (err) {
     console.error('Error fetching employees with Slack status:', err);
     return { 

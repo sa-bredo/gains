@@ -43,23 +43,26 @@ serve(async (req) => {
       throw new Error(`Failed to fetch employee: ${employeeError.message}`);
     }
     
-    // Get workspace token
-    const { data: workspace, error: workspaceError } = await supabase
-      .from("slack_config")
-      .select("slack_bot_token")
-      .eq("slack_workspace_id", workspace_id)
+    // Get workspace token from config
+    const { data: configData, error: configError } = await supabase
+      .from("config")
+      .select("value")
+      .eq("key", "slack_bot_token")
+      .eq("company_id", workspace_id)
       .single();
     
-    if (workspaceError) {
-      throw new Error(`Failed to fetch workspace: ${workspaceError.message}`);
+    if (configError) {
+      throw new Error(`Failed to fetch workspace token: ${configError.message}`);
     }
+    
+    const slack_bot_token = configData.value;
     
     // Lookup user in Slack by email
     const response = await fetch("https://slack.com/api/users.lookupByEmail", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${workspace.slack_bot_token}`,
+        "Authorization": `Bearer ${slack_bot_token}`,
       },
       body: JSON.stringify({
         email: employee.email,
@@ -72,20 +75,24 @@ serve(async (req) => {
       throw new Error(`Slack API error: ${data.error}`);
     }
     
-    // Store the connection in the database
-    const { error: connectionError } = await supabase
-      .from("slack_employees")
-      .upsert({
-        employee_id,
-        slack_user_id: data.user.id,
-        slack_username: data.user.real_name || data.user.name,
-        slack_email: employee.email,
-        slack_connected: true,
-        slack_connected_at: new Date().toISOString(),
-      });
+    // Store the Slack info in employee's integrations JSON field
+    const slackInfo = {
+      slack_user_id: data.user.id,
+      slack_username: data.user.real_name || data.user.name,
+      slack_email: employee.email,
+      slack_connected: true,
+      slack_connected_at: new Date().toISOString()
+    };
     
-    if (connectionError) {
-      throw new Error(`Failed to store connection: ${connectionError.message}`);
+    const { error: updateError } = await supabase
+      .from("employees")
+      .update({
+        integrations: { slack: slackInfo }
+      })
+      .eq("id", employee_id);
+    
+    if (updateError) {
+      throw new Error(`Failed to update employee: ${updateError.message}`);
     }
     
     return new Response(
