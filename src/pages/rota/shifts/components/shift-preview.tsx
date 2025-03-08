@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -8,12 +8,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { format, addDays, startOfWeek, isSameWeek } from 'date-fns';
+import { format, addDays, startOfWeek, isSameWeek, parseISO } from 'date-fns';
 import { AlertTriangle, Save, ArrowLeft, Edit, Trash2, Copy, MoreVertical, ChevronDown } from 'lucide-react';
+import { StaffAutocomplete } from '@/components/staff-autocomplete';
+import { TimeDropdown } from '@/components/time-dropdown';
+import { fetchStaffMembers } from '../services/api/staff';
 
 export interface ShiftPreviewItem {
   date: string;
@@ -66,16 +68,27 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [localShifts, setLocalShifts] = useState<PreviewShift[]>(shifts);
   const [confirmDeleteShift, setConfirmDeleteShift] = useState<PreviewShift | null>(null);
+  const [availableStaffMembers, setAvailableStaffMembers] = useState<Array<{ id: string; first_name: string; last_name: string; role: string }>>([]);
   
-  // Helper to format time (HH:MM:SS -> HH:MM)
+  useEffect(() => {
+    const loadStaff = async () => {
+      try {
+        const staff = await fetchStaffMembers();
+        setAvailableStaffMembers(staff);
+      } catch (error) {
+        console.error("Error loading staff members:", error);
+      }
+    };
+    
+    loadStaff();
+  }, []);
+  
   const formatTime = (time: string) => {
     return time.substring(0, 5);
   };
   
-  // Check if any shifts have conflicts
   const conflictCount = localShifts.filter(shift => shift.hasConflict).length;
   
-  // Select all shifts
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
       const allSelected = localShifts.reduce((acc, shift, index) => {
@@ -88,7 +101,6 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
     }
   };
   
-  // Handle individual shift selection
   const handleSelectShift = (index: number, checked: boolean) => {
     setSelectedShifts(prev => ({
       ...prev,
@@ -96,28 +108,21 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
     }));
   };
   
-  // Check if all shifts are selected
   const areAllSelected = localShifts.length > 0 && 
     Object.keys(selectedShifts).length === localShifts.length &&
     Object.values(selectedShifts).every(v => v);
     
-  // Count selected shifts
   const selectedCount = Object.values(selectedShifts).filter(v => v).length;
   
-  // Handle bulk actions
   const handleBulkAction = (action: string) => {
     console.log(`Bulk action: ${action} for ${selectedCount} shifts`);
-    // Implement bulk actions based on selected shifts
-    // For now, this is just a placeholder
   };
   
-  // Handle delete shift
   const handleDeleteShift = (shift: PreviewShift) => {
     setConfirmDeleteShift(shift);
     setDeleteDialogOpen(true);
   };
   
-  // Confirm delete shift
   const confirmDelete = () => {
     if (confirmDeleteShift) {
       const updatedShifts = localShifts.filter(s => 
@@ -131,13 +136,11 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
     }
   };
   
-  // Handle edit shift
   const handleEditShift = (shift: PreviewShift) => {
     setEditingShift({...shift});
     setEditDialogOpen(true);
   };
   
-  // Save edited shift
   const saveEditedShift = () => {
     if (editingShift) {
       const updatedShifts = localShifts.map(shift => {
@@ -155,7 +158,6 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
     }
   };
   
-  // Handle duplicate shift
   const handleDuplicateShift = (shift: PreviewShift) => {
     const duplicatedShift = {
       ...shift,
@@ -165,9 +167,7 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
     setLocalShifts([...localShifts, duplicatedShift]);
   };
 
-  // Group shifts by week to apply alternating background colors
   const getWeekNumber = (date: Date) => {
-    // Get the ISO week number for consistent week identification
     const startOfYear = new Date(date.getFullYear(), 0, 1);
     const pastDaysOfYear = (date.getTime() - startOfYear.getTime()) / 86400000;
     return Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
@@ -271,14 +271,10 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
               </TableRow>
             ) : (
               localShifts.map((shift, index) => {
-                // Get the week number for the current shift
                 const weekNum = getWeekNumber(shift.date);
                 
-                // Determine background color based on week number
-                // Week 1, 3, 5, etc. (odd weeks) - light blue
-                // Week 2, 4, 6, etc. (even weeks) - white
                 const isOddWeek = weekNum % 2 === 1;
-                const weekBackgroundColor = isOddWeek ? 'bg-sky-50' : ''; // Light blue for odd weeks
+                const weekBackgroundColor = isOddWeek ? 'bg-sky-50' : '';
                 
                 return (
                   <TableRow 
@@ -355,7 +351,6 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
         </Table>
       </div>
       
-      {/* Edit Shift Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -367,75 +362,60 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
           
           {editingShift && (
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Date</label>
-                  <div className="p-2 border rounded-md">
-                    {format(editingShift.date, 'EEE, MMM d, yyyy')}
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Location</label>
-                  <div className="p-2 border rounded-md">
-                    {editingShift.location_name}
-                  </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Date</label>
+                <div className="p-2 border rounded-md">
+                  {format(editingShift.date, 'EEE, MMM d, yyyy')}
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Start Time</label>
-                  <input
-                    type="time"
+                  <TimeDropdown
                     value={formatTime(editingShift.start_time)}
-                    onChange={(e) => setEditingShift({
+                    onValueChange={(value) => setEditingShift({
                       ...editingShift,
-                      start_time: e.target.value + ':00'
+                      start_time: value + ':00'
                     })}
-                    className="w-full p-2 border rounded-md"
+                    placeholder="Select start time"
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">End Time</label>
-                  <input
-                    type="time"
+                  <TimeDropdown
                     value={formatTime(editingShift.end_time)}
-                    onChange={(e) => setEditingShift({
+                    onValueChange={(value) => setEditingShift({
                       ...editingShift,
-                      end_time: e.target.value + ':00'
+                      end_time: value + ':00'
                     })}
-                    className="w-full p-2 border rounded-md"
+                    placeholder="Select end time"
                   />
                 </div>
               </div>
               
               <div className="space-y-2">
                 <label className="text-sm font-medium">Staff Member</label>
-                <Select
-                  value={editingShift.employee_id || "unassigned"}
-                  onValueChange={(value) => {
-                    const staff = staffMembers.find(s => s.id === value);
+                <StaffAutocomplete
+                  value={editingShift.employee_id}
+                  onChange={(value, displayName) => {
                     setEditingShift({
                       ...editingShift,
-                      employee_id: value === "unassigned" ? null : value,
-                      employee_name: staff ? `${staff.first_name} ${staff.last_name}` : 'Unassigned'
+                      employee_id: value,
+                      employee_name: displayName || 'Unassigned'
                     });
                   }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select staff member" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                    {staffMembers.map(staff => (
-                      <SelectItem key={staff.id} value={staff.id}>
-                        {staff.first_name} {staff.last_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select staff member"
+                  allowUnassigned={true}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Location</label>
+                <div className="p-2 border rounded-md">
+                  {editingShift.location_name}
+                </div>
               </div>
             </div>
           )}
@@ -447,7 +427,6 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
         </DialogContent>
       </Dialog>
       
-      {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -475,8 +454,6 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* Conflict Details Dialog - would be implemented here */}
     </div>
   );
 }

@@ -11,6 +11,8 @@ import { Loader2 } from 'lucide-react';
 import { ShiftTemplateFormValues } from '../types';
 import { useTeamMembers } from '@/pages/team/hooks/useTeamMembers';
 import { TeamMember } from '@/pages/team/types';
+import { TimeDropdown } from '@/components/time-dropdown';
+import { StaffAutocomplete } from '@/components/staff-autocomplete';
 
 const FormSchema = z.object({
   dayOfWeek: z.string({
@@ -24,26 +26,6 @@ const FormSchema = z.object({
   }),
   employeeId: z.string().optional(),
 });
-
-// Generate time options in 30-minute increments from 5:00 AM to 10:00 PM
-const generateTimeOptions = () => {
-  const options: string[] = [];
-  const startHour = 5; // 5 AM
-  const endHour = 22; // 10 PM
-  
-  for (let hour = startHour; hour <= endHour; hour++) {
-    const hourStr = hour.toString().padStart(2, '0');
-    options.push(`${hourStr}:00`);
-    // Don't add :30 for the last hour (10 PM)
-    if (hour < endHour) {
-      options.push(`${hourStr}:30`);
-    }
-  }
-  
-  return options;
-};
-
-const timeOptions = generateTimeOptions();
 
 interface AddShiftTemplateDialogProps {
   open: boolean;
@@ -175,84 +157,62 @@ export function AddShiftTemplateDialog({
                 </FormItem>
               )}
             />
+            
             <FormField
               control={form.control}
               name="startTime"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Start Time</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select start time" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {timeOptions.map((time) => (
-                        <SelectItem key={`start-${time}`} value={time}>
-                          {time}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <TimeDropdown
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder="Select start time"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            
             <FormField
               control={form.control}
               name="endTime"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>End Time</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select end time" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {timeOptions.map((time) => (
-                        <SelectItem key={`end-${time}`} value={time}>
-                          {time}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <TimeDropdown
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder="Select end time"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            
             <FormField
               control={form.control}
               name="employeeId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Staff Member (Optional)</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Assign to staff member" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {activeStaff.length === 0 ? (
-                        <SelectItem value="no-staff" disabled>
-                          No active staff members available
-                        </SelectItem>
-                      ) : (
-                        activeStaff.map((employee) => (
-                          <SelectItem key={employee.id} value={employee.id}>
-                            {employee.first_name} {employee.last_name}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <StaffAutocomplete
+                      value={field.value || null}
+                      onChange={(value) => field.onChange(value || undefined)}
+                      placeholder="Assign to staff member"
+                      allowUnassigned={true}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            
             <DialogFooter>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (
