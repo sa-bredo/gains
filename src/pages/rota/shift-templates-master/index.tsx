@@ -195,18 +195,30 @@ export default function ShiftTemplatesMasterPage() {
       
       if (templatesData && templatesData.length > 0) {
         console.log('Cloning templates for location', locationId, 'from version', version, 'to version', newVersion);
-        const newTemplates = templatesData.map(template => ({
-          ...template,
-          id: undefined,
-          version: newVersion,
-          created_at: new Date().toISOString()
-        }));
+        
+        // Create new templates but without the id field
+        const newTemplates = templatesData.map(template => {
+          // Destructure to remove the id field
+          const { id, ...templateWithoutId } = template;
+          
+          // Return a new object with the updated version
+          return {
+            ...templateWithoutId,
+            version: newVersion,
+            created_at: new Date().toISOString()
+          };
+        });
+        
+        console.log('New templates to insert:', newTemplates);
         
         const { error: insertError } = await supabase
           .from('shift_templates')
           .insert(newTemplates);
           
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error('Error inserting new templates:', insertError);
+          throw insertError;
+        }
         
         toast({
           title: "Templates cloned successfully",

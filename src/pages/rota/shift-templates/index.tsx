@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -273,16 +274,16 @@ export default function ShiftTemplatesPage() {
     try {
       setIsUpdating(true);
       
+      // Create a new cloned template object without the id field
+      // This will let Supabase generate a new id automatically
+      const { id, ...templateWithoutId } = template;
+      
       const clonedTemplate = {
+        ...templateWithoutId,
         name: `Copy of ${template.name || ''}`.trim() || `Copy of ${template.day_of_week} ${template.start_time}-${template.end_time}`,
-        day_of_week: template.day_of_week,
-        start_time: template.start_time,
-        end_time: template.end_time,
-        location_id: template.location_id,
-        employee_id: template.employee_id,
-        notes: template.notes,
-        version: template.version,
       };
+      
+      console.log('Cloning template with data:', clonedTemplate);
       
       const { data, error } = await supabase
         .from('shift_templates')
@@ -290,6 +291,7 @@ export default function ShiftTemplatesPage() {
         .select();
       
       if (error) {
+        console.error('Supabase error when cloning template:', error);
         throw error;
       }
       
