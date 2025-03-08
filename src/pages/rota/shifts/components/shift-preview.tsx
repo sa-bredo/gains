@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Table,
@@ -415,12 +414,12 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
               <div className="space-y-2">
                 <label className="text-sm font-medium">Staff Member</label>
                 <Select
-                  value={editingShift.employee_id || ''}
+                  value={editingShift.employee_id || "unassigned"}
                   onValueChange={(value) => {
                     const staff = staffMembers.find(s => s.id === value);
                     setEditingShift({
                       ...editingShift,
-                      employee_id: value || null,
+                      employee_id: value === "unassigned" ? null : value,
                       employee_name: staff ? `${staff.first_name} ${staff.last_name}` : 'Unassigned'
                     });
                   }}
@@ -429,7 +428,7 @@ export function ShiftPreview({ shifts, onSave, onBack, isSubmitting, staffMember
                     <SelectValue placeholder="Select staff member" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Unassigned</SelectItem>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
                     {staffMembers.map(staff => (
                       <SelectItem key={staff.id} value={staff.id}>
                         {staff.first_name} {staff.last_name}
