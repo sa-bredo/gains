@@ -1,265 +1,134 @@
-
 import { useSupabaseClient } from "@/integrations/supabase/useSupabaseClient";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { SlackConfig, SlackEmployeeIntegration } from "../types";
+import { MessageTemplate, MessageTemplateFormValues, MessageTemplateDB } from "../types";
 import { useCompany } from "@/contexts/CompanyContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export const useSlackConfig = () => {
+export const useMessageTemplates = () => {
   const supabase = useSupabaseClient();
   const { currentCompany } = useCompany();
   const queryClient = useQueryClient();
-
-  const fetchSlackConfig = async (): Promise<SlackConfig | null> => {
-    if (!currentCompany?.id) return null;
-
-    // Get the bot token from config table
-    const { data: botTokenData, error: botTokenError } = await supabase
-      .from("config")
-      .select("value")
-      .eq("key", "slack_bot_token")
-      .eq("company_id", currentCompany.id)
-      .maybeSingle();
-
-    if (botTokenError) {
-      console.error("Error fetching Slack bot token:", botTokenError);
-      return null;
+  
+  const fetchMessageTemplates = async (): Promise<MessageTemplate[]> => {
+    if (!currentCompany) {
+      return [];
     }
-
-    // Get team details from config if they exist
-    const { data: teamData, error: teamError } = await supabase
-      .from("config")
-      .select("key, value")
-      .in("key", ["slack_team_id", "slack_team_name"])
-      .eq("company_id", currentCompany.id);
-
-    if (teamError) {
-      console.error("Error fetching Slack team details:", teamError);
+    
+    const { data, error } = await supabase
+      .from("message_templates")
+      .select("*")
+      .order("created_at", { ascending: false });
+      
+    if (error) {
+      throw new Error(`Error fetching message templates: ${error.message}`);
     }
-
-    // Build the config object from separate config entries
-    const config: SlackConfig = {
-      id: undefined,
-      company_id: currentCompany.id,
-      bot_token: botTokenData?.value,
-      team_id: teamData?.find(item => item.key === "slack_team_id")?.value,
-      team_name: teamData?.find(item => item.key === "slack_team_name")?.value,
-      access_token: undefined,
-      scope: undefined,
+    
+    // Convert database types to our TypeScript types
+    return (data || []).map((template: MessageTemplateDB) => ({
+      ...template,
+      type: template.type as 'slack' | 'email' | 'sms'
+    }));
+  };
+  
+  const createMessageTemplate = async (template: MessageTemplateFormValues): Promise<MessageTemplate> => {
+    // Ensure all required fields are present
+    const templateToInsert = {
+      name: template.name,
+      content: template.content,
+      type: template.type,
+      category: template.category
     };
-
-    return config;
-  };
-
-  const updateSlackConfig = async (config: Partial<SlackConfig>): Promise<SlackConfig> => {
-    if (!currentCompany?.id) {
-      throw new Error("No company selected");
+    
+    const { data, error } = await supabase
+      .from("message_templates")
+      .insert(templateToInsert)
+      .select()
+      .single();
+      
+    if (error) {
+      throw new Error(`Error creating message template: ${error.message}`);
     }
-
-    // We need to update or create each config entry separately
-    const configEntries = [
-      { key: "slack_bot_token", value: config.bot_token, display_name: "Slack Bot Token" },
-      { key: "slack_team_id", value: config.team_id, display_name: "Slack Team ID" },
-      { key: "slack_team_name", value: config.team_name, display_name: "Slack Team Name" },
-    ];
-
-    for (const entry of configEntries) {
-      if (!entry.value) continue;
-
-      // Check if entry exists
-      const { data: existingEntry, error: fetchError } = await supabase
-        .from("config")
-        .select("id")
-        .eq("key", entry.key)
-        .eq("company_id", currentCompany.id)
-        .maybeSingle();
-
-      if (fetchError) {
-        console.error(`Error checking if ${entry.key} exists:`, fetchError);
-      }
-
-      if (existingEntry) {
-        // Update existing entry
-        const { error: updateError } = await supabase
-          .from("config")
-          .update({ value: entry.value })
-          .eq("id", existingEntry.id);
-
-        if (updateError) {
-          throw new Error(`Failed to update ${entry.key}: ${updateError.message}`);
-        }
-      } else {
-        // Create new entry
-        const { error: insertError } = await supabase
-          .from("config")
-          .insert({
-            key: entry.key,
-            value: entry.value,
-            display_name: entry.display_name,
-            company_id: currentCompany.id
-          });
-
-        if (insertError) {
-          throw new Error(`Failed to create ${entry.key}: ${insertError.message}`);
-        }
-      }
-    }
-
-    // Return the updated config
+    
     return {
-      ...config,
-      company_id: currentCompany.id,
-    } as SlackConfig;
+      ...data,
+      type: data.type as 'slack' | 'email' | 'sms'
+    };
   };
-
-  const slackConfig = useQuery({
-    queryKey: ["slackConfig", currentCompany?.id],
-    queryFn: fetchSlackConfig,
-    enabled: !!currentCompany?.id,
+  
+  const updateMessageTemplate = async ({ id, ...template }: MessageTemplate): Promise<MessageTemplate> => {
+    const { data, error } = await supabase
+      .from("message_templates")
+      .update(template)
+      .eq("id", id)
+      .select()
+      .single();
+      
+    if (error) {
+      throw new Error(`Error updating message template: ${error.message}`);
+    }
+    
+    return {
+      ...data,
+      type: data.type as 'slack' | 'email' | 'sms'
+    };
+  };
+  
+  const deleteMessageTemplate = async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from("message_templates")
+      .delete()
+      .eq("id", id);
+      
+    if (error) {
+      throw new Error(`Error deleting message template: ${error.message}`);
+    }
+  };
+  
+  const templates = useQuery({
+    queryKey: ["messageTemplates", currentCompany?.id],
+    queryFn: fetchMessageTemplates,
+    enabled: !!currentCompany,
   });
-
-  const updateConfig = useMutation({
-    mutationFn: updateSlackConfig,
+  
+  const createTemplate = useMutation({
+    mutationFn: createMessageTemplate,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["slackConfig"] });
-      toast.success("Slack configuration updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["messageTemplates"] });
+      toast.success("Template created successfully");
     },
     onError: (error) => {
-      toast.error(`Failed to update Slack configuration: ${error.message}`);
+      toast.error(`Failed to create template: ${error.message}`);
     },
   });
-
-  return {
-    slackConfig: slackConfig.data,
-    isLoading: slackConfig.isLoading,
-    error: slackConfig.error,
-    updateConfig,
-    refetchSlackConfig: slackConfig.refetch,
-  };
-};
-
-export const useSlackEmployees = () => {
-  const supabase = useSupabaseClient();
-  const { currentCompany } = useCompany();
-  const queryClient = useQueryClient();
-
-  const fetchSlackEmployees = async (): Promise<SlackEmployeeIntegration[]> => {
-    if (!currentCompany?.id) return [];
-
-    // Get employees with their integrations data
-    const { data, error } = await supabase
-      .from("employees")
-      .select("id, email, first_name, last_name, integrations")
-      .order("last_name", { ascending: true });
-
-    if (error) {
-      console.error("Error fetching employees:", error);
-      throw new Error(`Error fetching employees: ${error.message}`);
-    }
-
-    // Map to SlackEmployeeIntegration format
-    return data.map((employee) => {
-      const slackInfo = employee.integrations?.slack || {};
-      
-      return {
-        id: employee.id,
-        employee_id: employee.id,
-        company_id: currentCompany.id,
-        slack_user_id: slackInfo.slack_user_id,
-        slack_channel_id: slackInfo.slack_channel_id,
-        status: slackInfo.slack_connected ? 'connected' : 'pending',
-        error_message: slackInfo.error_message,
-        created_at: slackInfo.slack_connected_at,
-        updated_at: undefined,
-        employee_name: `${employee.first_name} ${employee.last_name}`,
-        employee_email: employee.email
-      };
-    });
-  };
-
-  const connectEmployeeToSlack = async (employee_id: string): Promise<void> => {
-    if (!currentCompany?.id) {
-      throw new Error("No company selected");
-    }
-
-    try {
-      const { data, error } = await supabase.functions.invoke('connect-slack-employee', {
-        body: { employee_id, workspace_id: currentCompany.id }
-      });
-
-      if (error) {
-        throw new Error(`Error connecting employee to Slack: ${error.message}`);
-      }
-
-      if (!data.success) {
-        throw new Error(data.error || "Failed to connect employee to Slack");
-      }
-
-      toast.success("Employee connected to Slack successfully");
-    } catch (err) {
-      console.error("Error connecting employee to Slack:", err);
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      toast.error(`Failed to connect employee to Slack: ${errorMessage}`);
-      throw err;
-    }
-  };
-
-  const disconnectEmployeeFromSlack = async (employee_id: string): Promise<void> => {
-    if (!currentCompany?.id) {
-      throw new Error("No company selected");
-    }
-
-    try {
-      // Update the employee record to remove Slack integration
-      const { error } = await supabase
-        .from("employees")
-        .update({
-          integrations: supabase.rpc('jsonb_delete_path', {
-            target: 'integrations',
-            path: ['slack']
-          })
-        })
-        .eq("id", employee_id);
-
-      if (error) {
-        throw new Error(`Error disconnecting employee from Slack: ${error.message}`);
-      }
-
-      toast.success("Employee disconnected from Slack successfully");
-    } catch (err) {
-      console.error("Error disconnecting employee from Slack:", err);
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      toast.error(`Failed to disconnect employee from Slack: ${errorMessage}`);
-      throw err;
-    }
-  };
-
-  const slackEmployees = useQuery({
-    queryKey: ["slackEmployees", currentCompany?.id],
-    queryFn: fetchSlackEmployees,
-    enabled: !!currentCompany?.id,
-  });
-
-  const connectEmployee = useMutation({
-    mutationFn: connectEmployeeToSlack,
+  
+  const updateTemplate = useMutation({
+    mutationFn: updateMessageTemplate,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["slackEmployees"] });
+      queryClient.invalidateQueries({ queryKey: ["messageTemplates"] });
+      toast.success("Template updated successfully");
+    },
+    onError: (error) => {
+      toast.error(`Failed to update template: ${error.message}`);
     },
   });
-
-  const disconnectEmployee = useMutation({
-    mutationFn: disconnectEmployeeFromSlack,
+  
+  const deleteTemplate = useMutation({
+    mutationFn: deleteMessageTemplate,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["slackEmployees"] });
+      queryClient.invalidateQueries({ queryKey: ["messageTemplates"] });
+      toast.success("Template deleted successfully");
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete template: ${error.message}`);
     },
   });
-
+  
   return {
-    slackEmployees: slackEmployees.data || [],
-    isLoading: slackEmployees.isLoading,
-    error: slackEmployees.error,
-    connectEmployee,
-    disconnectEmployee,
-    refetchSlackEmployees: slackEmployees.refetch,
+    templates: templates.data || [],
+    isLoading: templates.isLoading,
+    error: templates.error,
+    createTemplate,
+    updateTemplate,
+    deleteTemplate,
   };
 };

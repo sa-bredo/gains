@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   Dialog,
@@ -25,7 +26,7 @@ const slackCredentialsSchema = z.object({
 interface SlackCredentialsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  slackConfig: SlackConfig | null | undefined;
+  slackConfig?: SlackConfig | null;
   onSuccess: () => void;
 }
 

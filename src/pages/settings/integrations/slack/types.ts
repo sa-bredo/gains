@@ -29,7 +29,7 @@ export const messageCategories = [
   { value: 'general', label: 'General Communication' },
 ];
 
-// Add missing SlackConfig and SlackEmployeeIntegration types
+// Updated SlackConfig interface with the required properties
 export interface SlackConfig {
   id?: string;
   company_id?: string;
@@ -38,13 +38,19 @@ export interface SlackConfig {
   team_name?: string;
   access_token?: string;
   scope?: string;
+  client_id?: string;
+  client_secret?: string;
+  redirect_uri?: string;
   created_at?: string;
   updated_at?: string;
 }
 
+// Updated SlackEmployeeIntegration with employee name and email
 export interface SlackEmployeeIntegration {
   id?: string;
   employee_id: string;
+  employee_name?: string;
+  employee_email?: string;
   slack_user_id?: string;
   slack_channel_id?: string;
   company_id?: string;

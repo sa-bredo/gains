@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -18,7 +17,6 @@ export function SlackIntegrationCard() {
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   
-  // Check if Slack is configured for this workspace
   const checkSlackConfiguration = async () => {
     try {
       setIsLoading(true);
@@ -31,7 +29,6 @@ export function SlackIntegrationCard() {
         return;
       }
       
-      // Check for Slack bot token (indicates active connection)
       const { data: botTokenData, error: botTokenError } = await supabase
         .from("config")
         .select("value")
@@ -39,7 +36,6 @@ export function SlackIntegrationCard() {
         .eq("company_id", currentCompany.id)
         .maybeSingle();
       
-      // Check for Slack credentials configuration
       const { data: credentialsData, error: credentialsError } = await supabase
         .from("config")
         .select("value")
@@ -47,7 +43,6 @@ export function SlackIntegrationCard() {
         .eq("company_id", currentCompany.id)
         .maybeSingle();
       
-      // If we get an error that's not related to "no rows", still log it
       if (botTokenError && botTokenError.code !== 'PGRST116') {
         console.error("Error checking Slack configuration:", botTokenError);
       }
@@ -56,10 +51,7 @@ export function SlackIntegrationCard() {
         console.error("Error checking Slack credentials:", credentialsError);
       }
       
-      // If we have bot token data, Slack is connected
       setSlackConnected(!!botTokenData?.value);
-      
-      // If we have credentials data, Slack credentials are configured
       setSlackCredentialsConfigured(!!credentialsData?.value);
       setLastChecked(new Date());
       
@@ -74,7 +66,6 @@ export function SlackIntegrationCard() {
     }
   };
   
-  // Initialize Slack OAuth
   const initiateSlackOAuth = async () => {
     try {
       setIsConnecting(true);
@@ -98,7 +89,6 @@ export function SlackIntegrationCard() {
         throw new Error("No OAuth URL returned from server");
       }
       
-      // Open the OAuth URL in a new window
       const oauthWindow = window.open(data.url, "_blank", "width=800,height=800");
       
       if (!oauthWindow) {
@@ -108,21 +98,18 @@ export function SlackIntegrationCard() {
       
       toast.info("Please complete the Slack authentication in the new window.");
       
-      // Set up a timer to check every 5 seconds if Slack was connected
       let checkAttempts = 0;
-      const maxCheckAttempts = 24; // Check for 2 minutes max (24 × 5 seconds)
+      const maxCheckAttempts = 24;
       
       const checkSlackConnectedInterval = setInterval(async () => {
         checkAttempts++;
         
-        // Check if the window was closed
         if (oauthWindow.closed) {
           clearInterval(checkSlackConnectedInterval);
           await checkSlackConfiguration();
           setIsConnecting(false);
         }
         
-        // Stop checking after max attempts
         if (checkAttempts >= maxCheckAttempts) {
           clearInterval(checkSlackConnectedInterval);
           setIsConnecting(false);
@@ -138,13 +125,11 @@ export function SlackIntegrationCard() {
     }
   };
   
-  // Handle successful credentials update
   const handleCredentialsSuccess = () => {
     checkSlackConfiguration();
     toast.success("Slack credentials configured successfully");
   };
   
-  // Check Slack configuration when component mounts or company changes
   useEffect(() => {
     if (currentCompany?.id) {
       checkSlackConfiguration();
@@ -279,6 +264,7 @@ export function SlackIntegrationCard() {
         open={showCredentialsDialog}
         onOpenChange={setShowCredentialsDialog}
         onSuccess={handleCredentialsSuccess}
+        slackConfig={null}
       />
     </>
   );
