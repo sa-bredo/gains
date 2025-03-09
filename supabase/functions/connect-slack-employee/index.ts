@@ -103,17 +103,19 @@ serve(async (req) => {
     const slack_bot_token = configData.value;
     console.log("Retrieved Slack bot token successfully");
     
-    // Lookup user in Slack by email
-    console.log(`Looking up Slack user with email: ${employee.email}`);
-    const response = await fetch("https://slack.com/api/users.lookupByEmail", {
-      method: "POST",
+    // Lookup user in Slack by email - UPDATED to use URL parameter instead of body
+    const encodedEmail = encodeURIComponent(employee.email);
+    console.log(`Looking up Slack user with email: ${employee.email} (encoded as ${encodedEmail})`);
+    
+    const slackApiUrl = `https://slack.com/api/users.lookupByEmail?email=${encodedEmail}`;
+    console.log(`Making API request to: ${slackApiUrl}`);
+    
+    const response = await fetch(slackApiUrl, {
+      method: "GET",
       headers: {
-        "Content-Type": "application/json; charset=utf-8",
         "Authorization": `Bearer ${slack_bot_token}`,
-      },
-      body: JSON.stringify({
-        email: employee.email,
-      }),
+        "Content-Type": "application/json; charset=utf-8",
+      }
     });
     
     // Log raw response for debugging
