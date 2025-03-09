@@ -40,3 +40,12 @@ verify_jwt = false
 
 [functions.get-gocardless-banks]
 verify_jwt = true
+
+[functions.slack-oauth-callback]
+verify_jwt = false
+
+[functions.initiate-slack-oauth]
+verify_jwt = false
+
+[functions.add-slack-credentials]
+verify_jwt = false
