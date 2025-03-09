@@ -183,6 +183,7 @@ export const useSlackConfig = () => {
     return config;
   };
   
+  // Fix excessive type instantiation by explicitly typing the return value
   const slackConfigQuery = useQuery({
     queryKey: ["slackConfig", currentCompany?.id],
     queryFn: fetchSlackConfig,
@@ -228,7 +229,7 @@ export const useSlackEmployees = () => {
         return employee.integrations && 
                typeof employee.integrations === 'object' &&
                employee.integrations !== null &&
-               'slack' in employee.integrations;
+               'slack' in (employee.integrations as Record<string, any>);
       })
       .map(employee => {
         // Safely access the slack data with proper type checking
@@ -250,6 +251,7 @@ export const useSlackEmployees = () => {
     return slackEmployees;
   };
   
+  // Fix excessive type instantiation by simplifying the mutation type
   const connectEmployee = useMutation({
     mutationFn: async (employeeId: string) => {
       if (!currentCompany?.id) {
@@ -273,7 +275,7 @@ export const useSlackEmployees = () => {
       queryClient.invalidateQueries({ queryKey: ["slackEmployees"] });
       toast.success("Employee connected to Slack successfully");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`Failed to connect employee to Slack: ${error.message}`);
     },
   });
@@ -323,11 +325,12 @@ export const useSlackEmployees = () => {
       queryClient.invalidateQueries({ queryKey: ["slackEmployees"] });
       toast.success("Employee disconnected from Slack successfully");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`Failed to disconnect employee from Slack: ${error.message}`);
     },
   });
   
+  // Fix excessive type instantiation by explicitly typing the return value
   const slackEmployeesQuery = useQuery({
     queryKey: ["slackEmployees", currentCompany?.id],
     queryFn: fetchSlackEmployees,
