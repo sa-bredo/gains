@@ -52,4 +52,3 @@ verify_jwt = false
 
 [functions.connect-slack-employee]
 verify_jwt = false
-

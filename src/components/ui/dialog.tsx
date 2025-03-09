@@ -1,7 +1,7 @@
 
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { Clipboard, X } from "lucide-react"
+import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -9,9 +9,13 @@ const Dialog = DialogPrimitive.Root
 
 const DialogTrigger = DialogPrimitive.Trigger
 
-const DialogPortal = DialogPrimitive.Portal
-
-const DialogClose = DialogPrimitive.Close
+const DialogPortal = ({
+  className,
+  ...props
+}: DialogPrimitive.DialogPortalProps) => (
+  <DialogPrimitive.Portal className={cn(className)} {...props} />
+)
+DialogPortal.displayName = DialogPrimitive.Portal.displayName
 
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
@@ -20,7 +24,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 bg-background/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}
@@ -37,7 +41,7 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg md:w-full",
         className
       )}
       {...props}
@@ -107,57 +111,25 @@ const DialogDescription = React.forwardRef<
 ))
 DialogDescription.displayName = DialogPrimitive.Description.displayName
 
-// Component for error details with copy functionality
-interface DialogErrorDetailsProps extends React.HTMLAttributes<HTMLDivElement> {
-  errorDetails: string;
-}
-
+// New component for showing error details in a styled way
 const DialogErrorDetails = ({ 
-  errorDetails, 
-  className,
-  ...props 
-}: DialogErrorDetailsProps) => {
-  const [copied, setCopied] = React.useState(false);
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(errorDetails).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
-  return (
-    <div className={cn("relative", className)} {...props}>
-      <pre className="bg-red-50 border border-red-200 rounded-md p-4 text-sm text-red-800 font-mono overflow-x-auto whitespace-pre-wrap">
-        {errorDetails}
-      </pre>
-      <button
-        onClick={copyToClipboard}
-        className="absolute top-2 right-2 p-1.5 rounded-md bg-white/90 border border-red-200 text-red-800 hover:bg-red-100 transition-colors"
-        aria-label="Copy to clipboard"
-      >
-        <Clipboard className="h-4 w-4" />
-        {copied && (
-          <span className="absolute -top-8 right-0 bg-black text-white text-xs px-2 py-1 rounded">
-            Copied!
-          </span>
-        )}
-      </button>
-    </div>
-  );
-};
-DialogErrorDetails.displayName = "DialogErrorDetails";
+  errorDetails 
+}: { 
+  errorDetails: string 
+}) => (
+  <div className="mt-4 mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800 overflow-x-auto">
+    <pre className="whitespace-pre-wrap">{errorDetails}</pre>
+  </div>
+)
+DialogErrorDetails.displayName = "DialogErrorDetails"
 
 export {
   Dialog,
-  DialogPortal,
-  DialogOverlay,
-  DialogClose,
   DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogFooter,
   DialogTitle,
   DialogDescription,
-  DialogErrorDetails,
+  DialogErrorDetails
 }

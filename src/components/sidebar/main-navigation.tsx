@@ -89,6 +89,7 @@ const defaultNavItems: NavItem[] = [
     icon: Settings,
     url: "/settings/config",
     items: [
+      { title: "General", url: "/settings/general" },
       { title: "Locations", url: "/settings/locations" },
       { title: "Permissions", url: "/settings/permissions" },
       { title: "Config", url: "/settings/config" },
