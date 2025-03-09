@@ -1,6 +1,6 @@
 
 import { useSupabaseClient } from "@/integrations/supabase/useSupabaseClient";
-import { MessageTemplate, MessageTemplateFormValues } from "../types";
+import { MessageTemplate, MessageTemplateFormValues, MessageTemplateDB } from "../types";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -24,7 +24,11 @@ export const useMessageTemplates = () => {
       throw new Error(`Error fetching message templates: ${error.message}`);
     }
     
-    return data || [];
+    // Convert database types to our TypeScript types
+    return (data || []).map((template: MessageTemplateDB) => ({
+      ...template,
+      type: template.type as 'slack' | 'email' | 'sms'
+    }));
   };
   
   const createMessageTemplate = async (template: MessageTemplateFormValues): Promise<MessageTemplate> => {
@@ -38,7 +42,10 @@ export const useMessageTemplates = () => {
       throw new Error(`Error creating message template: ${error.message}`);
     }
     
-    return data;
+    return {
+      ...data,
+      type: data.type as 'slack' | 'email' | 'sms'
+    };
   };
   
   const updateMessageTemplate = async ({ id, ...template }: MessageTemplate): Promise<MessageTemplate> => {
@@ -53,7 +60,10 @@ export const useMessageTemplates = () => {
       throw new Error(`Error updating message template: ${error.message}`);
     }
     
-    return data;
+    return {
+      ...data,
+      type: data.type as 'slack' | 'email' | 'sms'
+    };
   };
   
   const deleteMessageTemplate = async (id: string): Promise<void> => {

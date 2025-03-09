@@ -28,3 +28,39 @@ export const messageCategories = [
   { value: 'feedback', label: 'Feedback Requests' },
   { value: 'general', label: 'General Communication' },
 ];
+
+// Add missing SlackConfig and SlackEmployeeIntegration types
+export interface SlackConfig {
+  id?: string;
+  company_id?: string;
+  bot_token?: string;
+  team_id?: string;
+  team_name?: string;
+  access_token?: string;
+  scope?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SlackEmployeeIntegration {
+  id?: string;
+  employee_id: string;
+  slack_user_id?: string;
+  slack_channel_id?: string;
+  company_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  status?: 'connected' | 'pending' | 'failed';
+  error_message?: string;
+}
+
+// Define a type to match the database structure for message_templates
+export interface MessageTemplateDB {
+  id: string;
+  name: string;
+  content: string;
+  type: string;
+  category: string;
+  created_at: string;
+  updated_at: string;
+}
