@@ -1,59 +1,30 @@
 
-export interface SlackConfig {
-  id?: string;
-  company_id: string;
-  slack_workspace_id: string;
-  slack_bot_token: string;
-  slack_signing_secret: string;
-  slack_app_id: string;
-  slack_workspace_name: string;
-  slack_team_url: string;
-  connected_at: string;
-  updated_at?: string;
-  created_at?: string;
-}
-
-export interface SlackEmployeeIntegration {
-  slack_user_id: string;
-  slack_username: string;
-  slack_email: string;
-  slack_connected: boolean;
-  slack_connected_at: string;
-}
+import * as z from 'zod';
 
 export interface MessageTemplate {
   id: string;
-  type: 'slack' | 'email' | 'sms';
   name: string;
   content: string;
-  category: 'Scheduling' | 'HR' | 'General';
+  type: 'slack' | 'email' | 'sms';
+  category: string;
   created_at?: string;
   updated_at?: string;
 }
 
-export interface Message {
-  id: string;
-  type: 'slack' | 'email' | 'sms';
-  recipient_id: string; // Can be employee_id or channel_id
-  recipient_type: 'employee' | 'channel' | 'group';
-  content: string;
-  status: 'pending' | 'sent' | 'delivered' | 'failed';
-  error?: string;
-  sent_by: string;
-  sent_at?: string;
-  created_at?: string;
-}
+export const messageTemplateSchema = z.object({
+  name: z.string().min(1, 'Template name is required'),
+  content: z.string().min(1, 'Template content is required'),
+  type: z.enum(['slack', 'email', 'sms']),
+  category: z.string().min(1, 'Category is required'),
+});
 
-export interface SlackChannelInfo {
-  id: string;
-  name: string;
-  is_private: boolean;
-  member_count: number;
-}
+export type MessageTemplateFormValues = z.infer<typeof messageTemplateSchema>;
 
-export enum MessageStatus {
-  PENDING = 'pending',
-  SENT = 'sent',
-  DELIVERED = 'delivered',
-  FAILED = 'failed'
-}
+export const messageCategories = [
+  { value: 'welcome', label: 'Welcome Messages' },
+  { value: 'onboarding', label: 'Onboarding' },
+  { value: 'announcement', label: 'Announcements' },
+  { value: 'reminder', label: 'Reminders' },
+  { value: 'feedback', label: 'Feedback Requests' },
+  { value: 'general', label: 'General Communication' },
+];
