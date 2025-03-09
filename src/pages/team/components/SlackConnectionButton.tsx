@@ -10,7 +10,8 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
-  DialogTitle 
+  DialogTitle,
+  DialogErrorDetails 
 } from "@/components/ui/dialog";
 
 interface SlackConnectionButtonProps {
@@ -80,25 +81,19 @@ export function SlackConnectionButton({
       
       if (error) {
         console.error("Edge function error:", error);
-        throw new Error(error.message);
+        setErrorDetails(error.message);
+        setShowErrorDialog(true);
+        return;
       }
       
       if (!data.success) {
         let errorMessage = data.error || "Failed to connect to Slack";
         console.error("Connection failure:", errorMessage);
         
-        // Handle specific error cases
-        if (errorMessage.includes("invalid_arguments") || 
-            errorMessage.includes("not found in your Slack workspace")) {
-          setErrorDetails(employeeEmail ? 
-            `The email "${employeeEmail}" could not be found in your Slack workspace. Make sure this employee has been invited to your Slack workspace and is using this email address.` :
-            "This employee's email address could not be found in your Slack workspace. Make sure they have been invited to Slack using the same email address as in this system."
-          );
-          setShowErrorDialog(true);
-          return;
-        }
-        
-        throw new Error(errorMessage);
+        // Display the raw API error in the dialog
+        setErrorDetails(errorMessage);
+        setShowErrorDialog(true);
+        return;
       }
       
       toast.success("Successfully connected to Slack!");
@@ -110,7 +105,9 @@ export function SlackConnectionButton({
       
     } catch (err) {
       console.error("Error connecting to Slack:", err);
-      toast.error(err instanceof Error ? err.message : "Failed to connect to Slack");
+      const errorMessage = err instanceof Error ? err.message : "Failed to connect to Slack";
+      setErrorDetails(errorMessage);
+      setShowErrorDialog(true);
     } finally {
       setIsLoading(false);
     }
@@ -145,17 +142,22 @@ export function SlackConnectionButton({
               Slack Connection Failed
             </DialogTitle>
             <DialogDescription>
-              {errorDetails || "Could not connect this employee to Slack."}
+              We couldn't connect this employee to Slack. See details below:
             </DialogDescription>
           </DialogHeader>
+          
+          {errorDetails && (
+            <DialogErrorDetails errorDetails={errorDetails} />
+          )}
+          
           <div className="space-y-4">
             <p className="text-sm">
-              To fix this issue:
+              Common causes for this error:
             </p>
             <ol className="list-decimal ml-5 text-sm space-y-2">
-              <li>Make sure the employee has been invited to your Slack workspace</li>
-              <li>Verify the employee is using the same email address in both systems</li>
-              <li>Check that your Slack app has the necessary permissions</li>
+              <li>The employee's email address ({employeeEmail}) doesn't match their Slack account email</li>
+              <li>The employee hasn't been invited to your Slack workspace yet</li>
+              <li>The Slack app needs additional permissions</li>
             </ol>
             <div className="flex justify-end">
               <Button onClick={() => setShowErrorDialog(false)}>Close</Button>
