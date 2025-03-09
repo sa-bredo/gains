@@ -44,6 +44,9 @@ export interface SlackConfig {
   created_at?: string;
   updated_at?: string;
   type?: string;
+  value?: string;
+  key?: string;
+  display_name?: string;
 }
 
 // Updated SlackEmployeeIntegration with employee name and email

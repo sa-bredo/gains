@@ -4,7 +4,6 @@ import { MessageTemplate, MessageTemplateFormValues, MessageTemplateDB, SlackCon
 import { useCompany } from "@/contexts/CompanyContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Json } from "@/integrations/supabase/types";
 
 // Message Templates service
 export const useMessageTemplates = () => {
@@ -189,9 +188,10 @@ export const useSlackEmployees = () => {
       return [];
     }
     
+    // Use first_name, last_name, email from employees table directly
     const { data, error } = await supabase
       .from("employees")
-      .select("id, employee_id, integrations")
+      .select("id, first_name, last_name, email, integrations")
       .eq("company_id", currentCompany.id);
       
     if (error) {
@@ -202,14 +202,14 @@ export const useSlackEmployees = () => {
     const slackEmployees = (data || [])
       .filter(employee => employee.integrations && 
               typeof employee.integrations === 'object' && 
-              'slack' in (employee.integrations as any))
+              'slack' in employee.integrations)
       .map(employee => {
-        const slackData = (employee.integrations as any).slack || {};
+        const slackData = employee.integrations.slack || {};
         return {
           id: employee.id,
-          employee_id: employee.employee_id,
-          employee_name: slackData.employee_name || 'Unknown Employee',
-          employee_email: slackData.employee_email || '',
+          employee_id: employee.id, // Using id as employee_id
+          employee_name: `${employee.first_name} ${employee.last_name}`,
+          employee_email: employee.email,
           slack_user_id: slackData.slack_user_id,
           slack_channel_id: slackData.slack_channel_id,
           status: slackData.status || 'pending',
@@ -222,8 +222,15 @@ export const useSlackEmployees = () => {
   
   const connectEmployee = useMutation({
     mutationFn: async (employeeId: string) => {
+      if (!currentCompany?.id) {
+        throw new Error("No workspace selected");
+      }
+      
       const { error } = await supabase.functions.invoke('connect-slack-employee', {
-        body: { employee_id: employeeId }
+        body: { 
+          employee_id: employeeId,
+          workspace_id: currentCompany.id
+        }
       });
       
       if (error) {
@@ -243,10 +250,11 @@ export const useSlackEmployees = () => {
   
   const disconnectEmployee = useMutation({
     mutationFn: async (employeeId: string) => {
+      // First get the current integrations data
       const { data, error } = await supabase
         .from("employees")
         .select("integrations")
-        .eq("employee_id", employeeId)
+        .eq("id", employeeId) // Using id instead of employee_id
         .maybeSingle();
       
       if (error) {
@@ -257,16 +265,17 @@ export const useSlackEmployees = () => {
         throw new Error("Employee not found");
       }
       
-      // Remove slack integration from the integrations object
-      const integrations = data.integrations || {};
-      if (typeof integrations === 'object' && 'slack' in (integrations as any)) {
-        delete (integrations as any).slack;
+      // Create a new integrations object without slack
+      const integrations = { ...data.integrations };
+      if (typeof integrations === 'object' && integrations !== null && 'slack' in integrations) {
+        delete integrations.slack;
       }
       
+      // Update the employee record
       const { error: updateError } = await supabase
         .from("employees")
         .update({ integrations })
-        .eq("employee_id", employeeId);
+        .eq("id", employeeId);
       
       if (updateError) {
         throw new Error(`Error disconnecting employee from Slack: ${updateError.message}`);
