@@ -1,4 +1,3 @@
-
 import { useSupabaseClient } from "@/integrations/supabase/useSupabaseClient";
 import { MessageTemplate, MessageTemplateFormValues, MessageTemplateDB, SlackConfig, SlackEmployeeIntegration } from "../types";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -25,7 +24,6 @@ export const useMessageTemplates = () => {
       throw new Error(`Error fetching message templates: ${error.message}`);
     }
     
-    // Convert database types to our TypeScript types
     return (data || []).map((template: MessageTemplateDB) => ({
       ...template,
       type: template.type as 'slack' | 'email' | 'sms'
@@ -33,7 +31,6 @@ export const useMessageTemplates = () => {
   };
   
   const createMessageTemplate = async (template: MessageTemplateFormValues): Promise<MessageTemplate> => {
-    // Ensure all required fields are present
     const templateToInsert = {
       name: template.name,
       content: template.content,
@@ -98,7 +95,7 @@ export const useMessageTemplates = () => {
       queryClient.invalidateQueries({ queryKey: ["messageTemplates"] });
       toast.success("Template created successfully");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(`Failed to create template: ${error.message}`);
     },
   });
@@ -109,7 +106,7 @@ export const useMessageTemplates = () => {
       queryClient.invalidateQueries({ queryKey: ["messageTemplates"] });
       toast.success("Template updated successfully");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(`Failed to update template: ${error.message}`);
     },
   });
@@ -120,7 +117,7 @@ export const useMessageTemplates = () => {
       queryClient.invalidateQueries({ queryKey: ["messageTemplates"] });
       toast.success("Template deleted successfully");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(`Failed to delete template: ${error.message}`);
     },
   });
@@ -146,7 +143,6 @@ export const useSlackConfig = () => {
       return null;
     }
     
-    // Fetch specific config items for Slack
     const { data, error } = await supabase
       .from("config")
       .select("*")
@@ -161,13 +157,11 @@ export const useSlackConfig = () => {
       return null;
     }
     
-    // Convert array of config items to a single SlackConfig object
     const config: SlackConfig = {
       id: data[0]?.id,
       company_id: currentCompany.id
     };
     
-    // Add each config item to the SlackConfig object
     data.forEach(item => {
       if (item.key === 'slack_client_id') {
         config.client_id = item.value;
@@ -183,7 +177,6 @@ export const useSlackConfig = () => {
     return config;
   };
   
-  // Fix excessive type instantiation by explicitly typing the return value
   const slackConfigQuery = useQuery({
     queryKey: ["slackConfig", currentCompany?.id],
     queryFn: fetchSlackConfig,
@@ -208,12 +201,19 @@ export const useSlackEmployees = () => {
   const { currentCompany } = useCompany();
   const queryClient = useQueryClient();
   
+  type EmployeeData = {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    integrations: Record<string, any> | null;
+  };
+  
   const fetchSlackEmployees = async (): Promise<SlackEmployeeIntegration[]> => {
     if (!currentCompany) {
       return [];
     }
     
-    // Use first_name, last_name, email from employees table directly
     const { data, error } = await supabase
       .from("employees")
       .select("id, first_name, last_name, email, integrations")
@@ -223,22 +223,20 @@ export const useSlackEmployees = () => {
       throw new Error(`Error fetching employees with Slack integrations: ${error.message}`);
     }
     
-    // Filter and transform employees with Slack integration data
     const slackEmployees = (data || [])
-      .filter(employee => {
+      .filter((employee: EmployeeData) => {
         return employee.integrations && 
                typeof employee.integrations === 'object' &&
                employee.integrations !== null &&
                'slack' in (employee.integrations as Record<string, any>);
       })
-      .map(employee => {
-        // Safely access the slack data with proper type checking
+      .map((employee: EmployeeData) => {
         const integrations = employee.integrations as Record<string, any>;
         const slackData = integrations.slack || {};
         
         return {
           id: employee.id,
-          employee_id: employee.id, // Using id as employee_id
+          employee_id: employee.id,
           employee_name: `${employee.first_name} ${employee.last_name}`,
           employee_email: employee.email,
           slack_user_id: slackData.slack_user_id,
@@ -251,8 +249,9 @@ export const useSlackEmployees = () => {
     return slackEmployees;
   };
   
-  // Fix excessive type instantiation by simplifying the mutation type
-  const connectEmployee = useMutation({
+  type MutationResult = { success: boolean };
+  
+  const connectEmployee = useMutation<MutationResult, Error, string>({
     mutationFn: async (employeeId: string) => {
       if (!currentCompany?.id) {
         throw new Error("No workspace selected");
@@ -275,18 +274,17 @@ export const useSlackEmployees = () => {
       queryClient.invalidateQueries({ queryKey: ["slackEmployees"] });
       toast.success("Employee connected to Slack successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Failed to connect employee to Slack: ${error.message}`);
     },
   });
   
-  const disconnectEmployee = useMutation({
+  const disconnectEmployee = useMutation<MutationResult, Error, string>({
     mutationFn: async (employeeId: string) => {
-      // First get the current integrations data
       const { data, error } = await supabase
         .from("employees")
         .select("integrations")
-        .eq("id", employeeId) // Using id instead of employee_id
+        .eq("id", employeeId)
         .maybeSingle();
       
       if (error) {
@@ -297,10 +295,8 @@ export const useSlackEmployees = () => {
         throw new Error("Employee not found");
       }
       
-      // Create a new integrations object without slack
       let integrations: Record<string, any> = {};
       
-      // Only try to spread if data.integrations is an object
       if (data.integrations && typeof data.integrations === 'object' && data.integrations !== null) {
         integrations = { ...data.integrations as Record<string, any> };
         
@@ -309,7 +305,6 @@ export const useSlackEmployees = () => {
         }
       }
       
-      // Update the employee record
       const { error: updateError } = await supabase
         .from("employees")
         .update({ integrations })
@@ -325,13 +320,12 @@ export const useSlackEmployees = () => {
       queryClient.invalidateQueries({ queryKey: ["slackEmployees"] });
       toast.success("Employee disconnected from Slack successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Failed to disconnect employee from Slack: ${error.message}`);
     },
   });
   
-  // Fix excessive type instantiation by explicitly typing the return value
-  const slackEmployeesQuery = useQuery({
+  const slackEmployeesQuery = useQuery<SlackEmployeeIntegration[], Error>({
     queryKey: ["slackEmployees", currentCompany?.id],
     queryFn: fetchSlackEmployees,
     enabled: !!currentCompany,
