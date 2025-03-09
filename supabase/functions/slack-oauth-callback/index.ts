@@ -355,7 +355,7 @@ serve(async (req) => {
   
   return new Response(html, {
     headers: {
-      "Content-Type": "text/html",
+      "Content-Type": "text/html", // Properly set content type to render HTML
       ...corsHeaders
     },
   });
