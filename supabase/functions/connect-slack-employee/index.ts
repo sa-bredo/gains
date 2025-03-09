@@ -16,13 +16,22 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log("Received request to connect employee to Slack");
+  
   // Handle CORS preflight request
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    console.log("Handling OPTIONS request for CORS");
+    return new Response(null, { 
+      headers: { 
+        ...corsHeaders,
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+      } 
+    });
   }
   
   try {
     const { employee_id, workspace_id } = await req.json();
+    console.log(`Processing connection for employee_id: ${employee_id}, workspace_id: ${workspace_id}`);
     
     if (!employee_id) {
       throw new Error("employee_id is required");
@@ -33,6 +42,7 @@ serve(async (req) => {
     }
     
     // Get employee information
+    console.log(`Fetching employee data for ID: ${employee_id}`);
     const { data: employee, error: employeeError } = await supabase
       .from("employees")
       .select("email, integrations")
@@ -40,10 +50,19 @@ serve(async (req) => {
       .single();
     
     if (employeeError) {
+      console.error("Error fetching employee:", employeeError);
       throw new Error(`Failed to fetch employee: ${employeeError.message}`);
     }
     
+    if (!employee.email) {
+      console.error("Employee has no email address");
+      throw new Error("Employee email address is required for Slack integration");
+    }
+    
+    console.log(`Found employee with email: ${employee.email}`);
+    
     // Get workspace token from config
+    console.log(`Fetching Slack token for workspace ID: ${workspace_id}`);
     const { data: configData, error: configError } = await supabase
       .from("config")
       .select("value")
@@ -52,16 +71,24 @@ serve(async (req) => {
       .single();
     
     if (configError) {
+      console.error("Error fetching Slack bot token:", configError);
       throw new Error(`Failed to fetch workspace token: ${configError.message}`);
     }
     
+    if (!configData || !configData.value) {
+      console.error("No Slack bot token found for workspace");
+      throw new Error("Slack integration is not configured for this workspace");
+    }
+    
     const slack_bot_token = configData.value;
+    console.log("Retrieved Slack bot token successfully");
     
     // Lookup user in Slack by email
+    console.log(`Looking up Slack user with email: ${employee.email}`);
     const response = await fetch("https://slack.com/api/users.lookupByEmail", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json; charset=utf-8",
         "Authorization": `Bearer ${slack_bot_token}`,
       },
       body: JSON.stringify({
@@ -69,13 +96,43 @@ serve(async (req) => {
       }),
     });
     
-    const data = await response.json();
+    // Log raw response for debugging
+    const responseText = await response.text();
+    console.log("Raw Slack API response:", responseText);
+    
+    // Parse the response
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error("Error parsing Slack API response:", e);
+      throw new Error("Invalid response from Slack API");
+    }
+    
+    console.log("Parsed Slack API response:", {
+      ok: data.ok,
+      error: data.error || "none",
+      errorDetails: data.errors || data.detail || "none"
+    });
     
     if (!data.ok) {
+      console.error("Slack API error:", data.error);
+      
+      // Handle specific error cases
+      if (data.error === "invalid_arguments") {
+        console.log("Invalid arguments error details:", data.errors || data.detail || "No details provided");
+        throw new Error(`Slack API error: ${data.error} - The email address might not exist in your Slack workspace`);
+      }
+      
+      if (data.error === "users_not_found") {
+        throw new Error(`User with email ${employee.email} not found in your Slack workspace`);
+      }
+      
       throw new Error(`Slack API error: ${data.error}`);
     }
     
     // Store the Slack info in employee's integrations JSON field
+    console.log("Storing Slack user information in employee record");
     const slackInfo = {
       slack_user_id: data.user.id,
       slack_username: data.user.real_name || data.user.name,
@@ -88,15 +145,18 @@ serve(async (req) => {
     const integrations = employee.integrations || {};
     integrations.slack = slackInfo;
     
+    console.log("Updating employee record with Slack integration data");
     const { error: updateError } = await supabase
       .from("employees")
       .update({ integrations })
       .eq("id", employee_id);
     
     if (updateError) {
+      console.error("Error updating employee record:", updateError);
       throw new Error(`Failed to update employee: ${updateError.message}`);
     }
     
+    console.log("Successfully connected employee to Slack");
     return new Response(
       JSON.stringify({ 
         success: true, 
