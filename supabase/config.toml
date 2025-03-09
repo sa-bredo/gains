@@ -49,3 +49,7 @@ verify_jwt = false
 
 [functions.add-slack-credentials]
 verify_jwt = false
+
+[functions.connect-slack-employee]
+verify_jwt = false
+

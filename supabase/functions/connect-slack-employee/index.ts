@@ -13,6 +13,7 @@ const supabase = createClient(
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 serve(async (req) => {
@@ -22,15 +23,34 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     console.log("Handling OPTIONS request for CORS");
     return new Response(null, { 
-      headers: { 
-        ...corsHeaders,
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-      } 
+      headers: corsHeaders
     });
   }
   
   try {
-    const { employee_id, workspace_id } = await req.json();
+    // Parse the request body
+    let body;
+    try {
+      body = await req.json();
+      console.log("Request body:", JSON.stringify(body));
+    } catch (parseError) {
+      console.error("Error parsing request body:", parseError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Invalid JSON in request body" 
+        }),
+        { 
+          status: 400, 
+          headers: { 
+            "Content-Type": "application/json",
+            ...corsHeaders
+          } 
+        }
+      );
+    }
+    
+    const { employee_id, workspace_id } = body;
     console.log(`Processing connection for employee_id: ${employee_id}, workspace_id: ${workspace_id}`);
     
     if (!employee_id) {
@@ -121,7 +141,7 @@ serve(async (req) => {
       // Handle specific error cases
       if (data.error === "invalid_arguments") {
         console.log("Invalid arguments error details:", data.errors || data.detail || "No details provided");
-        throw new Error(`Slack API error: ${data.error} - The email address might not exist in your Slack workspace`);
+        throw new Error(`Slack API error: ${data.error} - The email address ${employee.email} might not exist in your Slack workspace`);
       }
       
       if (data.error === "users_not_found") {

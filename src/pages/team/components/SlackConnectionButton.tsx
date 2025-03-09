@@ -43,6 +43,12 @@ export function SlackConnectionButton({
         return;
       }
       
+      console.log("Connecting employee to Slack:", {
+        employee_id: employeeId,
+        workspace_id: currentCompany.id,
+        employee_email: employeeEmail
+      });
+      
       // Check if the workspace is connected to Slack
       const { data: configData, error: configError } = await supabase
         .from("config")
@@ -70,12 +76,16 @@ export function SlackConnectionButton({
         }
       });
       
+      console.log("Edge function response:", data, error);
+      
       if (error) {
+        console.error("Edge function error:", error);
         throw new Error(error.message);
       }
       
       if (!data.success) {
         let errorMessage = data.error || "Failed to connect to Slack";
+        console.error("Connection failure:", errorMessage);
         
         // Handle specific error cases
         if (errorMessage.includes("invalid_arguments") || 
