@@ -10,11 +10,35 @@ const supabase = createClient(
   SUPABASE_SERVICE_ROLE_KEY!
 );
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 serve(async (req) => {
+  console.log("Slack OAuth callback received request");
+  
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    console.log("Handling OPTIONS request for CORS");
+    return new Response(null, { 
+      headers: {
+        ...corsHeaders,
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      } 
+    });
+  }
+  
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const error = url.searchParams.get("error");
+  
+  console.log("Request parameters:", { 
+    code: code ? "present" : "missing", 
+    state: state ? "present" : "missing",
+    error: error || "none"
+  });
   
   let html = `
     <!DOCTYPE html>
@@ -65,10 +89,12 @@ serve(async (req) => {
   
   try {
     if (error) {
+      console.error(`Slack OAuth error: ${error}`);
       throw new Error(`Slack OAuth error: ${error}`);
     }
     
     if (!code || !state) {
+      console.error("Missing code or state parameter");
       throw new Error("Missing code or state parameter");
     }
     
@@ -76,17 +102,22 @@ serve(async (req) => {
     let stateData;
     try {
       stateData = JSON.parse(atob(state));
+      console.log("Parsed state data:", stateData);
     } catch (err) {
+      console.error("Invalid state parameter:", err);
       throw new Error("Invalid state parameter");
     }
     
     const { company_id } = stateData;
     
     if (!company_id) {
+      console.error("Invalid state data - missing company_id");
       throw new Error("Invalid state data - missing company_id");
     }
     
     // Get Slack credentials from config table
+    console.log("Fetching Slack credentials for company:", company_id);
+    
     const { data: clientIdData, error: clientIdError } = await supabase
       .from("config")
       .select("value")
@@ -95,6 +126,7 @@ serve(async (req) => {
       .single();
     
     if (clientIdError) {
+      console.error("Failed to fetch Slack Client ID:", clientIdError);
       throw new Error("Slack Client ID not configured");
     }
     
@@ -106,6 +138,7 @@ serve(async (req) => {
       .single();
     
     if (clientSecretError) {
+      console.error("Failed to fetch Slack Client Secret:", clientSecretError);
       throw new Error("Slack Client Secret not configured");
     }
     
@@ -117,6 +150,7 @@ serve(async (req) => {
       .single();
     
     if (redirectUriError) {
+      console.error("Failed to fetch Slack Redirect URI:", redirectUriError);
       throw new Error("Slack Redirect URI not configured");
     }
     
@@ -125,6 +159,7 @@ serve(async (req) => {
     const REDIRECT_URI = redirectUriData.value;
     
     // Exchange the code for an access token
+    console.log("Exchanging code for token with Slack API");
     const tokenResponse = await fetch("https://slack.com/api/oauth.v2.access", {
       method: "POST",
       headers: {
@@ -139,12 +174,18 @@ serve(async (req) => {
     });
     
     const tokenData = await tokenResponse.json();
+    console.log("Slack token response:", {
+      ok: tokenData.ok,
+      error: tokenData.error || "none",
+      team: tokenData.team ? { id: tokenData.team.id, name: tokenData.team.name } : "missing"
+    });
     
     if (!tokenData.ok) {
       throw new Error(`Failed to exchange code for token: ${tokenData.error}`);
     }
     
     // Store the bot token and workspace info in the config table
+    console.log("Storing configuration data in Supabase");
     const configItems = [
       {
         company_id,
@@ -186,6 +227,7 @@ serve(async (req) => {
     
     // Insert or update each config item one at a time
     for (const configItem of configItems) {
+      console.log(`Storing config item: ${configItem.key}`);
       const { error } = await supabase
         .from("config")
         .upsert(configItem, {
@@ -193,11 +235,13 @@ serve(async (req) => {
         });
         
       if (error) {
+        console.error(`Failed to store Slack config (${configItem.key}):`, error);
         throw new Error(`Failed to store Slack config (${configItem.key}): ${error.message}`);
       }
     }
     
     // Generate success response
+    console.log("Integration successful, sending success response");
     html += `
       <div class="card">
         <div class="icon success">✓</div>
@@ -232,6 +276,7 @@ serve(async (req) => {
   return new Response(html, {
     headers: {
       "Content-Type": "text/html",
+      ...corsHeaders
     },
   });
 });

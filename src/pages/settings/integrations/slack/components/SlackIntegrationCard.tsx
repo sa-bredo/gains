@@ -4,16 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Loader2, Settings } from "lucide-react";
+import { Loader2, Settings, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { SlackCredentialsDialog } from "./SlackCredentialsDialog";
 
 export function SlackIntegrationCard() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const { currentCompany } = useCompany();
   const [slackConnected, setSlackConnected] = useState<boolean | null>(null);
   const [slackCredentialsConfigured, setSlackCredentialsConfigured] = useState(false);
   const [showCredentialsDialog, setShowCredentialsDialog] = useState(false);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
   
   // Check if Slack is configured for this workspace
   const checkSlackConfiguration = async () => {
@@ -57,9 +59,11 @@ export function SlackIntegrationCard() {
       
       // If we have credentials data, Slack credentials are configured
       setSlackCredentialsConfigured(!!credentialsData?.value);
+      setLastChecked(new Date());
       
     } catch (err) {
       console.error("Error checking Slack configuration:", err);
+      toast.error("Failed to check Slack configuration status");
       setSlackConnected(false);
       setSlackCredentialsConfigured(false);
     } finally {
@@ -70,29 +74,62 @@ export function SlackIntegrationCard() {
   // Initialize Slack OAuth
   const initiateSlackOAuth = async () => {
     try {
-      setIsLoading(true);
+      setIsConnecting(true);
+      
+      if (!currentCompany?.id) {
+        toast.error("No workspace selected. Please select a workspace first.");
+        return;
+      }
       
       const { data, error } = await supabase.functions.invoke("initiate-slack-oauth", {
         body: { company_id: currentCompany?.id }
       });
       
       if (error) {
+        console.error("Error from initiateSlackOAuth function:", error);
         throw new Error(error.message);
       }
       
-      if (data.url) {
-        // Open the OAuth URL in a new window
-        window.open(data.url, "_blank", "width=800,height=800");
-        toast.info("Please complete the Slack authentication in the new window.");
-      } else {
-        throw new Error("Failed to get Slack authentication URL");
+      if (!data?.url) {
+        throw new Error("No OAuth URL returned from server");
       }
+      
+      // Open the OAuth URL in a new window
+      const oauthWindow = window.open(data.url, "_blank", "width=800,height=800");
+      
+      if (!oauthWindow) {
+        toast.error("Pop-up was blocked. Please allow pop-ups for this site.");
+        return;
+      }
+      
+      toast.info("Please complete the Slack authentication in the new window.");
+      
+      // Set up a timer to check every 5 seconds if Slack was connected
+      let checkAttempts = 0;
+      const maxCheckAttempts = 24; // Check for 2 minutes max (24 × 5 seconds)
+      
+      const checkSlackConnectedInterval = setInterval(async () => {
+        checkAttempts++;
+        
+        // Check if the window was closed
+        if (oauthWindow.closed) {
+          clearInterval(checkSlackConnectedInterval);
+          await checkSlackConfiguration();
+          setIsConnecting(false);
+        }
+        
+        // Stop checking after max attempts
+        if (checkAttempts >= maxCheckAttempts) {
+          clearInterval(checkSlackConnectedInterval);
+          setIsConnecting(false);
+          toast.info("You can check the connection status by clicking 'Refresh Status'.");
+        }
+      }, 5000);
       
     } catch (err) {
       console.error("Error initiating Slack OAuth:", err);
       toast.error(err instanceof Error ? err.message : "Failed to connect to Slack");
-    } finally {
-      setIsLoading(false);
+      setIsConnecting(false);
     }
   };
   
@@ -128,8 +165,17 @@ export function SlackIntegrationCard() {
               <p className="text-sm text-muted-foreground">
                 Your workspace is connected to Slack. Team members can now connect their individual accounts.
               </p>
-              <div className="flex space-x-2">
-                <Button variant="outline" onClick={checkSlackConfiguration}>
+              <div className="flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
+                <Button 
+                  variant="outline" 
+                  onClick={checkSlackConfiguration}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                  )}
                   Refresh Status
                 </Button>
                 <Button 
@@ -140,6 +186,11 @@ export function SlackIntegrationCard() {
                   <Settings className="h-4 w-4" />
                 </Button>
               </div>
+              {lastChecked && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Last checked: {lastChecked.toLocaleTimeString()}
+                </p>
+              )}
             </div>
           ) : !slackCredentialsConfigured ? (
             <div className="space-y-4">
@@ -155,9 +206,19 @@ export function SlackIntegrationCard() {
               <p className="text-sm text-muted-foreground">
                 Connect your workspace to Slack to enable features like messaging and notifications.
               </p>
-              <div className="flex space-x-2">
-                <Button onClick={initiateSlackOAuth}>
-                  Connect to Slack
+              <div className="flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
+                <Button 
+                  onClick={initiateSlackOAuth}
+                  disabled={isConnecting}
+                >
+                  {isConnecting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    "Connect to Slack"
+                  )}
                 </Button>
                 <Button 
                   variant="secondary"
@@ -166,6 +227,11 @@ export function SlackIntegrationCard() {
                 >
                   <Settings className="h-4 w-4" />
                 </Button>
+                {isConnecting && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Complete the process in the Slack window that opened.
+                  </p>
+                )}
               </div>
             </div>
           )}

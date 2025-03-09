@@ -16,15 +16,28 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log("Received request to add Slack credentials");
+  
   // Handle CORS preflight request
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    console.log("Handling OPTIONS request for CORS");
+    return new Response(null, { 
+      headers: { 
+        ...corsHeaders,
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+      }
+    });
   }
   
   try {
     console.log("Processing request to add Slack credentials");
     const requestBody = await req.json();
-    console.log("Request body received:", JSON.stringify(requestBody));
+    console.log("Request body received:", JSON.stringify({
+      company_id: requestBody.company_id,
+      client_id: requestBody.client_id ? "provided" : "missing",
+      client_secret: requestBody.client_secret ? "provided" : "missing",
+      redirect_uri: requestBody.redirect_uri
+    }));
     
     const { company_id, client_id, client_secret, redirect_uri } = requestBody;
     
@@ -62,44 +75,43 @@ serve(async (req) => {
       }
     ];
     
-    // First check if entries exist and delete them if they do
+    // First check if entries exist
     for (const item of configItems) {
-      console.log(`Checking if config item exists: ${item.key}`);
-      const { data: existingConfig, error: fetchError } = await supabase
+      console.log(`Processing config item: ${item.key}`);
+      
+      // First try to delete any existing entry to avoid conflicts
+      const { data: existingItem, error: fetchError } = await supabase
         .from("config")
         .select("id")
         .eq("company_id", company_id)
         .eq("key", item.key)
         .maybeSingle();
-        
-      if (fetchError) {
+      
+      if (fetchError && fetchError.code !== 'PGRST116') {
         console.error(`Error fetching existing config (${item.key}):`, fetchError);
       }
       
-      if (existingConfig) {
-        console.log(`Found existing config for ${item.key}, deleting before inserting new value`);
+      if (existingItem) {
+        console.log(`Found existing config for ${item.key}, deleting it first`);
         const { error: deleteError } = await supabase
           .from("config")
           .delete()
-          .eq("id", existingConfig.id);
-          
+          .eq("id", existingItem.id);
+        
         if (deleteError) {
           console.error(`Error deleting existing config (${item.key}):`, deleteError);
-          throw new Error(`Failed to update config (${item.key}): ${deleteError.message}`);
         }
       }
-    }
-    
-    // Now insert each config item
-    for (const item of configItems) {
-      console.log(`Storing config item: ${item.key}`);
-      const { error } = await supabase
+      
+      // Now insert the new item
+      console.log(`Inserting new config item: ${item.key}`);
+      const { error: insertError } = await supabase
         .from("config")
         .insert(item);
-        
-      if (error) {
-        console.error(`Failed to store config (${item.key}):`, error);
-        throw new Error(`Failed to store config (${item.key}): ${error.message}`);
+      
+      if (insertError) {
+        console.error(`Failed to insert config (${item.key}):`, insertError);
+        throw new Error(`Failed to store config (${item.key}): ${insertError.message}`);
       }
     }
     
