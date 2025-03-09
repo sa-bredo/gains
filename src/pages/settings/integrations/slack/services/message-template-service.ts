@@ -32,9 +32,17 @@ export const useMessageTemplates = () => {
   };
   
   const createMessageTemplate = async (template: MessageTemplateFormValues): Promise<MessageTemplate> => {
+    // Ensure all required fields are present
+    const templateToInsert = {
+      name: template.name,
+      content: template.content,
+      type: template.type,
+      category: template.category
+    };
+    
     const { data, error } = await supabase
       .from("message_templates")
-      .insert([template])
+      .insert([templateToInsert])
       .select()
       .single();
       

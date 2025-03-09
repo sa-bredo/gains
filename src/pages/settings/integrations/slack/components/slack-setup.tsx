@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +29,7 @@ export function SlackSetup({ slackConfig, refetchSlackConfig }: SlackSetupProps)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <SlackIntegrationCard slackConfig={slackConfig} refetchSlackConfig={refetchSlackConfig} />
+          <SlackIntegrationCard />
         </CardContent>
       </Card>
 
@@ -40,7 +41,7 @@ export function SlackSetup({ slackConfig, refetchSlackConfig }: SlackSetupProps)
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <SlackCredentialsDialog slackConfig={slackConfig} refetchSlackConfig={refetchSlackConfig} />
+          <SlackCredentialsDialog />
         </CardContent>
       </Card>
     </div>
