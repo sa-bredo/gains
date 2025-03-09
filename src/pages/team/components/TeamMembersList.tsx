@@ -10,6 +10,7 @@ import { EditTeamMemberDialog } from './EditTeamMemberDialog';
 import { TeamMemberAvatar } from './TeamMemberAvatar';
 import { TerminateEmployeeDialog } from './TerminateEmployeeDialog';
 import { SlackConnectionButton } from './SlackConnectionButton';
+import { Badge } from '@/components/ui/badge';
 
 interface TeamMembersListProps {
   teamMembers: TeamMember[];
@@ -78,13 +79,20 @@ export function TeamMembersList({ teamMembers, onEdit, onDelete, onTerminate, on
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {teamMembers.map((member) => (
-        <Card key={member.id} className={member.end_job_date ? "opacity-60" : ""}>
+        <Card key={member.id} className="border transition-all hover:shadow-md">
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-4">
                 <TeamMemberAvatar teamMember={member} onUpdate={onRefresh} />
                 <div>
-                  <h3 className="text-lg font-semibold">{member.first_name} {member.last_name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold">{member.first_name} {member.last_name}</h3>
+                    {member.end_job_date && (
+                      <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50">
+                        Former
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">{member.role}</p>
                 </div>
               </div>
@@ -99,7 +107,12 @@ export function TeamMembersList({ teamMembers, onEdit, onDelete, onTerminate, on
               <p className="text-sm"><span className="font-medium">Email:</span> {member.email}</p>
               {member.mobile_number && <p className="text-sm"><span className="font-medium">Phone:</span> {member.mobile_number}</p>}
               <p className="text-sm"><span className="font-medium">Start Date:</span> {formatDate(member.start_job_date)}</p>
-              {member.end_job_date && <p className="text-sm"><span className="font-medium">End Date:</span> {formatDate(member.end_job_date)}</p>}
+              {member.end_job_date && (
+                <p className="text-sm">
+                  <span className="font-medium">End Date:</span> 
+                  <span className="text-amber-600">{formatDate(member.end_job_date)}</span>
+                </p>
+              )}
               {member.hourly_rate && <p className="text-sm"><span className="font-medium">Rate:</span> ${member.hourly_rate}/hour</p>}
             </div>
 

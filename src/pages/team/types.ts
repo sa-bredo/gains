@@ -31,6 +31,9 @@ export interface TeamMember {
   } | null;
 }
 
+// Added status type to help with UI rendering
+export type EmployeeStatus = 'active' | 'terminated' | 'invited' | 'pending';
+
 export interface TeamMemberFormValues {
   first_name: string;
   last_name: string;
