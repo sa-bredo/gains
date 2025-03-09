@@ -146,17 +146,41 @@ export const useSlackConfig = () => {
       return null;
     }
     
+    // Fetch specific config items for Slack
     const { data, error } = await supabase
       .from("config")
       .select("*")
-      .eq("type", "slack")
-      .maybeSingle();
+      .or(`key.eq.slack_client_id,key.eq.slack_client_secret,key.eq.slack_redirect_uri,key.eq.slack_bot_token`)
+      .eq("company_id", currentCompany.id);
       
     if (error) {
       throw new Error(`Error fetching Slack configuration: ${error.message}`);
     }
     
-    return data ? data as SlackConfig : null;
+    if (!data || data.length === 0) {
+      return null;
+    }
+    
+    // Convert array of config items to a single SlackConfig object
+    const config: SlackConfig = {
+      id: data[0]?.id,
+      company_id: currentCompany.id
+    };
+    
+    // Add each config item to the SlackConfig object
+    data.forEach(item => {
+      if (item.key === 'slack_client_id') {
+        config.client_id = item.value;
+      } else if (item.key === 'slack_client_secret') {
+        config.client_secret = item.value;
+      } else if (item.key === 'slack_redirect_uri') {
+        config.redirect_uri = item.value;
+      } else if (item.key === 'slack_bot_token') {
+        config.bot_token = item.value;
+      }
+    });
+    
+    return config;
   };
   
   const slackConfigQuery = useQuery({
@@ -200,11 +224,17 @@ export const useSlackEmployees = () => {
     
     // Filter and transform employees with Slack integration data
     const slackEmployees = (data || [])
-      .filter(employee => employee.integrations && 
-              typeof employee.integrations === 'object' && 
-              'slack' in employee.integrations)
+      .filter(employee => {
+        return employee.integrations && 
+               typeof employee.integrations === 'object' &&
+               employee.integrations !== null &&
+               'slack' in employee.integrations;
+      })
       .map(employee => {
-        const slackData = employee.integrations.slack || {};
+        // Safely access the slack data with proper type checking
+        const integrations = employee.integrations as Record<string, any>;
+        const slackData = integrations.slack || {};
+        
         return {
           id: employee.id,
           employee_id: employee.id, // Using id as employee_id
@@ -266,9 +296,15 @@ export const useSlackEmployees = () => {
       }
       
       // Create a new integrations object without slack
-      const integrations = { ...data.integrations };
-      if (typeof integrations === 'object' && integrations !== null && 'slack' in integrations) {
-        delete integrations.slack;
+      let integrations: Record<string, any> = {};
+      
+      // Only try to spread if data.integrations is an object
+      if (data.integrations && typeof data.integrations === 'object' && data.integrations !== null) {
+        integrations = { ...data.integrations as Record<string, any> };
+        
+        if ('slack' in integrations) {
+          delete integrations.slack;
+        }
       }
       
       // Update the employee record
