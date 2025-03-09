@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,7 @@ export function SlackSetup() {
         ) : error ? (
           <div className="flex items-center space-x-2 text-red-500">
             <CircleX className="mr-2 h-4 w-4" />
-            <p>Error: {error.message}</p>
+            <p>Error: {error instanceof Error ? error.message : String(error)}</p>
           </div>
         ) : (
           <>
@@ -64,6 +65,7 @@ export function SlackSetup() {
             <SlackCredentialsDialog 
               open={credentialsDialogOpen} 
               onOpenChange={setCredentialsDialogOpen} 
+              slackConfig={slackConfig}
               onSuccess={handleSaveSuccess} 
             />
           </>

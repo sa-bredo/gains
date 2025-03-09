@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Table,
@@ -47,7 +48,7 @@ const SlackEmployeeManager = () => {
   }
 
   if (error) {
-    return <div>Error: {error.message}</div>;
+    return <div>Error: {error instanceof Error ? error.message : String(error)}</div>;
   }
 
   return (

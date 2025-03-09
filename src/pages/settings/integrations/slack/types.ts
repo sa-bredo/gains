@@ -43,6 +43,7 @@ export interface SlackConfig {
   redirect_uri?: string;
   created_at?: string;
   updated_at?: string;
+  type?: string;
 }
 
 // Updated SlackEmployeeIntegration with employee name and email
