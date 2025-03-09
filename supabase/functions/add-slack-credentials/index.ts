@@ -75,11 +75,11 @@ serve(async (req) => {
       }
     ];
     
-    // First check if entries exist
+    // Process each config item one at a time
     for (const item of configItems) {
       console.log(`Processing config item: ${item.key}`);
       
-      // First try to delete any existing entry to avoid conflicts
+      // First try to delete any existing entry
       const { data: existingItem, error: fetchError } = await supabase
         .from("config")
         .select("id")

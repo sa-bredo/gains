@@ -82,6 +82,17 @@ serve(async (req) => {
         button:hover {
           background-color: #611f64;
         }
+        .details {
+          margin-top: 20px;
+          text-align: left;
+          background: #f5f5f5;
+          padding: 10px;
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 12px;
+          white-space: pre-wrap;
+          word-break: break-all;
+        }
       </style>
     </head>
     <body>
@@ -123,11 +134,16 @@ serve(async (req) => {
       .select("value")
       .eq("key", "slack_client_id")
       .eq("company_id", company_id)
-      .single();
+      .maybeSingle();
     
     if (clientIdError) {
       console.error("Failed to fetch Slack Client ID:", clientIdError);
-      throw new Error("Slack Client ID not configured");
+      throw new Error(`Slack Client ID not configured: ${clientIdError.message}`);
+    }
+    
+    if (!clientIdData || !clientIdData.value) {
+      console.error("No Slack Client ID found for company:", company_id);
+      throw new Error("Slack Client ID not found");
     }
     
     const { data: clientSecretData, error: clientSecretError } = await supabase
@@ -135,11 +151,16 @@ serve(async (req) => {
       .select("value")
       .eq("key", "slack_client_secret")
       .eq("company_id", company_id)
-      .single();
+      .maybeSingle();
     
     if (clientSecretError) {
       console.error("Failed to fetch Slack Client Secret:", clientSecretError);
-      throw new Error("Slack Client Secret not configured");
+      throw new Error(`Slack Client Secret not configured: ${clientSecretError.message}`);
+    }
+    
+    if (!clientSecretData || !clientSecretData.value) {
+      console.error("No Slack Client Secret found for company:", company_id);
+      throw new Error("Slack Client Secret not found");
     }
     
     const { data: redirectUriData, error: redirectUriError } = await supabase
@@ -147,31 +168,59 @@ serve(async (req) => {
       .select("value")
       .eq("key", "slack_redirect_uri")
       .eq("company_id", company_id)
-      .single();
+      .maybeSingle();
     
     if (redirectUriError) {
       console.error("Failed to fetch Slack Redirect URI:", redirectUriError);
-      throw new Error("Slack Redirect URI not configured");
+      throw new Error(`Slack Redirect URI not configured: ${redirectUriError.message}`);
+    }
+    
+    if (!redirectUriData || !redirectUriData.value) {
+      console.error("No Slack Redirect URI found for company:", company_id);
+      throw new Error("Slack Redirect URI not found");
     }
     
     const SLACK_CLIENT_ID = clientIdData.value;
     const SLACK_CLIENT_SECRET = clientSecretData.value;
     const REDIRECT_URI = redirectUriData.value;
     
+    console.log("Retrieved credentials:", {
+      client_id: SLACK_CLIENT_ID ? "present" : "missing",
+      client_secret: SLACK_CLIENT_SECRET ? "present" : "missing",
+      redirect_uri: REDIRECT_URI
+    });
+    
     // Exchange the code for an access token
     console.log("Exchanging code for token with Slack API");
+    
+    const tokenParams = new URLSearchParams({
+      client_id: SLACK_CLIENT_ID,
+      client_secret: SLACK_CLIENT_SECRET,
+      code,
+      redirect_uri: REDIRECT_URI,
+    });
+    
+    console.log("Token request URL:", "https://slack.com/api/oauth.v2.access");
+    console.log("Token request params:", tokenParams.toString());
+    
     const tokenResponse = await fetch("https://slack.com/api/oauth.v2.access", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({
-        client_id: SLACK_CLIENT_ID,
-        client_secret: SLACK_CLIENT_SECRET,
-        code,
-        redirect_uri: REDIRECT_URI,
-      }),
+      body: tokenParams,
     });
+    
+    if (!tokenResponse.ok) {
+      const statusText = tokenResponse.statusText;
+      const responseBody = await tokenResponse.text();
+      console.error("Slack API error:", {
+        status: tokenResponse.status,
+        statusText,
+        body: responseBody
+      });
+      throw new Error(`Failed to exchange code for token: HTTP ${tokenResponse.status} ${statusText}`);
+    }
     
     const tokenData = await tokenResponse.json();
     console.log("Slack token response:", {
@@ -181,6 +230,7 @@ serve(async (req) => {
     });
     
     if (!tokenData.ok) {
+      console.error("Slack API error:", tokenData.error);
       throw new Error(`Failed to exchange code for token: ${tokenData.error}`);
     }
     
@@ -228,15 +278,41 @@ serve(async (req) => {
     // Insert or update each config item one at a time
     for (const configItem of configItems) {
       console.log(`Storing config item: ${configItem.key}`);
-      const { error } = await supabase
+      
+      // First, check if the item exists
+      const { data: existingItem, error: fetchError } = await supabase
         .from("config")
-        .upsert(configItem, {
-          onConflict: "company_id,key"
-        });
+        .select("id")
+        .eq("company_id", company_id)
+        .eq("key", configItem.key)
+        .maybeSingle();
+      
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error(`Error fetching existing config (${configItem.key}):`, fetchError);
+      }
+      
+      let upsertError;
+      
+      if (existingItem) {
+        // Update existing item
+        const { error } = await supabase
+          .from("config")
+          .update({ value: configItem.value })
+          .eq("id", existingItem.id);
         
-      if (error) {
-        console.error(`Failed to store Slack config (${configItem.key}):`, error);
-        throw new Error(`Failed to store Slack config (${configItem.key}): ${error.message}`);
+        upsertError = error;
+      } else {
+        // Insert new item
+        const { error } = await supabase
+          .from("config")
+          .insert(configItem);
+        
+        upsertError = error;
+      }
+      
+      if (upsertError) {
+        console.error(`Failed to store Slack config (${configItem.key}):`, upsertError);
+        throw new Error(`Failed to store Slack config (${configItem.key}): ${upsertError.message}`);
       }
     }
     
@@ -264,6 +340,10 @@ serve(async (req) => {
         <p style="color: #C62828;">${error instanceof Error ? error.message : "Unknown error"}</p>
         <p>Please try again or contact support if the issue persists.</p>
         <button onclick="window.close()">Close Window</button>
+        <div class="details">
+          <strong>Error Details:</strong>
+          ${error instanceof Error ? error.stack || error.message : JSON.stringify(error)}
+        </div>
       </div>
     `;
   }

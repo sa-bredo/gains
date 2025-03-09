@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Loader2, Settings, RefreshCw } from "lucide-react";
+import { Loader2, Settings, RefreshCw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { SlackCredentialsDialog } from "./SlackCredentialsDialog";
 
@@ -16,11 +16,13 @@ export function SlackIntegrationCard() {
   const [slackCredentialsConfigured, setSlackCredentialsConfigured] = useState(false);
   const [showCredentialsDialog, setShowCredentialsDialog] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const [lastError, setLastError] = useState<string | null>(null);
   
   // Check if Slack is configured for this workspace
   const checkSlackConfiguration = async () => {
     try {
       setIsLoading(true);
+      setLastError(null);
       
       if (!currentCompany?.id) {
         console.log('No company ID available');
@@ -64,6 +66,7 @@ export function SlackIntegrationCard() {
     } catch (err) {
       console.error("Error checking Slack configuration:", err);
       toast.error("Failed to check Slack configuration status");
+      setLastError(err instanceof Error ? err.message : "Unknown error");
       setSlackConnected(false);
       setSlackCredentialsConfigured(false);
     } finally {
@@ -75,6 +78,7 @@ export function SlackIntegrationCard() {
   const initiateSlackOAuth = async () => {
     try {
       setIsConnecting(true);
+      setLastError(null);
       
       if (!currentCompany?.id) {
         toast.error("No workspace selected. Please select a workspace first.");
@@ -128,6 +132,7 @@ export function SlackIntegrationCard() {
       
     } catch (err) {
       console.error("Error initiating Slack OAuth:", err);
+      setLastError(err instanceof Error ? err.message : "Unknown error");
       toast.error(err instanceof Error ? err.message : "Failed to connect to Slack");
       setIsConnecting(false);
     }
@@ -200,6 +205,15 @@ export function SlackIntegrationCard() {
               <Button onClick={() => setShowCredentialsDialog(true)}>
                 Configure Slack Credentials
               </Button>
+              {lastError && (
+                <div className="mt-4 p-3 bg-red-50 text-red-800 rounded-md text-sm flex items-start">
+                  <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Error</p>
+                    <p>{lastError}</p>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
@@ -227,12 +241,35 @@ export function SlackIntegrationCard() {
                 >
                   <Settings className="h-4 w-4" />
                 </Button>
-                {isConnecting && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Complete the process in the Slack window that opened.
-                  </p>
-                )}
               </div>
+              {isConnecting && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Complete the process in the Slack window that opened.
+                </p>
+              )}
+              {lastError && (
+                <div className="mt-4 p-3 bg-red-50 text-red-800 rounded-md text-sm flex items-start">
+                  <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Error</p>
+                    <p>{lastError}</p>
+                  </div>
+                </div>
+              )}
+              <Button 
+                variant="outline" 
+                onClick={checkSlackConfiguration}
+                disabled={isLoading}
+                size="sm"
+                className="mt-4"
+              >
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Refresh Status
+              </Button>
             </div>
           )}
         </CardContent>

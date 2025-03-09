@@ -44,11 +44,16 @@ serve(async (req) => {
       .select("value")
       .eq("key", "slack_client_id")
       .eq("company_id", company_id)
-      .single();
+      .maybeSingle();
     
     if (clientIdError) {
       console.error("Error fetching Slack client ID:", clientIdError);
-      throw new Error("SLACK_CLIENT_ID not configured in config table");
+      throw new Error(`SLACK_CLIENT_ID not configured in config table: ${clientIdError.message}`);
+    }
+    
+    if (!clientIdData || !clientIdData.value) {
+      console.error("No Slack Client ID found for company:", company_id);
+      throw new Error("Slack Client ID not found in configuration");
     }
     
     console.log("Fetching Slack redirect URI from config");
@@ -57,15 +62,25 @@ serve(async (req) => {
       .select("value")
       .eq("key", "slack_redirect_uri")
       .eq("company_id", company_id)
-      .single();
+      .maybeSingle();
     
     if (redirectUriError) {
       console.error("Error fetching Slack redirect URI:", redirectUriError);
-      throw new Error("SLACK_REDIRECT_URI not configured in config table");
+      throw new Error(`SLACK_REDIRECT_URI not configured in config table: ${redirectUriError.message}`);
+    }
+    
+    if (!redirectUriData || !redirectUriData.value) {
+      console.error("No Slack Redirect URI found for company:", company_id);
+      throw new Error("Slack Redirect URI not found in configuration");
     }
     
     const SLACK_CLIENT_ID = clientIdData.value;
     const REDIRECT_URI = redirectUriData.value;
+    
+    console.log("Retrieved credentials:", {
+      client_id: SLACK_CLIENT_ID ? "present" : "missing",
+      redirect_uri: REDIRECT_URI
+    });
     
     // Generate a state parameter to validate the OAuth callback
     const state = btoa(JSON.stringify({ company_id, timestamp: Date.now() }));
