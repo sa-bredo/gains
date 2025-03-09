@@ -42,7 +42,7 @@ export const useMessageTemplates = () => {
     
     const { data, error } = await supabase
       .from("message_templates")
-      .insert([templateToInsert])
+      .insert(templateToInsert)
       .select()
       .single();
       

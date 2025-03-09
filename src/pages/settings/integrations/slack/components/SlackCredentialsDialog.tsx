@@ -1,9 +1,4 @@
-
-import React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,167 +6,136 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { useCompany } from '@/contexts/CompanyContext';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { SlackConfig } from "../types";
+import { useToast } from "@/hooks/use-toast";
 
-const formSchema = z.object({
-  client_id: z.string().min(1, 'Client ID is required'),
-  client_secret: z.string().min(1, 'Client Secret is required'),
-  redirect_uri: z.string().min(1, 'Redirect URI is required'),
+const slackCredentialsSchema = z.object({
+  client_id: z.string().min(1, "Client ID is required"),
+  client_secret: z.string().min(1, "Client Secret is required"),
+  redirect_uri: z.string().min(1, "Redirect URI is required").url("Invalid URL"),
 });
-
-type FormValues = z.infer<typeof formSchema>;
 
 interface SlackCredentialsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  slackConfig: SlackConfig | null | undefined;
   onSuccess: () => void;
 }
+
+type SlackCredentialsFormValues = z.infer<typeof slackCredentialsSchema>;
 
 export function SlackCredentialsDialog({
   open,
   onOpenChange,
+  slackConfig,
   onSuccess,
 }: SlackCredentialsDialogProps) {
-  const { currentCompany } = useCompany();
-  const [isLoading, setIsLoading] = React.useState(false);
-  
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const form = useForm<SlackCredentialsFormValues>({
+    resolver: zodResolver(slackCredentialsSchema),
     defaultValues: {
-      client_id: '',
-      client_secret: '',
-      redirect_uri: 'https://exatcpxfenndpkozdnje.functions.supabase.co/slack-oauth-callback',
+      client_id: slackConfig?.client_id || "",
+      client_secret: slackConfig?.client_secret || "",
+      redirect_uri: slackConfig?.redirect_uri || "",
     },
   });
 
-  const onSubmit = async (values: FormValues) => {
-    if (!currentCompany?.id) {
-      toast.error('No workspace selected');
-      return;
-    }
-
+  async function onSubmit(values: SlackCredentialsFormValues) {
+    setIsSubmitting(true);
     try {
-      setIsLoading(true);
-      console.log('Submitting Slack credentials:', {
-        company_id: currentCompany.id,
-        client_id: values.client_id,
-        client_secret: values.client_secret,
-        redirect_uri: values.redirect_uri
-      });
-      
-      const response = await supabase.functions.invoke("add-slack-credentials", {
-        body: {
-          company_id: currentCompany.id,
-          client_id: values.client_id,
-          client_secret: values.client_secret,
-          redirect_uri: values.redirect_uri
-        }
+      const response = await fetch("/api/supabase/add-slack-credentials", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(values),
       });
 
-      const { data, error } = response;
-      
-      if (error) {
-        console.error('Error from edge function:', error);
-        throw error;
-      }
-      
-      if (!data || !data.success) {
-        console.error('Error response from edge function:', data);
-        throw new Error(data?.error || "Failed to store credentials");
-      }
+      const data = await response.json();
 
-      toast.success('Slack credentials stored successfully');
-      form.reset();
-      onSuccess();
-      onOpenChange(false);
-
+      if (data.success) {
+        toast({
+          title: "Slack credentials saved",
+          description: "Slack credentials have been saved successfully.",
+        });
+        onSuccess();
+        onOpenChange(false);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: data.error || "Failed to save Slack credentials.",
+        });
+      }
     } catch (error) {
-      console.error('Error storing Slack credentials:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to store Slack credentials');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description:
+          (error instanceof Error && error.message) ||
+          "Failed to save Slack credentials.",
+      });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Configure Slack Integration</DialogTitle>
+          <DialogTitle>Slack Credentials</DialogTitle>
           <DialogDescription>
-            Add your Slack application credentials to connect your workspace to Slack.
-            You can find these in your <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary underline">Slack API dashboard</a>.
+            Enter your Slack app credentials to connect to Slack.
           </DialogDescription>
         </DialogHeader>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="client_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Client ID</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. 123456789.123456789" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="client_id">Client ID</Label>
+            <Input id="client_id" type="text" placeholder="Client ID" {...form.register("client_id")} />
+            {form.formState.errors.client_id && (
+              <p className="text-sm text-red-500">{form.formState.errors.client_id.message}</p>
+            )}
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="client_secret">Client Secret</Label>
+            <Input
+              id="client_secret"
+              type="password"
+              placeholder="Client Secret"
+              {...form.register("client_secret")}
             />
-
-            <FormField
-              control={form.control}
-              name="client_secret"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Client Secret</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="Your Slack client secret" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+            {form.formState.errors.client_secret && (
+              <p className="text-sm text-red-500">{form.formState.errors.client_secret.message}</p>
+            )}
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="redirect_uri">Redirect URI</Label>
+            <Input
+              id="redirect_uri"
+              type="text"
+              placeholder="Redirect URI"
+              {...form.register("redirect_uri")}
             />
-
-            <FormField
-              control={form.control}
-              name="redirect_uri"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Redirect URI</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage className="text-xs">
-                    Make sure this matches the redirect URL configured in your Slack app
-                  </FormMessage>
-                </FormItem>
-              )}
-            />
-
-            <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Saving...' : 'Save Credentials'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+            {form.formState.errors.redirect_uri && (
+              <p className="text-sm text-red-500">{form.formState.errors.redirect_uri.message}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Save credentials"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -1,115 +1,124 @@
-
-import React, { useState } from "react";
+import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { DialogFooter } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, Plus, Trash, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { PlusIcon } from "lucide-react";
+import { Link } from "react-router-dom";
+import { CreateTemplateDialog } from "./CreateTemplateDialog";
+import { useMessageTemplates } from "../services/message-template-service";
+import { DataTableRowActions } from "./data-table-row-actions";
+import { MessageTemplate } from '../types';
 
-export function SlackTemplates() {
-  const [activeTab, setActiveTab] = useState("general");
-  
-  // This will be replaced with real data later
-  const templates = [
-    { id: 1, name: "Welcome Message", content: "Welcome to the team, {{name}}! We're excited to have you on board.", category: "welcome" },
-    { id: 2, name: "Reminder", content: "Reminder: You have a meeting scheduled for {{time}} today.", category: "reminder" },
-    { id: 3, name: "Request Approval", content: "Hi {{manager}}, {{requester}} has requested your approval for {{item}}. Please review at your earliest convenience.", category: "general" },
-  ];
-  
-  const categories = [
-    { value: "welcome", label: "Welcome" },
-    { value: "reminder", label: "Reminders" },
-    { value: "general", label: "General" },
-  ];
-  
+const templates: MessageTemplate[] = [
+  {
+    id: "1",
+    name: "Welcome Message",
+    content: "Welcome to our company!",
+    type: "slack",
+    category: "onboarding",
+  },
+  {
+    id: "2",
+    name: "Reminder",
+    content: "Don't forget to submit your timesheet!",
+    type: "slack",
+    category: "reminder",
+  },
+];
+
+export default function SlackTemplates() {
+  const [open, setOpen] = React.useState(false);
+  const { templates, isLoading, error } = useMessageTemplates();
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Message Templates</h2>
-        <p className="text-muted-foreground">
-          Create and manage reusable Slack message templates
-        </p>
-      </div>
-      
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Coming Soon</AlertTitle>
-        <AlertDescription>
-          The full message templates functionality will be available soon. This is a preview.
-        </AlertDescription>
-      </Alert>
-      
-      <div className="flex justify-between items-center">
-        <Input
-          placeholder="Search templates..."
-          className="max-w-xs"
-        />
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Template
+    <div>
+      <div className="flex justify-between">
+        <div>
+          <CardTitle>Slack Templates</CardTitle>
+          <CardDescription>
+            Manage your slack message templates here.
+          </CardDescription>
+        </div>
+        <Button onClick={() => setOpen(true)}>
+          <PlusIcon className="mr-2 h-4 w-4" />
+          Create Template
         </Button>
       </div>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full">
-          <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
-          <TabsTrigger value="scheduling" className="flex-1">Scheduling</TabsTrigger>
-          <TabsTrigger value="hr" className="flex-1">HR</TabsTrigger>
+
+      <Tabs defaultValue="all" className="mt-4">
+        <TabsList>
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
+          <TabsTrigger value="reminder">Reminder</TabsTrigger>
+          <TabsTrigger value="announcement">Announcement</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="general">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {templates.map(template => (
-              <Card key={template.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{template.name}</CardTitle>
-                      <Badge variant="outline" className="mt-1">{template.category}</Badge>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" title="Copy Template">
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" title="Delete Template">
-                        <Trash className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="bg-muted p-3 rounded-md text-sm">
-                    {template.content}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            
-            <Card className="border-dashed flex flex-col items-center justify-center p-6 cursor-pointer hover:bg-accent/5">
-              <Plus className="h-8 w-8 mb-2 text-muted-foreground" />
-              <p className="text-muted-foreground">Add new template</p>
-            </Card>
+        <TabsContent value="all" className="border-none p-0 outline-none">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px]">Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {templates.map((template) => (
+                  <TableRow key={template.id}>
+                    <TableCell className="font-medium">{template.name}</TableCell>
+                    <TableCell>{template.category}</TableCell>
+                    <TableCell>{template.type}</TableCell>
+                    <TableCell className="text-right">
+                      <DataTableRowActions template={template} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </TabsContent>
-        
-        <TabsContent value="scheduling">
-          <div className="flex justify-center items-center py-12">
-            <p className="text-muted-foreground">No scheduling templates found. Create your first template!</p>
-          </div>
+        <TabsContent value="onboarding" className="border-none p-0 outline-none">
+          Content for Onboarding tab
         </TabsContent>
-        
-        <TabsContent value="hr">
-          <div className="flex justify-center items-center py-12">
-            <p className="text-muted-foreground">No HR templates found. Create your first template!</p>
-          </div>
+        <TabsContent value="reminder" className="border-none p-0 outline-none">
+          Content for Reminder tab
+        </TabsContent>
+        <TabsContent value="announcement" className="border-none p-0 outline-none">
+          Content for Announcement tab
         </TabsContent>
       </Tabs>
+
+      <CreateTemplateDialog open={open} onOpenChange={setOpen} />
     </div>
   );
 }
