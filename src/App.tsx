@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "./components/theme-provider";
@@ -16,6 +17,7 @@ import DocumentSigningPage from "@/pages/document-signing";
 import EmployeesPage from "@/pages/employees";
 import TeamPage from './pages/team';
 import ConfigPage from './pages/settings/config';
+import GeneralSettingsPage from './pages/settings/general';
 import LocationsPage from './pages/settings/locations';
 import PermissionsPage from './pages/settings/permissions';
 import SlackSettingsPage from './pages/settings/integrations/slack';
@@ -57,6 +59,7 @@ function App() {
           <Route path="/employees" element={<EmployeesPage />} />
           <Route path="/team" element={<TeamPage />} />
           <Route path="/settings/config" element={<ConfigPage />} />
+          <Route path="/settings/general" element={<GeneralSettingsPage />} />
           <Route path="/settings/locations" element={<LocationsPage />} />
           <Route path="/settings/permissions" element={<PermissionsPage />} />
           <Route path="/settings/integrations/slack" element={<SlackSettingsPage />} />
