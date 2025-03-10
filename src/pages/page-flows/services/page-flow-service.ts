@@ -6,8 +6,38 @@ import {
   PageFlowAssignment, 
   PageFlowProgress,
   PageFlowAssignmentWithFlow, 
-  PageFlowStatus 
+  PageFlowStatus,
+  PageAction,
+  PageAutomation
 } from '../types';
+
+// Type helper for database to application model conversions
+type DbPage = Omit<Page, 'actions' | 'automation_config'> & {
+  actions: any;
+  automation_config: any;
+};
+
+type DbPageFlow = Omit<PageFlow, 'pages'> & {
+  pages?: DbPage[];
+};
+
+// Helper function to convert database page to application page
+const convertDbPageToPage = (dbPage: DbPage): Page => {
+  return {
+    ...dbPage,
+    actions: dbPage.actions ? (dbPage.actions as PageAction[]) : undefined,
+    automation_config: dbPage.automation_config ? (dbPage.automation_config as PageAutomation) : undefined
+  };
+};
+
+// Helper function to convert application page to database page
+const convertPageToDbPage = (page: Partial<Page>): Partial<DbPage> => {
+  return {
+    ...page,
+    actions: page.actions ? page.actions : undefined,
+    automation_config: page.automation_config ? page.automation_config : undefined
+  };
+};
 
 // Get all page flows
 export const getPageFlows = async (companyId: string): Promise<PageFlow[]> => {
@@ -53,10 +83,13 @@ export const getPageFlowWithPages = async (id: string): Promise<PageFlowWithPage
       
     if (pagesError) throw pagesError;
     
+    // Convert database pages to application pages
+    const convertedPages = pages ? pages.map((page) => convertDbPageToPage(page as DbPage)) : [];
+    
     // Combine the flow and pages
     return {
       ...flow as PageFlow,
-      pages: pages as Page[]
+      pages: convertedPages
     };
   } catch (error) {
     console.error(`Error getting page flow with ID ${id}:`, error);
@@ -67,9 +100,22 @@ export const getPageFlowWithPages = async (id: string): Promise<PageFlowWithPage
 // Create a new page flow
 export const createFlow = async (flowData: Partial<PageFlow>): Promise<PageFlow> => {
   try {
+    // Make sure title is not undefined
+    if (!flowData.title) {
+      throw new Error('Flow title is required');
+    }
+    
     const { data, error } = await supabase
       .from('page_flows')
-      .insert(flowData)
+      .insert({
+        title: flowData.title,
+        description: flowData.description,
+        company_id: flowData.company_id,
+        created_by: flowData.created_by,
+        data_binding_type: flowData.data_binding_type,
+        data_binding_id: flowData.data_binding_id,
+        is_active: flowData.is_active !== undefined ? flowData.is_active : true
+      })
       .select()
       .single();
       
@@ -124,15 +170,43 @@ export const deletePageFlow = async (id: string): Promise<boolean> => {
 // Add a page to a flow
 export const addPage = async (pageData: Partial<Page>): Promise<Page> => {
   try {
+    // Convert Page to DbPage for database storage
+    const dbPageData = convertPageToDbPage(pageData);
+    
+    // Ensure required fields are present
+    if (!dbPageData.flow_id) {
+      throw new Error('flow_id is required');
+    }
+    if (!dbPageData.title) {
+      throw new Error('title is required');
+    }
+    if (!dbPageData.page_type) {
+      throw new Error('page_type is required');
+    }
+    if (dbPageData.order_index === undefined) {
+      throw new Error('order_index is required');
+    }
+    
     const { data, error } = await supabase
       .from('pages')
-      .insert(pageData)
+      .insert({
+        flow_id: dbPageData.flow_id,
+        title: dbPageData.title,
+        description: dbPageData.description,
+        page_type: dbPageData.page_type,
+        content: dbPageData.content,
+        actions: dbPageData.actions,
+        automation_config: dbPageData.automation_config,
+        document_id: dbPageData.document_id,
+        order_index: dbPageData.order_index
+      })
       .select()
       .single();
       
     if (error) throw error;
     
-    return data as Page;
+    // Convert database page to application page
+    return convertDbPageToPage(data as DbPage);
   } catch (error) {
     console.error('Error adding page:', error);
     throw error;
@@ -142,16 +216,20 @@ export const addPage = async (pageData: Partial<Page>): Promise<Page> => {
 // Update a page
 export const updatePageInfo = async (id: string, updateData: Partial<Page>): Promise<Page> => {
   try {
+    // Convert Page to DbPage for database storage
+    const dbPageData = convertPageToDbPage(updateData);
+    
     const { data, error } = await supabase
       .from('pages')
-      .update(updateData)
+      .update(dbPageData)
       .eq('id', id)
       .select()
       .single();
       
     if (error) throw error;
     
-    return data as Page;
+    // Convert database page to application page
+    return convertDbPageToPage(data as DbPage);
   } catch (error) {
     console.error(`Error updating page with ID ${id}:`, error);
     throw error;

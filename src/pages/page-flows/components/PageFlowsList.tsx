@@ -6,12 +6,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit, Copy, Trash2, MoreHorizontal } from "lucide-react";
 import { PageFlow } from "../types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface PageFlowsListProps {
   flows: PageFlow[];
+  onDelete?: (flowId: string) => Promise<boolean>;
+  onDuplicate?: (flowId: string, newTitle: string) => Promise<PageFlow | null>;
 }
 
-export const PageFlowsList: React.FC<PageFlowsListProps> = ({ flows }) => {
+export const PageFlowsList: React.FC<PageFlowsListProps> = ({ 
+  flows,
+  onDelete,
+  onDuplicate
+}) => {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {flows.length === 0 ? (
@@ -52,6 +65,43 @@ export const PageFlowsList: React.FC<PageFlowsListProps> = ({ flows }) => {
                       <span className="sr-only">Edit</span>
                     </Link>
                   </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon">
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">More options</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {onDuplicate && (
+                        <DropdownMenuItem 
+                          onClick={() => onDuplicate(
+                            flow.id, 
+                            `${flow.title} (Copy)`
+                          )}
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          Duplicate
+                        </DropdownMenuItem>
+                      )}
+                      {onDelete && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => {
+                              if (window.confirm("Are you sure you want to delete this flow?")) {
+                                onDelete(flow.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </CardFooter>
