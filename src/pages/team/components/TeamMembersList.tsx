@@ -11,6 +11,7 @@ import { TeamMemberAvatar } from './TeamMemberAvatar';
 import { TerminateEmployeeDialog } from './TerminateEmployeeDialog';
 import { SlackConnectionButton } from './SlackConnectionButton';
 import { Badge } from '@/components/ui/badge';
+import { CurrencyDisplay } from '@/components/ui/currency-display';
 
 interface TeamMembersListProps {
   teamMembers: TeamMember[];
@@ -113,7 +114,12 @@ export function TeamMembersList({ teamMembers, onEdit, onDelete, onTerminate, on
                   <span className="text-amber-600">{formatDate(member.end_job_date)}</span>
                 </p>
               )}
-              {member.hourly_rate && <p className="text-sm"><span className="font-medium">Rate:</span> ${member.hourly_rate}/hour</p>}
+              {member.hourly_rate && (
+                <p className="text-sm">
+                  <span className="font-medium">Rate:</span>{' '}
+                  <CurrencyDisplay amount={member.hourly_rate} />/hour
+                </p>
+              )}
             </div>
 
             <div className="mt-4 space-x-2 flex items-center">

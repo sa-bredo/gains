@@ -1,41 +1,52 @@
 
-import React, { useState, useEffect } from 'react';
-import { useCompany } from "@/contexts/CompanyContext";
-import { fetchGeneralSettings, getCurrency } from '@/utils/settings';
+import React from 'react';
+import { formatCurrency } from '@/lib/utils';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
 
-interface CurrencyDisplayProps {
-  amount: number;
+export interface CurrencyDisplayProps {
+  amount: number | string | null | undefined;
   className?: string;
+  showSymbol?: boolean;
+  showCode?: boolean;
+  minimumFractionDigits?: number;
+  maximumFractionDigits?: number;
 }
 
-export const CurrencyDisplay: React.FC<CurrencyDisplayProps> = ({ 
-  amount, 
-  className = "" 
-}) => {
-  const [currencyCode, setCurrencyCode] = useState('GBP');
-  const { currentCompany } = useCompany();
-
-  useEffect(() => {
-    const loadSettings = async () => {
-      if (currentCompany?.id) {
-        const settings = await fetchGeneralSettings(currentCompany.id);
-        setCurrencyCode(getCurrency(settings));
-      }
-    };
-    
-    loadSettings();
-  }, [currentCompany]);
-
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: currencyCode,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
+export function CurrencyDisplay({
+  amount,
+  className = '',
+  showSymbol = true,
+  showCode = false,
+  minimumFractionDigits = 2,
+  maximumFractionDigits = 2,
+}: CurrencyDisplayProps) {
+  const { currencyCode, isLoading } = useCurrencySettings();
+  
+  if (isLoading) {
+    return <span className={className}>...</span>;
+  }
+  
+  // Configure number format options
+  const options: Intl.NumberFormatOptions = {
+    minimumFractionDigits,
+    maximumFractionDigits,
   };
-
+  
+  // Add currency style if showing symbol
+  if (showSymbol) {
+    options.style = 'currency';
+    options.currency = currencyCode;
+  } else {
+    // If not showing symbol, just format as a number
+    options.style = 'decimal';
+  }
+  
+  const formattedValue = formatCurrency(amount, currencyCode, options);
+  
   return (
-    <span className={className}>{formatCurrency(amount)}</span>
+    <span className={className}>
+      {formattedValue}
+      {!showSymbol && showCode && ` ${currencyCode}`}
+    </span>
   );
-};
+}
