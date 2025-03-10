@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Table,
@@ -52,7 +51,7 @@ const SlackEmployeeManager = () => {
   }
 
   const handleConnect = (employeeId: string, employeeName: string) => {
-    connectEmployee.mutate(employeeId);
+    connectEmployee.mutate();
     toast({
       title: "Employee connected",
       description: `${employeeName} has been connected to Slack.`,
@@ -61,7 +60,7 @@ const SlackEmployeeManager = () => {
   };
 
   const handleDisconnect = (employeeId: string, employeeName: string) => {
-    disconnectEmployee.mutate(employeeId);
+    disconnectEmployee.mutate();
     toast({
       title: "Employee disconnected",
       description: `${employeeName} has been disconnected from Slack.`,
