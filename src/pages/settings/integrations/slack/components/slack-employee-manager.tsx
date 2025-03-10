@@ -85,37 +85,39 @@ const SlackEmployeeManager = () => {
                     <DropdownMenuItem
                       onClick={() => {
                         if (employee.status === 'connected') {
-                          disconnectEmployee.mutateAsync(employee.employee_id)
-                            .then(() => {
+                          disconnectEmployee.mutate(employee.employee_id, {
+                            onSuccess: () => {
                               toast({
                                 title: "Employee disconnected",
                                 description: `${employee.employee_name} has been disconnected from Slack.`,
                               });
                               refetchSlackEmployees();
-                            })
-                            .catch((err) => {
+                            },
+                            onError: (err) => {
                               toast({
                                 variant: "destructive",
                                 title: "Error",
                                 description: "Failed to disconnect employee from Slack.",
                               });
-                            });
+                            }
+                          });
                         } else {
-                          connectEmployee.mutateAsync(employee.employee_id)
-                            .then(() => {
+                          connectEmployee.mutate(employee.employee_id, {
+                            onSuccess: () => {
                               toast({
                                 title: "Employee connected",
                                 description: `${employee.employee_name} has been connected to Slack.`,
                               });
                               refetchSlackEmployees();
-                            })
-                            .catch((err) => {
+                            },
+                            onError: (err) => {
                               toast({
                                 variant: "destructive",
                                 title: "Error",
                                 description: "Failed to connect employee to Slack.",
                               });
-                            });
+                            }
+                          });
                         }
                       }}
                     >
