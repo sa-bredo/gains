@@ -17,7 +17,8 @@ import {
   Users,
   MapPin,
   FormInput,
-  MessageSquare
+  MessageSquare,
+  GitBranch
 } from "lucide-react";
 
 interface MainNavigationProps {
@@ -55,6 +56,15 @@ const defaultNavItems: NavItem[] = [
     url: "/forms",
     items: [
       { title: "Form Builder", url: "/forms" }
+    ]
+  },
+  {
+    title: "Page Flows",
+    icon: GitBranch,
+    url: "/page-flows",
+    items: [
+      { title: "All Flows", url: "/page-flows" },
+      { title: "Create Flow", url: "/page-flows/new" }
     ]
   },
   {

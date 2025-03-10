@@ -22,6 +22,9 @@ import LocationsPage from './pages/settings/locations';
 import PermissionsPage from './pages/settings/permissions';
 import SlackSettingsPage from './pages/settings/integrations/slack';
 import MessageTemplatesPage from './pages/settings/integrations/slack/message-templates';
+import PageFlowsPage from './pages/page-flows';
+import PageFlowEditorPage from './pages/page-flows/editor';
+import NewPageFlowPage from './pages/page-flows/new';
 import AboutPage from "@/pages/About";
 import NotFound from "@/pages/NotFound";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -65,6 +68,9 @@ function App() {
           <Route path="/settings/permissions" element={<PermissionsPage />} />
           <Route path="/settings/integrations/slack" element={<SlackSettingsPage />} />
           <Route path="/settings/integrations/slack/message-templates" element={<MessageTemplatesPage />} />
+          <Route path="/page-flows" element={<PageFlowsPage />} />
+          <Route path="/page-flows/new" element={<NewPageFlowPage />} />
+          <Route path="/page-flows/editor/:id" element={<PageFlowEditorPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/knowledge" element={<NotFound />} />
           <Route path="/forms" element={<FormsPage />} />
