@@ -73,7 +73,14 @@ export function usePageFlows() {
     setError(null);
     
     try {
-      const newFlow = await createFlow(flowData);
+      // Always associate with the current company
+      const flowWithCompany = {
+        ...flowData,
+        company_id: currentCompany.id,
+        created_by: 'user-1', // TODO: Replace with actual user ID when auth is implemented
+      };
+      
+      const newFlow = await createFlow(flowWithCompany);
       setPageFlows(prev => [...prev, newFlow]);
       toast({
         title: "Success",

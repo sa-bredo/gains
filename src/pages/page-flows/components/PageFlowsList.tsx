@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Copy, Trash2 } from "lucide-react";
+import { Edit, Copy, Trash2, MoreHorizontal } from "lucide-react";
 import { PageFlow } from "../types";
 
 interface PageFlowsListProps {

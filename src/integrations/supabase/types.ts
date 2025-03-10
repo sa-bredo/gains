@@ -297,6 +297,95 @@ export type Database = {
         }
         Relationships: []
       }
+      flow_assignments: {
+        Row: {
+          assigned_to: string
+          completed_at: string | null
+          created_at: string
+          current_page_index: number
+          flow_id: string
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to: string
+          completed_at?: string | null
+          created_at?: string
+          current_page_index?: number
+          flow_id: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string
+          completed_at?: string | null
+          created_at?: string
+          current_page_index?: number
+          flow_id?: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_assignments_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "page_flows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flow_progress: {
+        Row: {
+          assignment_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          input_data: Json | null
+          page_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assignment_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          input_data?: Json | null
+          page_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assignment_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          input_data?: Json | null
+          page_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_progress_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "flow_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_progress_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       form_submissions: {
         Row: {
           data: Json
@@ -558,6 +647,106 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      page_flows: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          data_binding_id: string | null
+          data_binding_type: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_binding_id?: string | null
+          data_binding_type?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_binding_id?: string | null
+          data_binding_type?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_flows_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pages: {
+        Row: {
+          actions: Json | null
+          automation_config: Json | null
+          content: string | null
+          created_at: string
+          description: string | null
+          document_id: string | null
+          flow_id: string
+          id: string
+          order_index: number
+          page_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actions?: Json | null
+          automation_config?: Json | null
+          content?: string | null
+          created_at?: string
+          description?: string | null
+          document_id?: string | null
+          flow_id: string
+          id?: string
+          order_index: number
+          page_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actions?: Json | null
+          automation_config?: Json | null
+          content?: string | null
+          created_at?: string
+          description?: string | null
+          document_id?: string | null
+          flow_id?: string
+          id?: string
+          order_index?: number
+          page_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pages_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "page_flows"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       resources: {
         Row: {
