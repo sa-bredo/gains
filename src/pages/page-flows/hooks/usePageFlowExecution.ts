@@ -1,317 +1,233 @@
-
-import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import {
-  fetchUserAssignments,
-  assignPageFlow,
-  updateAssignment,
-  recordPageProgress
-} from "../services/page-flow-service";
+import { useState, useEffect } from 'react';
 import { 
+  PageFlow, 
+  Page, 
   PageFlowAssignment, 
-  PageFlowProgress, 
-  PageFlowAssignmentWithFlow,
-  PageFlowStatus 
-} from "../types";
-import { useToast } from "@/hooks/use-toast";
+  PageFlowProgress,
+  PageFlowStatus
+} from '../types';
+import { supabase } from '@/integrations/supabase/client';
+import { useCompany } from '@/contexts/CompanyContext';
+import { useAuth } from '@/hooks/useAuth';
 
-export function usePageFlowExecution() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [assignments, setAssignments] = useState<PageFlowAssignmentWithFlow[]>([]);
-  const [currentAssignment, setCurrentAssignment] = useState<PageFlowAssignmentWithFlow | null>(null);
+interface UsePageFlowExecutionProps {
+  flowId?: string;
+  assignmentId?: string;
+}
+
+export function usePageFlowExecution({ flowId, assignmentId }: UsePageFlowExecutionProps) {
+  const [flow, setFlow] = useState<PageFlow | null>(null);
+  const [currentPage, setCurrentPage] = useState<Page | null>(null);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [assignment, setAssignment] = useState<PageFlowAssignment | null>(null);
+  const [progress, setProgress] = useState<PageFlowProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const { currentUser } = useAuth();
+  const { currentCompany } = useCompany();
+  
+  // Fix: Use safe property access with optional chaining for user ID
+  const userId = currentUser?.id;
 
-  const loadUserAssignments = useCallback(async () => {
-    if (!user?.id) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const userAssignments = await fetchUserAssignments(user.id);
-      setAssignments(userAssignments);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      toast({
-        title: "Error",
-        description: `Failed to load assignments: ${errorMessage}`,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [user, toast]);
-
-  const createAssignment = useCallback(async (flowId: string, userId: string) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const newAssignment = await assignPageFlow(flowId, userId);
-      toast({
-        title: "Success",
-        description: "Flow assigned successfully"
-      });
-      await loadUserAssignments(); // Reload to get the flow data
-      return newAssignment;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      toast({
-        title: "Error",
-        description: `Failed to assign flow: ${errorMessage}`,
-        variant: "destructive"
-      });
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [loadUserAssignments, toast]);
-
-  const startPageFlow = useCallback(async (assignmentId: string) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const updatedAssignment = await updateAssignment(assignmentId, {
-        status: 'in_progress',
-        current_page_index: 0
-      });
-      
-      // Update the assignment in the list
-      setAssignments(prev => 
-        prev.map(a => 
-          a.id === assignmentId ? {...a, ...updatedAssignment} : a
-        )
-      );
-      
-      // Set as current assignment
-      const assignment = assignments.find(a => a.id === assignmentId);
-      if (assignment) {
-        setCurrentAssignment({...assignment, ...updatedAssignment});
-      }
-      
-      toast({
-        title: "Success",
-        description: "Flow started successfully"
-      });
-      
-      return updatedAssignment;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      toast({
-        title: "Error",
-        description: `Failed to start flow: ${errorMessage}`,
-        variant: "destructive"
-      });
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [assignments, toast]);
-
-  const moveToNextPage = useCallback(async (
-    assignmentId: string, 
-    currentPageId: string,
-    nextPageIndex: number
-  ) => {
-    if (!currentAssignment) return null;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Mark current page as completed
-      await recordPageProgress(assignmentId, currentPageId, 'completed');
-      
-      // Update the assignment's current page index
-      const updatedAssignment = await updateAssignment(assignmentId, {
-        current_page_index: nextPageIndex
-      });
-      
-      // If next page exists, mark it as in progress
-      if (currentAssignment.flow.pages[nextPageIndex]) {
-        await recordPageProgress(
-          assignmentId, 
-          currentAssignment.flow.pages[nextPageIndex].id, 
-          'in_progress'
-        );
-      }
-      
-      // If we've reached the end of the flow, mark it as completed
-      if (nextPageIndex >= currentAssignment.flow.pages.length) {
-        await updateAssignment(assignmentId, {
-          status: 'completed',
-          completed_at: new Date().toISOString()
-        });
-      }
-      
-      // Update local state
-      setCurrentAssignment(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          ...updatedAssignment,
-          current_page_index: nextPageIndex,
-          status: nextPageIndex >= prev.flow.pages.length ? 'completed' : prev.status
-        };
-      });
-      
-      await loadUserAssignments(); // Refresh all assignments
-      
-      return updatedAssignment;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      toast({
-        title: "Error",
-        description: `Failed to move to next page: ${errorMessage}`,
-        variant: "destructive"
-      });
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [currentAssignment, loadUserAssignments, toast]);
-
-  const moveToPreviousPage = useCallback(async (
-    assignmentId: string,
-    prevPageIndex: number
-  ) => {
-    if (!currentAssignment || prevPageIndex < 0) return null;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Update the assignment's current page index
-      const updatedAssignment = await updateAssignment(assignmentId, {
-        current_page_index: prevPageIndex
-      });
-      
-      // Update local state
-      setCurrentAssignment(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          ...updatedAssignment,
-          current_page_index: prevPageIndex
-        };
-      });
-      
-      return updatedAssignment;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      toast({
-        title: "Error",
-        description: `Failed to move to previous page: ${errorMessage}`,
-        variant: "destructive"
-      });
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [currentAssignment, toast]);
-
-  const recordActionResult = useCallback(async (
-    assignmentId: string,
-    pageId: string,
-    inputData: Record<string, any>
-  ) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const progress = await recordPageProgress(
-        assignmentId, 
-        pageId, 
-        'in_progress', 
-        inputData
-      );
-      
-      toast({
-        title: "Success",
-        description: "Action recorded successfully"
-      });
-      
-      return progress;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      toast({
-        title: "Error",
-        description: `Failed to record action: ${errorMessage}`,
-        variant: "destructive"
-      });
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
-
-  const completeFlow = useCallback(async (assignmentId: string) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const updatedAssignment = await updateAssignment(assignmentId, {
-        status: 'completed',
-        completed_at: new Date().toISOString()
-      });
-      
-      // Update local state
-      setAssignments(prev => 
-        prev.map(a => 
-          a.id === assignmentId ? {...a, ...updatedAssignment} : a
-        )
-      );
-      
-      setCurrentAssignment(null);
-      
-      toast({
-        title: "Success",
-        description: "Flow completed successfully"
-      });
-      
-      return updatedAssignment;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      toast({
-        title: "Error",
-        description: `Failed to complete flow: ${errorMessage}`,
-        variant: "destructive"
-      });
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
-
-  // Load user assignments on mount
   useEffect(() => {
-    if (user) {
-      loadUserAssignments();
+    if (!flowId && !assignmentId) return;
+    
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // If we have an assignment ID, fetch the assignment first
+        if (assignmentId) {
+          const { data: assignmentData, error: assignmentError } = await supabase
+            .from('page_flow_assignments')
+            .select(`
+              *,
+              flow:page_flows(
+                *,
+                pages:pages(*)
+              )
+            `)
+            .eq('id', assignmentId)
+            // Fix: Use safe property access with optional chaining
+            .eq('assigned_to', userId || '')
+            .single();
+            
+          if (assignmentError) throw new Error(assignmentError.message);
+          
+          if (assignmentData) {
+            setAssignment(assignmentData);
+            setFlow(assignmentData.flow);
+            setCurrentPageIndex(assignmentData.current_page_index || 0);
+            
+            // Get progress for this assignment
+            const { data: progressData, error: progressError } = await supabase
+              .from('page_flow_progress')
+              .select('*')
+              .eq('assignment_id', assignmentId);
+              
+            if (progressError) throw new Error(progressError.message);
+            
+            setProgress(progressData || []);
+          }
+        } 
+        // Otherwise fetch the flow
+        else if (flowId) {
+          const { data: flowData, error: flowError } = await supabase
+            .from('page_flows')
+            .select(`
+              *,
+              pages(*)
+            `)
+            .eq('id', flowId)
+            .single();
+            
+          if (flowError) throw new Error(flowError.message);
+          
+          if (flowData) {
+            setFlow(flowData);
+          }
+        }
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [flowId, assignmentId, userId]);
+  
+  // Update current page whenever flow or currentPageIndex changes
+  useEffect(() => {
+    if (flow?.pages && flow.pages.length > 0) {
+      // Sort pages by order_index
+      const sortedPages = [...flow.pages].sort((a, b) => a.order_index - b.order_index);
+      
+      if (currentPageIndex < sortedPages.length) {
+        setCurrentPage(sortedPages[currentPageIndex]);
+      } else {
+        // Reset to first page if index is out of bounds
+        setCurrentPageIndex(0);
+        setCurrentPage(sortedPages[0]);
+      }
+    } else {
+      setCurrentPage(null);
     }
-  }, [user, loadUserAssignments]);
-
+  }, [flow, currentPageIndex]);
+  
+  const goToNextPage = async () => {
+    if (!flow?.pages || !currentPage) return;
+    
+    const sortedPages = [...flow.pages].sort((a, b) => a.order_index - b.order_index);
+    
+    if (currentPageIndex < sortedPages.length - 1) {
+      // If we have an assignment, update progress
+      if (assignment) {
+        // Mark current page as completed
+        await recordProgress(currentPage.id, 'completed');
+        
+        // Update assignment with new page index
+        const newPageIndex = currentPageIndex + 1;
+        await supabase
+          .from('page_flow_assignments')
+          .update({ 
+            current_page_index: newPageIndex,
+            status: newPageIndex === sortedPages.length - 1 ? 'completed' : 'in_progress'
+          })
+          .eq('id', assignment.id);
+          
+        setCurrentPageIndex(newPageIndex);
+      } else {
+        setCurrentPageIndex(currentPageIndex + 1);
+      }
+    }
+  };
+  
+  const goToPreviousPage = async () => {
+    if (currentPageIndex > 0) {
+      const newPageIndex = currentPageIndex - 1;
+      
+      // If we have an assignment, update it
+      if (assignment) {
+        await supabase
+          .from('page_flow_assignments')
+          .update({ 
+            current_page_index: newPageIndex,
+            status: 'in_progress'
+          })
+          .eq('id', assignment.id);
+      }
+      
+      setCurrentPageIndex(newPageIndex);
+    }
+  };
+  
+  const recordProgress = async (
+    pageId: string, 
+    status: PageFlowStatus,
+    inputData?: Record<string, any>
+  ) => {
+    if (!assignment) return;
+    
+    try {
+      // Check if we already have progress for this page
+      const existingProgress = progress.find(p => p.page_id === pageId);
+      
+      if (existingProgress) {
+        // Update existing progress
+        const { data, error } = await supabase
+          .from('page_flow_progress')
+          .update({
+            status,
+            input_data: inputData || existingProgress.input_data,
+            completed_at: status === 'completed' ? new Date().toISOString() : null
+          })
+          .eq('id', existingProgress.id)
+          .select()
+          .single();
+          
+        if (error) throw new Error(error.message);
+        
+        // Update local progress state
+        setProgress(prev => 
+          prev.map(p => p.id === data.id ? data : p)
+        );
+      } else {
+        // Create new progress record
+        const { data, error } = await supabase
+          .from('page_flow_progress')
+          .insert([{
+            assignment_id: assignment.id,
+            page_id: pageId,
+            status,
+            input_data: inputData || null,
+            completed_at: status === 'completed' ? new Date().toISOString() : null
+          }])
+          .select()
+          .single();
+          
+        if (error) throw new Error(error.message);
+        
+        // Add to local progress state
+        setProgress(prev => [...prev, data]);
+      }
+    } catch (e) {
+      console.error('Error recording progress:', e);
+    }
+  };
+  
   return {
-    assignments,
-    currentAssignment,
+    flow,
+    currentPage,
+    currentPageIndex,
+    assignment,
+    progress,
     loading,
     error,
-    loadUserAssignments,
-    createAssignment,
-    startPageFlow,
-    moveToNextPage,
-    moveToPreviousPage,
-    recordActionResult,
-    completeFlow,
-    setCurrentAssignment
+    goToNextPage,
+    goToPreviousPage,
+    recordProgress,
+    totalPages: flow?.pages?.length || 0
   };
 }
