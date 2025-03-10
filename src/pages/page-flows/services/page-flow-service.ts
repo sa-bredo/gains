@@ -8,7 +8,6 @@ import {
   PageFlowAssignmentWithFlow, 
   PageFlowStatus 
 } from '../types';
-import { useAuth } from '@/hooks/useAuth';
 
 // Helper function to mock database data without reaching out to the DB
 const mockDataResponse = <T>(data: T) => {
@@ -22,13 +21,13 @@ const mockDataResponse = <T>(data: T) => {
 };
 
 // Get all page flows
-export const getPageFlows = async (): Promise<PageFlow[]> => {
+export const getPageFlows = async (companyId: string): Promise<PageFlow[]> => {
   try {
     // Since the tables don't exist yet, return mock data
     const mockFlows: PageFlow[] = [
       {
         id: '1',
-        company_id: '1',
+        company_id: companyId || '1',
         title: 'Employee Onboarding',
         description: 'Step by step process for onboarding new employees',
         data_binding_type: 'employee',
@@ -39,7 +38,7 @@ export const getPageFlows = async (): Promise<PageFlow[]> => {
       },
       {
         id: '2',
-        company_id: '1',
+        company_id: companyId || '1',
         title: 'Equipment Checkout',
         description: 'Process for checking out company equipment',
         data_binding_type: 'asset',
@@ -107,7 +106,7 @@ export const getPageFlowWithPages = async (id: string): Promise<PageFlowWithPage
 };
 
 // Create a new page flow
-export const createPageFlow = async (flowData: Partial<PageFlow>): Promise<PageFlow | null> => {
+export const createFlow = async (flowData: Partial<PageFlow>): Promise<PageFlow> => {
   try {
     // Mock creation of a flow
     const newFlow: PageFlow = {
@@ -126,12 +125,15 @@ export const createPageFlow = async (flowData: Partial<PageFlow>): Promise<PageF
     return newFlow;
   } catch (error) {
     console.error('Error creating page flow:', error);
-    return null;
+    throw error;
   }
 };
 
+// Alias for createFlow to match imports
+export const createPageFlow = createFlow;
+
 // Update an existing page flow
-export const updateFlow = async (id: string, updateData: Partial<PageFlow>): Promise<PageFlow | null> => {
+export const updateFlow = async (id: string, updateData: Partial<PageFlow>): Promise<PageFlow> => {
   try {
     // Mock update of a flow
     const updatedFlow: PageFlow = {
@@ -150,7 +152,7 @@ export const updateFlow = async (id: string, updateData: Partial<PageFlow>): Pro
     return updatedFlow;
   } catch (error) {
     console.error(`Error updating page flow with ID ${id}:`, error);
-    return null;
+    throw error;
   }
 };
 
@@ -162,12 +164,12 @@ export const deletePageFlow = async (id: string): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error(`Error deleting page flow with ID ${id}:`, error);
-    return false;
+    throw error;
   }
 };
 
 // Add a page to a flow
-export const addPage = async (pageData: Partial<Page>): Promise<Page | null> => {
+export const addPage = async (pageData: Partial<Page>): Promise<Page> => {
   try {
     // Mock page creation
     const newPage: Page = {
@@ -188,12 +190,12 @@ export const addPage = async (pageData: Partial<Page>): Promise<Page | null> => 
     return newPage;
   } catch (error) {
     console.error('Error adding page:', error);
-    return null;
+    throw error;
   }
 };
 
 // Update a page
-export const updatePageInfo = async (id: string, updateData: Partial<Page>): Promise<Page | null> => {
+export const updatePageInfo = async (id: string, updateData: Partial<Page>): Promise<Page> => {
   try {
     // Mock page update
     const updatedPage: Page = {
@@ -214,7 +216,7 @@ export const updatePageInfo = async (id: string, updateData: Partial<Page>): Pro
     return updatedPage;
   } catch (error) {
     console.error(`Error updating page with ID ${id}:`, error);
-    return null;
+    throw error;
   }
 };
 
@@ -226,27 +228,27 @@ export const deletePage = async (id: string): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error(`Error deleting page with ID ${id}:`, error);
-    return false;
+    throw error;
   }
 };
 
 // Reorder pages
-export const updatePagesOrder = async (pages: Page[]): Promise<boolean> => {
+export const updatePagesOrder = async (pages: Array<{ id: string, order_index: number }>): Promise<boolean> => {
   try {
     // Mock reordering
-    pages.forEach((page, index) => {
-      console.log(`Updating page ${page.id} to order ${index}`);
+    pages.forEach((page) => {
+      console.log(`Updating page ${page.id} to order ${page.order_index}`);
     });
     
     return true;
   } catch (error) {
     console.error('Error reordering pages:', error);
-    return false;
+    throw error;
   }
 };
 
 // Assign a flow to a user
-export const assignFlowToUser = async (flowId: string, userId: string): Promise<PageFlowAssignment | null> => {
+export const assignFlowToUser = async (flowId: string, userId: string): Promise<PageFlowAssignment> => {
   try {
     // Mock assignment creation
     const newAssignment: PageFlowAssignment = {
@@ -262,9 +264,14 @@ export const assignFlowToUser = async (flowId: string, userId: string): Promise<
     return newAssignment;
   } catch (error) {
     console.error('Error assigning flow:', error);
-    return null;
+    throw error;
   }
 };
+
+// Interface needed for the PageFlowWithPages type
+interface PageFlowWithPages extends PageFlow {
+  pages: Page[];
+}
 
 // Get assignments for a user
 export const getUserAssignments = async (userId: string): Promise<PageFlowAssignmentWithFlow[]> => {
@@ -335,8 +342,3 @@ export const getUserAssignments = async (userId: string): Promise<PageFlowAssign
     return [];
   }
 };
-
-// This is an interface that should be defined in types.ts but we add it here for completeness
-interface PageFlowWithPages extends PageFlow {
-  pages: Page[];
-}

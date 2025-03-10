@@ -2,16 +2,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { useCompany } from "@/contexts/CompanyContext";
 import {
-  fetchPageFlows,
-  fetchPageFlowWithPages,
+  getPageFlows,
+  getPageFlowWithPages,
   createPageFlow,
-  updatePageFlow,
+  updateFlow,
   deletePageFlow,
-  createPage,
-  updatePage,
+  addPage,
+  updatePageInfo,
   deletePage,
-  reorderPages,
-  duplicatePageFlow
+  updatePagesOrder,
+  createFlow
 } from "../services/page-flow-service";
 import { PageFlow, Page, PageFlowWithPages } from "../types";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +31,7 @@ export function usePageFlows() {
     setError(null);
     
     try {
-      const flows = await fetchPageFlows(currentCompany.id);
+      const flows = await getPageFlows(currentCompany.id);
       setPageFlows(flows);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -51,7 +51,7 @@ export function usePageFlows() {
     setError(null);
     
     try {
-      const flow = await fetchPageFlowWithPages(flowId);
+      const flow = await getPageFlowWithPages(flowId);
       setSelectedFlow(flow);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -66,14 +66,14 @@ export function usePageFlows() {
     }
   }, [toast]);
 
-  const createFlow = useCallback(async (flowData: Partial<PageFlow>) => {
+  const createNewFlow = useCallback(async (flowData: Partial<PageFlow>) => {
     if (!currentCompany) return null;
     
     setLoading(true);
     setError(null);
     
     try {
-      const newFlow = await createPageFlow(flowData, currentCompany.id);
+      const newFlow = await createFlow(flowData);
       setPageFlows(prev => [...prev, newFlow]);
       toast({
         title: "Success",
@@ -94,12 +94,12 @@ export function usePageFlows() {
     }
   }, [currentCompany, toast]);
 
-  const updateFlow = useCallback(async (flowId: string, flowData: Partial<PageFlow>) => {
+  const updateExistingFlow = useCallback(async (flowId: string, flowData: Partial<PageFlow>) => {
     setLoading(true);
     setError(null);
     
     try {
-      const updatedFlow = await updatePageFlow(flowId, flowData);
+      const updatedFlow = await updateFlow(flowId, flowData);
       setPageFlows(prev => prev.map(flow => 
         flow.id === flowId ? { ...flow, ...updatedFlow } : flow
       ));
@@ -158,12 +158,12 @@ export function usePageFlows() {
     }
   }, [selectedFlow, toast]);
 
-  const addPage = useCallback(async (pageData: Partial<Page>) => {
+  const addNewPage = useCallback(async (pageData: Partial<Page>) => {
     setLoading(true);
     setError(null);
     
     try {
-      const newPage = await createPage(pageData);
+      const newPage = await addPage(pageData);
       
       if (selectedFlow && newPage.flow_id === selectedFlow.id) {
         setSelectedFlow(prev => {
@@ -199,7 +199,7 @@ export function usePageFlows() {
     setError(null);
     
     try {
-      const updatedPage = await updatePage(pageId, pageData);
+      const updatedPage = await updatePageInfo(pageId, pageData);
       
       if (selectedFlow) {
         setSelectedFlow(prev => {
@@ -273,7 +273,7 @@ export function usePageFlows() {
     setError(null);
     
     try {
-      await reorderPages(flowId, pageIds);
+      await updatePagesOrder(pageIds.map((id, index) => ({ id, order_index: index })));
       
       if (selectedFlow && selectedFlow.id === flowId) {
         // Reorder the pages in memory based on the new order
@@ -321,8 +321,45 @@ export function usePageFlows() {
     setError(null);
     
     try {
-      const newFlow = await duplicatePageFlow(flowId, newTitle, currentCompany.id);
-      setPageFlows(prev => [...prev, newFlow]);
+      // Since duplicatePageFlow is not available, we'll use getPageFlowWithPages and createFlow
+      const originalFlow = await getPageFlowWithPages(flowId);
+      
+      if (!originalFlow) {
+        throw new Error("Original flow not found");
+      }
+      
+      // Create a new flow with the same data but a new title
+      const newFlowData: Partial<PageFlow> = {
+        title: newTitle,
+        description: originalFlow.description,
+        data_binding_type: originalFlow.data_binding_type,
+        data_binding_id: originalFlow.data_binding_id,
+        is_active: originalFlow.is_active
+      };
+      
+      const newFlow = await createFlow(newFlowData);
+      
+      // Now add all the pages from the original flow to the new flow
+      for (const page of originalFlow.pages) {
+        const newPageData: Partial<Page> = {
+          flow_id: newFlow.id,
+          title: page.title,
+          description: page.description,
+          page_type: page.page_type,
+          content: page.content,
+          actions: page.actions,
+          automation_config: page.automation_config,
+          document_id: page.document_id,
+          order_index: page.order_index
+        };
+        
+        await addPage(newPageData);
+      }
+      
+      // Refresh the flows list
+      const flows = await getPageFlows(currentCompany.id);
+      setPageFlows(flows);
+      
       toast({
         title: "Success",
         description: "Page flow duplicated successfully"
@@ -356,10 +393,10 @@ export function usePageFlows() {
     error,
     loadPageFlows,
     loadFlow,
-    createFlow,
-    updateFlow,
+    createFlow: createNewFlow,
+    updateFlow: updateExistingFlow,
     deleteFlow,
-    addPage,
+    addPage: addNewPage,
     updatePageInfo,
     removePage,
     reorderFlowPages,
