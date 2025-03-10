@@ -1,6 +1,5 @@
-
 import React from "react";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, Navigate, useParams } from "react-router-dom";
 import { ThemeProvider } from "./components/theme-provider";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
@@ -34,6 +33,12 @@ import EditFormPage from "./pages/forms/edit";
 import FormSubmissionsPage from "./pages/forms/submissions";
 import PublicFormPage from "./pages/form/[publicUrl]";
 import FormExample from "@/pages/form-example";
+
+// Create a redirect component that gets the ID parameter and redirects to the editor route
+const EditToEditorRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/page-flows/editor/${id}`} replace />;
+};
 
 function App() {
   return (
@@ -71,6 +76,7 @@ function App() {
           <Route path="/page-flows" element={<PageFlowsPage />} />
           <Route path="/page-flows/new" element={<NewPageFlowPage />} />
           <Route path="/page-flows/editor/:id" element={<PageFlowEditorPage />} />
+          <Route path="/page-flows/edit/:id" element={<EditToEditorRedirect />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/knowledge" element={<NotFound />} />
           <Route path="/forms" element={<FormsPage />} />
