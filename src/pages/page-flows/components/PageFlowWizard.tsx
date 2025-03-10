@@ -37,7 +37,9 @@ export const PageFlowWizard: React.FC<PageFlowWizardProps> = ({
     moveToPreviousPage, 
     completeFlow,
     recordActionResult
-  } = usePageFlowExecution();
+  } = usePageFlowExecution({
+    assignmentId: assignment.id
+  });
   
   const [currentPageIndex, setCurrentPageIndex] = useState(assignment.current_page_index);
   const [isProcessing, setIsProcessing] = useState(false);

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { 
   PageFlow, 
@@ -15,7 +16,8 @@ interface UsePageFlowExecutionProps {
   assignmentId?: string;
 }
 
-export function usePageFlowExecution({ flowId, assignmentId }: UsePageFlowExecutionProps) {
+export function usePageFlowExecution(props?: UsePageFlowExecutionProps) {
+  const { flowId, assignmentId } = props || {};
   const [flow, setFlow] = useState<PageFlow | null>(null);
   const [currentPage, setCurrentPage] = useState<Page | null>(null);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
@@ -27,66 +29,67 @@ export function usePageFlowExecution({ flowId, assignmentId }: UsePageFlowExecut
   const { currentUser } = useAuth();
   const { currentCompany } = useCompany();
   
-  // Fix: Use safe property access with optional chaining for user ID
-  const userId = currentUser?.id;
+  const userId = currentUser?.id || '';
 
   useEffect(() => {
-    if (!flowId && !assignmentId) return;
+    if (!flowId && !assignmentId) {
+      setLoading(false);
+      return;
+    }
     
     const fetchData = async () => {
       try {
         setLoading(true);
         
-        // If we have an assignment ID, fetch the assignment first
+        // Mock implementation for now until tables are created
         if (assignmentId) {
-          const { data: assignmentData, error: assignmentError } = await supabase
-            .from('page_flow_assignments')
-            .select(`
-              *,
-              flow:page_flows(
-                *,
-                pages:pages(*)
-              )
-            `)
-            .eq('id', assignmentId)
-            // Fix: Use safe property access with optional chaining
-            .eq('assigned_to', userId || '')
-            .single();
-            
-          if (assignmentError) throw new Error(assignmentError.message);
+          // Mock assignment data
+          const mockAssignment: PageFlowAssignment = {
+            id: assignmentId,
+            flow_id: 'mock-flow-id',
+            assigned_to: userId,
+            status: 'in_progress',
+            current_page_index: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
           
-          if (assignmentData) {
-            setAssignment(assignmentData);
-            setFlow(assignmentData.flow);
-            setCurrentPageIndex(assignmentData.current_page_index || 0);
-            
-            // Get progress for this assignment
-            const { data: progressData, error: progressError } = await supabase
-              .from('page_flow_progress')
-              .select('*')
-              .eq('assignment_id', assignmentId);
-              
-            if (progressError) throw new Error(progressError.message);
-            
-            setProgress(progressData || []);
-          }
+          // Mock flow data
+          const mockFlow: PageFlow = {
+            id: 'mock-flow-id',
+            company_id: currentCompany?.id || '',
+            title: 'Mock Flow',
+            description: 'Mock flow description',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            created_by: userId,
+            is_active: true,
+            pages: []
+          };
+          
+          setAssignment(mockAssignment);
+          setFlow(mockFlow);
+          setCurrentPageIndex(mockAssignment.current_page_index || 0);
+          
+          // Mock progress data
+          const mockProgress: PageFlowProgress[] = [];
+          setProgress(mockProgress);
         } 
-        // Otherwise fetch the flow
         else if (flowId) {
-          const { data: flowData, error: flowError } = await supabase
-            .from('page_flows')
-            .select(`
-              *,
-              pages(*)
-            `)
-            .eq('id', flowId)
-            .single();
-            
-          if (flowError) throw new Error(flowError.message);
+          // Mock flow data
+          const mockFlow: PageFlow = {
+            id: flowId,
+            company_id: currentCompany?.id || '',
+            title: 'Mock Flow',
+            description: 'Mock flow description',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            created_by: userId,
+            is_active: true,
+            pages: []
+          };
           
-          if (flowData) {
-            setFlow(flowData);
-          }
+          setFlow(mockFlow);
         }
       } catch (e) {
         setError((e as Error).message);
@@ -96,7 +99,7 @@ export function usePageFlowExecution({ flowId, assignmentId }: UsePageFlowExecut
     };
     
     fetchData();
-  }, [flowId, assignmentId, userId]);
+  }, [flowId, assignmentId, userId, currentCompany]);
   
   // Update current page whenever flow or currentPageIndex changes
   useEffect(() => {
@@ -116,104 +119,105 @@ export function usePageFlowExecution({ flowId, assignmentId }: UsePageFlowExecut
     }
   }, [flow, currentPageIndex]);
   
-  const goToNextPage = async () => {
-    if (!flow?.pages || !currentPage) return;
-    
-    const sortedPages = [...flow.pages].sort((a, b) => a.order_index - b.order_index);
-    
-    if (currentPageIndex < sortedPages.length - 1) {
-      // If we have an assignment, update progress
-      if (assignment) {
-        // Mark current page as completed
-        await recordProgress(currentPage.id, 'completed');
-        
-        // Update assignment with new page index
-        const newPageIndex = currentPageIndex + 1;
-        await supabase
-          .from('page_flow_assignments')
-          .update({ 
-            current_page_index: newPageIndex,
-            status: newPageIndex === sortedPages.length - 1 ? 'completed' : 'in_progress'
-          })
-          .eq('id', assignment.id);
-          
-        setCurrentPageIndex(newPageIndex);
-      } else {
-        setCurrentPageIndex(currentPageIndex + 1);
-      }
+  // Method to move to the next page
+  const moveToNextPage = async (assignmentId: string, pageId: string, nextPageIndex: number) => {
+    try {
+      // Simulate updating the assignment in database
+      console.log(`Moving assignment ${assignmentId} to page index ${nextPageIndex}`);
+      setCurrentPageIndex(nextPageIndex);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error moving to next page:', error);
+      return { success: false, error };
     }
   };
   
-  const goToPreviousPage = async () => {
-    if (currentPageIndex > 0) {
-      const newPageIndex = currentPageIndex - 1;
+  // Method to move to the previous page
+  const moveToPreviousPage = async (assignmentId: string, prevPageIndex: number) => {
+    try {
+      // Simulate updating the assignment in database
+      console.log(`Moving assignment ${assignmentId} to page index ${prevPageIndex}`);
+      setCurrentPageIndex(prevPageIndex);
       
-      // If we have an assignment, update it
-      if (assignment) {
-        await supabase
-          .from('page_flow_assignments')
-          .update({ 
-            current_page_index: newPageIndex,
-            status: 'in_progress'
-          })
-          .eq('id', assignment.id);
-      }
-      
-      setCurrentPageIndex(newPageIndex);
+      return { success: true };
+    } catch (error) {
+      console.error('Error moving to previous page:', error);
+      return { success: false, error };
     }
   };
   
+  // Method to record progress for a page
   const recordProgress = async (
     pageId: string, 
     status: PageFlowStatus,
     inputData?: Record<string, any>
   ) => {
-    if (!assignment) return;
+    if (!assignment) return { success: false, error: 'No assignment' };
     
     try {
-      // Check if we already have progress for this page
-      const existingProgress = progress.find(p => p.page_id === pageId);
+      // Simulate recording progress in database
+      console.log(`Recording progress for page ${pageId} with status ${status}`);
       
-      if (existingProgress) {
-        // Update existing progress
-        const { data, error } = await supabase
-          .from('page_flow_progress')
-          .update({
-            status,
-            input_data: inputData || existingProgress.input_data,
-            completed_at: status === 'completed' ? new Date().toISOString() : null
-          })
-          .eq('id', existingProgress.id)
-          .select()
-          .single();
-          
-        if (error) throw new Error(error.message);
+      const newProgress: PageFlowProgress = {
+        id: `mock-progress-${Date.now()}`,
+        assignment_id: assignment.id,
+        page_id: pageId,
+        status,
+        input_data: inputData || null,
+        completed_at: status === 'completed' ? new Date().toISOString() : null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      setProgress(prev => [...prev, newProgress]);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error recording progress:', error);
+      return { success: false, error };
+    }
+  };
+  
+  // Method to handle action results
+  const recordActionResult = async (
+    assignmentId: string,
+    pageId: string, 
+    actionData: Record<string, any>
+  ) => {
+    try {
+      // Simulate recording action result
+      console.log(`Recording action result for page ${pageId}:`, actionData);
+      
+      await recordProgress(pageId, 'completed', actionData);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error recording action result:', error);
+      return { success: false, error };
+    }
+  };
+  
+  // Method to complete the flow
+  const completeFlow = async (assignmentId: string) => {
+    try {
+      // Simulate completing the flow
+      console.log(`Completing flow for assignment ${assignmentId}`);
+      
+      if (assignment) {
+        const updatedAssignment = {
+          ...assignment,
+          status: 'completed' as PageFlowStatus,
+          completed_at: new Date().toISOString()
+        };
         
-        // Update local progress state
-        setProgress(prev => 
-          prev.map(p => p.id === data.id ? data : p)
-        );
-      } else {
-        // Create new progress record
-        const { data, error } = await supabase
-          .from('page_flow_progress')
-          .insert([{
-            assignment_id: assignment.id,
-            page_id: pageId,
-            status,
-            input_data: inputData || null,
-            completed_at: status === 'completed' ? new Date().toISOString() : null
-          }])
-          .select()
-          .single();
-          
-        if (error) throw new Error(error.message);
-        
-        // Add to local progress state
-        setProgress(prev => [...prev, data]);
+        setAssignment(updatedAssignment);
       }
-    } catch (e) {
-      console.error('Error recording progress:', e);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error completing flow:', error);
+      return { success: false, error };
     }
   };
   
@@ -225,9 +229,11 @@ export function usePageFlowExecution({ flowId, assignmentId }: UsePageFlowExecut
     progress,
     loading,
     error,
-    goToNextPage,
-    goToPreviousPage,
+    moveToNextPage,
+    moveToPreviousPage,
     recordProgress,
+    recordActionResult,
+    completeFlow,
     totalPages: flow?.pages?.length || 0
   };
 }

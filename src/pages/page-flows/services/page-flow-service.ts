@@ -1,241 +1,342 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
 import { 
   PageFlow, 
   Page, 
   PageFlowAssignment, 
   PageFlowProgress,
-  PageFlowWithPages,
-  PageFlowAssignmentWithFlow
-} from "../types";
+  PageFlowAssignmentWithFlow, 
+  PageFlowStatus 
+} from '../types';
+import { useAuth } from '@/hooks/useAuth';
 
-// Mock implementation of service functions that will work properly once the database tables are created
-// Currently, these functions return mocked data or empty arrays to prevent type errors
-
-// Fetch all page flows for the current company
-export const fetchPageFlows = async (companyId: string): Promise<PageFlow[]> => {
-  console.log('Attempting to fetch page flows for company:', companyId);
-  
-  // Return empty array until the tables are created
-  return [];
+// Helper function to mock database data without reaching out to the DB
+const mockDataResponse = <T>(data: T) => {
+  return {
+    data,
+    error: null,
+    count: null,
+    status: 200,
+    statusText: 'OK'
+  };
 };
 
-// Fetch a specific page flow with its pages
-export const fetchPageFlowWithPages = async (flowId: string): Promise<PageFlowWithPages | null> => {
-  console.log('Attempting to fetch page flow with ID:', flowId);
-  
-  // Return null until the tables are created
-  return null;
+// Get all page flows
+export const getPageFlows = async (): Promise<PageFlow[]> => {
+  try {
+    // Since the tables don't exist yet, return mock data
+    const mockFlows: PageFlow[] = [
+      {
+        id: '1',
+        company_id: '1',
+        title: 'Employee Onboarding',
+        description: 'Step by step process for onboarding new employees',
+        data_binding_type: 'employee',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        created_by: 'user-1',
+        is_active: true
+      },
+      {
+        id: '2',
+        company_id: '1',
+        title: 'Equipment Checkout',
+        description: 'Process for checking out company equipment',
+        data_binding_type: 'asset',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        created_by: 'user-1',
+        is_active: true
+      }
+    ];
+    
+    return mockFlows;
+  } catch (error) {
+    console.error('Error getting page flows:', error);
+    return [];
+  }
+};
+
+// Get a single page flow by ID with its pages
+export const getPageFlowWithPages = async (id: string): Promise<PageFlowWithPages | null> => {
+  try {
+    // Mock data for a flow with pages
+    const mockPages: Page[] = [
+      {
+        id: 'page-1',
+        flow_id: id,
+        title: 'Welcome',
+        description: 'Welcome to the onboarding process',
+        page_type: 'content',
+        content: '<p>Welcome to the company! This guide will help you get started.</p>',
+        order_index: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: 'page-2',
+        flow_id: id,
+        title: 'Setup Your Account',
+        description: 'Steps to setup your account',
+        page_type: 'action',
+        content: '<p>Please follow these steps to set up your account.</p>',
+        order_index: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ];
+    
+    const mockFlow: PageFlowWithPages = {
+      id: id,
+      company_id: '1',
+      title: 'Employee Onboarding',
+      description: 'Step by step process for onboarding new employees',
+      data_binding_type: 'employee',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      created_by: 'user-1',
+      is_active: true,
+      pages: mockPages
+    };
+    
+    return mockFlow;
+  } catch (error) {
+    console.error(`Error getting page flow with ID ${id}:`, error);
+    return null;
+  }
 };
 
 // Create a new page flow
-export const createPageFlow = async (
-  pageFlow: Partial<PageFlow>,
-  companyId: string
-): Promise<PageFlow> => {
-  console.log('Attempting to create new page flow:', { pageFlow, companyId });
-  
-  // Mock a response until the tables are created
-  return {
-    id: 'mock-id',
-    company_id: companyId,
-    title: pageFlow.title || 'New Flow',
-    description: pageFlow.description,
-    data_binding_type: pageFlow.data_binding_type,
-    data_binding_id: pageFlow.data_binding_id,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    created_by: 'mock-user',
-    is_active: true
-  };
+export const createPageFlow = async (flowData: Partial<PageFlow>): Promise<PageFlow | null> => {
+  try {
+    // Mock creation of a flow
+    const newFlow: PageFlow = {
+      id: `flow-${Date.now()}`,
+      company_id: flowData.company_id || '1',
+      title: flowData.title || 'New Flow',
+      description: flowData.description || '',
+      data_binding_type: flowData.data_binding_type || null,
+      data_binding_id: flowData.data_binding_id || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      created_by: flowData.created_by || 'user-1',
+      is_active: flowData.is_active ?? true
+    };
+    
+    return newFlow;
+  } catch (error) {
+    console.error('Error creating page flow:', error);
+    return null;
+  }
 };
 
 // Update an existing page flow
-export const updatePageFlow = async (
-  flowId: string,
-  pageFlow: Partial<PageFlow>
-): Promise<PageFlow> => {
-  console.log('Attempting to update page flow:', { flowId, pageFlow });
-  
-  // Mock a response until the tables are created
-  return {
-    id: flowId,
-    company_id: 'mock-company',
-    title: pageFlow.title || 'Updated Flow',
-    description: pageFlow.description,
-    data_binding_type: pageFlow.data_binding_type,
-    data_binding_id: pageFlow.data_binding_id,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    created_by: 'mock-user',
-    is_active: true
-  };
+export const updateFlow = async (id: string, updateData: Partial<PageFlow>): Promise<PageFlow | null> => {
+  try {
+    // Mock update of a flow
+    const updatedFlow: PageFlow = {
+      id: id,
+      company_id: '1',
+      title: updateData.title || 'Updated Flow',
+      description: updateData.description || '',
+      data_binding_type: updateData.data_binding_type || null,
+      data_binding_id: updateData.data_binding_id || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      created_by: 'user-1',
+      is_active: updateData.is_active ?? true
+    };
+    
+    return updatedFlow;
+  } catch (error) {
+    console.error(`Error updating page flow with ID ${id}:`, error);
+    return null;
+  }
 };
 
 // Delete a page flow
-export const deletePageFlow = async (flowId: string): Promise<void> => {
-  console.log('Attempting to delete page flow:', flowId);
-  
-  // No-op until the tables are created
-  return;
+export const deletePageFlow = async (id: string): Promise<boolean> => {
+  try {
+    // Mock deletion
+    console.log(`Deleting page flow with ID ${id}`);
+    return true;
+  } catch (error) {
+    console.error(`Error deleting page flow with ID ${id}:`, error);
+    return false;
+  }
 };
 
-// Create a new page in a flow
-export const createPage = async (page: Partial<Page>): Promise<Page> => {
-  console.log('Attempting to create new page:', page);
-  
-  // Mock a response until the tables are created
-  return {
-    id: 'mock-page-id',
-    flow_id: page.flow_id || 'mock-flow-id',
-    title: page.title || 'New Page',
-    description: page.description,
-    page_type: page.page_type || 'content',
-    content: page.content,
-    actions: page.actions,
-    automation_config: page.automation_config,
-    document_id: page.document_id,
-    order_index: page.order_index || 0,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
+// Add a page to a flow
+export const addPage = async (pageData: Partial<Page>): Promise<Page | null> => {
+  try {
+    // Mock page creation
+    const newPage: Page = {
+      id: `page-${Date.now()}`,
+      flow_id: pageData.flow_id || '1',
+      title: pageData.title || 'New Page',
+      description: pageData.description || '',
+      page_type: pageData.page_type || 'content',
+      content: pageData.content || '',
+      actions: pageData.actions || [],
+      automation_config: pageData.automation_config || undefined,
+      document_id: pageData.document_id || undefined,
+      order_index: pageData.order_index || 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    return newPage;
+  } catch (error) {
+    console.error('Error adding page:', error);
+    return null;
+  }
 };
 
-// Update an existing page
-export const updatePage = async (
-  pageId: string,
-  page: Partial<Page>
-): Promise<Page> => {
-  console.log('Attempting to update page:', { pageId, page });
-  
-  // Mock a response until the tables are created
-  return {
-    id: pageId,
-    flow_id: page.flow_id || 'mock-flow-id',
-    title: page.title || 'Updated Page',
-    description: page.description,
-    page_type: page.page_type || 'content',
-    content: page.content,
-    actions: page.actions,
-    automation_config: page.automation_config,
-    document_id: page.document_id,
-    order_index: page.order_index || 0,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
+// Update a page
+export const updatePageInfo = async (id: string, updateData: Partial<Page>): Promise<Page | null> => {
+  try {
+    // Mock page update
+    const updatedPage: Page = {
+      id: id,
+      flow_id: '1',
+      title: updateData.title || 'Updated Page',
+      description: updateData.description || '',
+      page_type: updateData.page_type || 'content',
+      content: updateData.content || '',
+      actions: updateData.actions || [],
+      automation_config: updateData.automation_config || undefined,
+      document_id: updateData.document_id || undefined,
+      order_index: updateData.order_index || 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    return updatedPage;
+  } catch (error) {
+    console.error(`Error updating page with ID ${id}:`, error);
+    return null;
+  }
 };
 
 // Delete a page
-export const deletePage = async (pageId: string): Promise<void> => {
-  console.log('Attempting to delete page:', pageId);
-  
-  // No-op until the tables are created
-  return;
+export const deletePage = async (id: string): Promise<boolean> => {
+  try {
+    // Mock page deletion
+    console.log(`Deleting page with ID ${id}`);
+    return true;
+  } catch (error) {
+    console.error(`Error deleting page with ID ${id}:`, error);
+    return false;
+  }
 };
 
-// Reorder pages in a flow
-export const reorderPages = async (
-  flowId: string,
-  pageIds: string[]
-): Promise<void> => {
-  console.log('Attempting to reorder pages:', { flowId, pageIds });
-  
-  // No-op until the tables are created
-  return;
+// Reorder pages
+export const updatePagesOrder = async (pages: Page[]): Promise<boolean> => {
+  try {
+    // Mock reordering
+    pages.forEach((page, index) => {
+      console.log(`Updating page ${page.id} to order ${index}`);
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error reordering pages:', error);
+    return false;
+  }
 };
 
-// Assign a page flow to a user
-export const assignPageFlow = async (
-  flowId: string,
-  userId: string
-): Promise<PageFlowAssignment> => {
-  console.log('Attempting to assign page flow:', { flowId, userId });
-  
-  // Mock a response until the tables are created
-  return {
-    id: 'mock-assignment-id',
-    flow_id: flowId,
-    assigned_to: userId,
-    status: 'not_started',
-    current_page_index: 0,
-    completed_at: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
+// Assign a flow to a user
+export const assignFlowToUser = async (flowId: string, userId: string): Promise<PageFlowAssignment | null> => {
+  try {
+    // Mock assignment creation
+    const newAssignment: PageFlowAssignment = {
+      id: `assignment-${Date.now()}`,
+      flow_id: flowId,
+      assigned_to: userId,
+      status: 'not_started',
+      current_page_index: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    return newAssignment;
+  } catch (error) {
+    console.error('Error assigning flow:', error);
+    return null;
+  }
 };
 
-// Update assignment status
-export const updateAssignment = async (
-  assignmentId: string,
-  updates: Partial<PageFlowAssignment>
-): Promise<PageFlowAssignment> => {
-  console.log('Attempting to update assignment:', { assignmentId, updates });
-  
-  // Mock a response until the tables are created
-  return {
-    id: assignmentId,
-    flow_id: updates.flow_id || 'mock-flow-id',
-    assigned_to: updates.assigned_to || 'mock-user',
-    status: updates.status || 'in_progress',
-    current_page_index: updates.current_page_index !== undefined ? updates.current_page_index : 0,
-    completed_at: updates.completed_at,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
+// Get assignments for a user
+export const getUserAssignments = async (userId: string): Promise<PageFlowAssignmentWithFlow[]> => {
+  try {
+    // Mock assignments with flows
+    const mockAssignments: PageFlowAssignmentWithFlow[] = [
+      {
+        id: 'assignment-1',
+        flow_id: '1',
+        assigned_to: userId,
+        status: 'in_progress',
+        current_page_index: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        flow: {
+          id: '1',
+          company_id: '1',
+          title: 'Employee Onboarding',
+          description: 'Step by step process for onboarding new employees',
+          data_binding_type: 'employee',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          created_by: 'user-1',
+          is_active: true,
+          pages: [
+            {
+              id: 'page-1',
+              flow_id: '1',
+              title: 'Welcome',
+              description: 'Welcome to the onboarding process',
+              page_type: 'content',
+              content: '<p>Welcome to the company! This guide will help you get started.</p>',
+              order_index: 0,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            },
+            {
+              id: 'page-2',
+              flow_id: '1',
+              title: 'Setup Your Account',
+              description: 'Steps to setup your account',
+              page_type: 'action',
+              content: '<p>Please follow these steps to set up your account.</p>',
+              order_index: 1,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          ]
+        },
+        progress: [
+          {
+            id: 'progress-1',
+            assignment_id: 'assignment-1',
+            page_id: 'page-1',
+            status: 'completed',
+            input_data: null,
+            completed_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        ]
+      }
+    ];
+    
+    return mockAssignments;
+  } catch (error) {
+    console.error(`Error getting assignments for user ${userId}:`, error);
+    return [];
+  }
 };
 
-// Record progress on a page
-export const recordPageProgress = async (
-  assignmentId: string,
-  pageId: string,
-  status: 'not_started' | 'in_progress' | 'completed',
-  inputData?: Record<string, any>
-): Promise<PageFlowProgress> => {
-  console.log('Attempting to record page progress:', { 
-    assignmentId, pageId, status, inputData 
-  });
-  
-  // Mock a response until the tables are created
-  return {
-    id: 'mock-progress-id',
-    assignment_id: assignmentId,
-    page_id: pageId,
-    status: status,
-    input_data: inputData,
-    completed_at: status === 'completed' ? new Date().toISOString() : null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-};
-
-// Fetch assignments for a user
-export const fetchUserAssignments = async (userId: string): Promise<PageFlowAssignmentWithFlow[]> => {
-  console.log('Attempting to fetch user assignments:', userId);
-  
-  // Return empty array until the tables are created
-  return [];
-};
-
-// Duplicate a page flow
-export const duplicatePageFlow = async (
-  flowId: string,
-  newTitle: string,
-  companyId: string
-): Promise<PageFlowWithPages> => {
-  console.log('Attempting to duplicate page flow:', { flowId, newTitle, companyId });
-  
-  // Mock a response until the tables are created
-  return {
-    id: 'mock-duplicate-id',
-    company_id: companyId,
-    title: newTitle,
-    description: '',
-    data_binding_type: null,
-    data_binding_id: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    created_by: 'mock-user',
-    is_active: true,
-    pages: []
-  };
-};
+// This is an interface that should be defined in types.ts but we add it here for completeness
+interface PageFlowWithPages extends PageFlow {
+  pages: Page[];
+}

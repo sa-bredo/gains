@@ -344,3 +344,23 @@ export const useSlackEmployees = () => {
     refetchSlackEmployees,
   };
 };
+
+export const testIntegration = async (companyId: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    const { data, error } = await supabase
+      .rpc('test_slack_integration', { company_id: companyId });
+    
+    if (error) throw new Error(error.message);
+    
+    return { 
+      success: true, 
+      message: 'Successfully connected to Slack' 
+    };
+  } catch (error) {
+    console.error('Error testing Slack integration:', error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
+  }
+};
