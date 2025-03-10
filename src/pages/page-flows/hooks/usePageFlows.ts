@@ -77,7 +77,6 @@ export function usePageFlows() {
       const flowWithCompany = {
         ...flowData,
         company_id: currentCompany.id,
-        created_by: 'user-1', // TODO: Replace with actual user ID when auth is implemented
       };
       
       const newFlow = await createFlow(flowWithCompany);
@@ -411,3 +410,4 @@ export function usePageFlows() {
     setSelectedFlow
   };
 }
+

@@ -105,16 +105,21 @@ export const createFlow = async (flowData: Partial<PageFlow>): Promise<PageFlow>
       throw new Error('Flow title is required');
     }
     
+    // Remove user-1 from created_by if it exists, let it use the DB default instead
+    const flowDataToInsert = { ...flowData };
+    if (flowDataToInsert.created_by === 'user-1') {
+      delete flowDataToInsert.created_by;
+    }
+    
     const { data, error } = await supabase
       .from('page_flows')
       .insert({
-        title: flowData.title,
-        description: flowData.description,
-        company_id: flowData.company_id,
-        created_by: flowData.created_by,
-        data_binding_type: flowData.data_binding_type,
-        data_binding_id: flowData.data_binding_id,
-        is_active: flowData.is_active !== undefined ? flowData.is_active : true
+        title: flowDataToInsert.title,
+        description: flowDataToInsert.description,
+        company_id: flowDataToInsert.company_id,
+        data_binding_type: flowDataToInsert.data_binding_type,
+        data_binding_id: flowDataToInsert.data_binding_id,
+        is_active: flowDataToInsert.is_active !== undefined ? flowDataToInsert.is_active : true
       })
       .select()
       .single();
