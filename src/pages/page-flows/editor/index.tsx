@@ -24,13 +24,14 @@ const PageFlowEditorPage: React.FC = () => {
   };
   
   return (
-    <MainLayout>
+    <div className="flex w-full">
+      <MainLayout />
       <div className="container mx-auto py-8">
         <h1 className="text-2xl font-bold mb-6">Edit Page Flow</h1>
         {selectedFlow && <PageFlowEditor flow={selectedFlow} onSaved={handleSaved} />}
         {!selectedFlow && <div>Loading flow data...</div>}
       </div>
-    </MainLayout>
+    </div>
   );
 };
 

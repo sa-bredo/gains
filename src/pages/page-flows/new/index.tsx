@@ -22,7 +22,8 @@ const NewPageFlowPage: React.FC = () => {
   };
   
   return (
-    <MainLayout>
+    <div className="flex w-full">
+      <MainLayout />
       <div className="container mx-auto py-8">
         <h1 className="text-2xl font-bold mb-6">Create New Page Flow</h1>
         
@@ -68,7 +69,7 @@ const NewPageFlowPage: React.FC = () => {
           />
         )}
       </div>
-    </MainLayout>
+    </div>
   );
 };
 
