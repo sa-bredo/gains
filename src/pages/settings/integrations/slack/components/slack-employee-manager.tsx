@@ -51,6 +51,24 @@ const SlackEmployeeManager = () => {
     return <div>Error: {error instanceof Error ? error.message : String(error)}</div>;
   }
 
+  const handleConnect = (employeeId: string, employeeName: string) => {
+    connectEmployee.mutate(employeeId);
+    toast({
+      title: "Employee connected",
+      description: `${employeeName} has been connected to Slack.`,
+    });
+    refetchSlackEmployees();
+  };
+
+  const handleDisconnect = (employeeId: string, employeeName: string) => {
+    disconnectEmployee.mutate(employeeId);
+    toast({
+      title: "Employee disconnected",
+      description: `${employeeName} has been disconnected from Slack.`,
+    });
+    refetchSlackEmployees();
+  };
+
   return (
     <div>
       <h2 className="text-xl font-bold mb-4">Manage Slack Employees</h2>
@@ -85,39 +103,9 @@ const SlackEmployeeManager = () => {
                     <DropdownMenuItem
                       onClick={() => {
                         if (employee.status === 'connected') {
-                          disconnectEmployee.mutate(employee.employee_id, {
-                            onSuccess: () => {
-                              toast({
-                                title: "Employee disconnected",
-                                description: `${employee.employee_name} has been disconnected from Slack.`,
-                              });
-                              refetchSlackEmployees();
-                            },
-                            onError: (err) => {
-                              toast({
-                                variant: "destructive",
-                                title: "Error",
-                                description: "Failed to disconnect employee from Slack.",
-                              });
-                            }
-                          });
+                          handleDisconnect(employee.employee_id, employee.employee_name);
                         } else {
-                          connectEmployee.mutate(employee.employee_id, {
-                            onSuccess: () => {
-                              toast({
-                                title: "Employee connected",
-                                description: `${employee.employee_name} has been connected to Slack.`,
-                              });
-                              refetchSlackEmployees();
-                            },
-                            onError: (err) => {
-                              toast({
-                                variant: "destructive",
-                                title: "Error",
-                                description: "Failed to connect employee to Slack.",
-                              });
-                            }
-                          });
+                          handleConnect(employee.employee_id, employee.employee_name);
                         }
                       }}
                     >
