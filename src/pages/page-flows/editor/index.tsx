@@ -24,9 +24,9 @@ const PageFlowEditorPage: React.FC = () => {
   };
   
   return (
-    <div className="flex w-full">
+    <div className="flex min-h-screen">
       <MainLayout />
-      <div className="container mx-auto py-8">
+      <div className="flex-grow p-8">
         <h1 className="text-2xl font-bold mb-6">Edit Page Flow</h1>
         {selectedFlow && <PageFlowEditor flow={selectedFlow} onSaved={handleSaved} />}
         {!selectedFlow && <div>Loading flow data...</div>}
