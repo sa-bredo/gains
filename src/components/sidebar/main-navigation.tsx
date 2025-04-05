@@ -70,11 +70,11 @@ const defaultNavItems: NavItem[] = [
   {
     title: "Financials",
     icon: DollarSign,
-    url: "/plaid",
+    url: "/financials/transactions",
     items: [
       { title: "Plaid", url: "/plaid" },
-      { title: "Transactions", url: "/financials/transactions" },
-      { title: "GoCardless", url: "/financials/transactions-gocardless" }
+      { title: "Bank Transactions", url: "/financials/transactions" },
+      { title: "GoCardless Transactions", url: "/financials/transactions-gocardless" }
     ]
   },
   {

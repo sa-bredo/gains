@@ -87,7 +87,7 @@ function App() {
           <Route path="/forms/new" element={<NewFormPage />} />
           <Route path="/forms/edit/:id" element={<EditFormPage />} />
           <Route path="/forms/:id/submissions" element={<FormSubmissionsPage />} />
-          {/* Add transaction routes */}
+          {/* Transaction routes */}
           <Route path="/financials/transactions" element={<TransactionsPage />} />
           <Route path="/financials/transactions-gocardless" element={<GoCardlessTransactionsPage />} />
         </Route>
