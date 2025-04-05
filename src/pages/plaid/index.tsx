@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -186,7 +187,7 @@ const PlaidPage = () => {
               
               <div className="flex justify-between items-center">
                 <Button 
-                  onClick={openPlaidLink} 
+                  onClick={(e) => openPlaidLink(e)} 
                   size="sm"
                   className="gap-2"
                 >

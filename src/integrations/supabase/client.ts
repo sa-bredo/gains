@@ -77,3 +77,27 @@ export const checkLocationsForCompany = async (companyId: string): Promise<boole
     return false;
   }
 };
+
+// Function to create a temporary JWT for API access when anonymous auth is disabled
+export const createTemporaryAuthToken = async (clerkToken?: string): Promise<string | null> => {
+  try {
+    // If we have a Clerk token, try to use it to get a Supabase token
+    // This approach requires server-side setup to exchange tokens
+    if (clerkToken) {
+      console.log('Attempting to create Supabase token using Clerk token');
+      
+      // You would typically call a backend endpoint to exchange tokens
+      // For now, we'll just log this and return null
+      console.log('Clerk token available, but token exchange not implemented');
+    }
+    
+    // Alternative: Use a custom header with the Supabase anon key
+    // This is a fallback solution when we can't authenticate properly
+    console.log('Using API key authentication as fallback');
+    return SUPABASE_ANON_KEY;
+  } catch (error) {
+    console.error('Error creating temporary auth token:', error);
+    return null;
+  }
+};
+

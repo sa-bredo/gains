@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, createTemporaryAuthToken } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ interface PlaidLinkProps {
 export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
-  const { session: clerkSession } = useClerk();
+  const { session: clerkSession, getToken } = useClerk();
   const [isLoading, setIsLoading] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -46,55 +46,56 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
 
         console.log('User is authenticated, proceeding with Plaid connection');
         
-        // Get the session explicitly for the API call
+        // Try to get a session for API access
+        let authHeader: string | null = null;
+        
+        // First try to get an existing Supabase session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError || !session) {
-          console.error('Session not found despite authentication:', sessionError);
+          console.log('Session not found despite authentication:', sessionError);
           
-          // Since we're using Clerk for auth, we need to create a Supabase session
+          // Since we can't use anonymous auth, try to get a token from Clerk
           try {
-            console.log('Attempting to create Supabase session from Clerk token');
+            console.log('Attempting to get Clerk token for API authentication');
+            const clerkToken = await getToken();
             
-            // Try to sign in anonymously to create a session
-            const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
-            
-            if (anonError) {
-              throw anonError;
-            }
-            
-            console.log('Successfully created anonymous session:', anonData?.session ? 'Session created' : 'No session');
-            
-            // Retry getting the session
-            const { data: retryData, error: retryError } = await supabase.auth.getSession();
-            
-            if (retryError || !retryData.session) {
-              console.error('Still unable to get session after anonymous login:', retryError);
-              throw new Error('Unable to create a session for API access');
+            if (clerkToken) {
+              console.log('Clerk token obtained, using for API authentication');
+              authHeader = `Bearer ${clerkToken}`;
+            } else {
+              // As a last resort, use the API key directly
+              const tempToken = await createTemporaryAuthToken();
+              if (tempToken) {
+                console.log('Using temporary API key authentication');
+                authHeader = `Bearer ${tempToken}`;
+              } else {
+                throw new Error('No authentication method available');
+              }
             }
           } catch (authError) {
-            console.error('Error creating Supabase session:', authError);
-            const errorMessage = "Session error. Please refresh the page and try again.";
+            console.error('Error setting up authentication:', authError);
+            const errorMessage = "Authentication error. Please try again or refresh the page.";
             toast({
               variant: "destructive",
-              title: "Session Error",
+              title: "Authentication Error",
               description: errorMessage
             });
             onExit();
             return;
           }
+        } else {
+          // We have a valid Supabase session
+          console.log('Using existing Supabase session for authentication');
+          authHeader = `Bearer ${session.access_token}`;
         }
         
-        // Try again to get the session after potential anonymous login
-        const { data: finalSessionData } = await supabase.auth.getSession();
-        const finalSession = finalSessionData.session;
-
-        if (!finalSession) {
-          console.error('Still no session available after attempts');
+        if (!authHeader) {
+          console.error('Failed to establish authentication');
           toast({
             variant: "destructive",
             title: "Authentication Error",
-            description: "Unable to establish a session. Please try again later."
+            description: "Unable to authenticate with the API. Please try again later."
           });
           onExit();
           return;
@@ -108,7 +109,7 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
           const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${finalSession.access_token}`,
+              'Authorization': authHeader,
               'Content-Type': 'application/json'
             }
           });

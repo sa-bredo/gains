@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.131.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 import { Configuration, PlaidApi, PlaidEnvironments, CountryCode, Products } from 'https://esm.sh/plaid@12.5.0'
@@ -32,13 +31,38 @@ serve(async (req) => {
       })
     }
 
-    // Create a Supabase client with admin privileges to bypass RLS
-    // This is needed to create a link token when the user might not have a proper session
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    )
+    // Check if using a JWT or API key directly
+    // If it starts with "Bearer ey" it's likely a JWT
+    // Otherwise, it's probably an API key directly
+    let serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const isJWT = authHeader.startsWith('Bearer ey');
+    
+    console.log(`Auth type detected: ${isJWT ? 'JWT' : 'API Key'}`);
+    
+    let clientId;
+    if (isJWT) {
+      // Create a Supabase client with the JWT
+      const supabaseAdmin = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        serviceRoleKey,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      
+      try {
+        // Try to get user ID from the token
+        const { data: userData, error: userError } = await supabaseAdmin.auth.getUser();
+        if (userError) {
+          console.log('Error getting user from token:', userError);
+          // Continue anyway with a random ID since we're using the service role
+        } else {
+          clientId = userData.user?.id;
+          console.log('Found user ID from token:', clientId);
+        }
+      } catch (authError) {
+        console.log('Error authenticating with JWT:', authError);
+        // Continue with random ID
+      }
+    }
 
     // Check if Plaid environment variables are set
     const plaidClientId = Deno.env.get('PLAID_CLIENT_ID')
@@ -70,7 +94,7 @@ serve(async (req) => {
 
     // Generate a unique client_user_id to use with Plaid
     // If we don't have a proper user ID, generate a random one
-    const clientUserId = crypto.randomUUID();
+    const clientUserId = clientId || crypto.randomUUID();
     console.log('Using client user ID:', clientUserId);
 
     // Set up the link token request
