@@ -134,6 +134,11 @@ const PlaidPage = () => {
   const handlePlaidExit = () => {
     setIsLinkOpen(false);
   };
+  
+  const openPlaidLink = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent default navigation
+    setIsLinkOpen(true);
+  };
 
   return (
     <ProtectedRoute>
@@ -169,7 +174,7 @@ const PlaidPage = () => {
               
               <div className="flex justify-between items-center">
                 <Button 
-                  onClick={() => setIsLinkOpen(true)} 
+                  onClick={openPlaidLink} 
                   size="sm"
                   className="gap-2"
                 >
@@ -205,7 +210,7 @@ const PlaidPage = () => {
                           Connect your UK bank accounts to start importing transactions and financial data.
                         </p>
                       </div>
-                      <Button onClick={() => setIsLinkOpen(true)}>Connect Bank Account</Button>
+                      <Button onClick={openPlaidLink}>Connect Bank Account</Button>
                     </div>
                   </CardContent>
                 </Card>
