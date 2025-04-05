@@ -50,13 +50,19 @@ const PlaidPage = () => {
   const fetchAccounts = async () => {
     try {
       setIsLoading(true);
+      console.log("Fetching accounts...");
       
       // Fetch accounts from Supabase
       const { data, error } = await supabase
         .from('accounts')
         .select('id, name, institution_name, created_at');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching accounts:', error);
+        throw error;
+      }
+      
+      console.log("Accounts retrieved:", data);
       setAccounts(data || []);
     } catch (error) {
       console.error('Error fetching accounts:', error);
@@ -83,6 +89,7 @@ const PlaidPage = () => {
   const handlePlaidSuccess = async (publicToken: string, metadata: any) => {
     try {
       setIsLinkOpen(false);
+      console.log("Plaid success, exchanging public token...", metadata);
       
       // Call the exchange-public-token function
       const { data: { session } } = await supabase.auth.getSession();
@@ -108,9 +115,17 @@ const PlaidPage = () => {
         })
       });
       
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Exchange token error:", response.status, errorText);
+        throw new Error(`Failed to exchange token: ${errorText}`);
+      }
+      
       const result = await response.json();
       
-      if (response.ok) {
+      console.log("Exchange token result:", result);
+      
+      if (result.success) {
         toast({
           title: "Success!",
           description: `Account ${result.account.name} connected successfully.`
@@ -137,6 +152,7 @@ const PlaidPage = () => {
   
   const openPlaidLink = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent default navigation
+    console.log("Opening Plaid Link...");
     setIsLinkOpen(true);
   };
 

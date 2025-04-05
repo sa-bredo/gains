@@ -6,6 +6,7 @@ import { Configuration, PlaidApi, PlaidEnvironments, CountryCode, Products } fro
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 }
 
 console.log('Create Link Token function starting')
@@ -19,9 +20,12 @@ serve(async (req) => {
   }
 
   try {
+    console.log(`Received ${req.method} request`)
+    
     // Get auth token from request
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
+      console.error('No authorization header provided')
       return new Response(JSON.stringify({ error: 'No authorization header' }), { 
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -39,7 +43,7 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
     if (userError || !user) {
       console.error('Error getting user:', userError)
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+      return new Response(JSON.stringify({ error: 'Unauthorized', details: userError }), { 
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
@@ -47,19 +51,36 @@ serve(async (req) => {
 
     console.log('Authenticated user:', user.id)
 
+    // Check if Plaid environment variables are set
+    const plaidClientId = Deno.env.get('PLAID_CLIENT_ID')
+    const plaidSecret = Deno.env.get('PLAID_SECRET')
+    const plaidEnv = Deno.env.get('PLAID_ENV') || 'sandbox'
+    
+    if (!plaidClientId || !plaidSecret) {
+      console.error('Missing Plaid credentials')
+      return new Response(JSON.stringify({ 
+        error: 'Server configuration error', 
+        details: 'Missing Plaid API credentials' 
+      }), { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
     // Initialize Plaid client
     const plaidConfig = new Configuration({
-      basePath: PlaidEnvironments[Deno.env.get('PLAID_ENV') || 'sandbox'],
+      basePath: PlaidEnvironments[plaidEnv],
       baseOptions: {
         headers: {
-          'PLAID-CLIENT-ID': Deno.env.get('PLAID_CLIENT_ID'),
-          'PLAID-SECRET': Deno.env.get('PLAID_SECRET'),
+          'PLAID-CLIENT-ID': plaidClientId,
+          'PLAID-SECRET': plaidSecret,
         },
       },
     })
     const plaidClient = new PlaidApi(plaidConfig)
 
     // Set up the link token request
+    console.log('Creating link token')
     const createTokenResponse = await plaidClient.linkTokenCreate({
       user: {
         client_user_id: user.id,
@@ -79,7 +100,11 @@ serve(async (req) => {
     })
   } catch (error) {
     console.error('Error creating link token:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      stack: error.stack,
+      details: JSON.stringify(error)
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

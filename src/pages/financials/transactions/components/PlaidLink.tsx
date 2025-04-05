@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogErrorDetails } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -75,56 +75,41 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
 
         // Hardcoded full URL to the Supabase function
         const apiUrl = "https://exatcpxfenndpkozdnje.supabase.co/functions/v1/create-link-token";
-        console.log('Requesting link token from hardcoded URL:', apiUrl);
+        console.log('Requesting link token from:', apiUrl);
         
         try {
           const response = await fetch(apiUrl, {
-            method: 'GET',
+            method: 'POST', // Changed from GET to POST for consistency
             headers: {
               'Authorization': `Bearer ${session.access_token}`,
               'Content-Type': 'application/json'
             }
           });
 
-          // Get detailed error information
-          let errorText = '';
-          try {
-            errorText = await response.text();
-            console.log('Raw API response:', errorText);
-          } catch (textError) {
-            errorText = 'Failed to get response text: ' + (textError instanceof Error ? textError.message : String(textError));
-          }
-
           if (!response.ok) {
-            console.error('API response error:', response.status, errorText);
-            setErrorDetails(`Status: ${response.status}, Body: ${errorText}`);
+            console.error('API response error:', response.status);
+            let errorText = await response.text();
+            console.error('Error details:', errorText);
+            setErrorDetails(`Status: ${response.status}, Response: ${errorText}`);
             throw new Error(`API error (${response.status}): ${errorText}`);
           }
 
-          let data;
-          try {
-            data = JSON.parse(errorText);
-          } catch (parseError) {
-            console.error('Failed to parse JSON response:', parseError, 'Raw:', errorText);
-            setErrorDetails(`Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}, Raw: ${errorText}`);
-            throw new Error('Invalid response from server. Please try again.');
-          }
+          const data = await response.json();
           
           if (data.error) {
             console.error('Error creating link token:', data.error);
             setErrorDetails(`Error from API: ${data.error}`);
-            const errorMessage = data.error || "Failed to initialize Plaid Link. Please try again.";
             toast({
               variant: "destructive",
               title: "Error",
-              description: errorMessage
+              description: data.error || "Failed to initialize Plaid Link. Please try again."
             });
             onExit();
             return;
           }
 
           const linkToken = data.link_token;
-          console.log('Link token received:', linkToken);
+          console.log('Link token received successfully');
 
           // Load the Plaid Link script
           script = document.createElement('script');
@@ -132,11 +117,12 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
           script.async = true;
           script.onload = () => {
             // Initialize Plaid Link
+            console.log('Plaid script loaded, initializing handler');
             if ((window as any).Plaid) {
               const handler = (window as any).Plaid.create({
                 token: linkToken,
                 onSuccess: (public_token: string, metadata: any) => {
-                  console.log('Plaid Link success', public_token, metadata);
+                  console.log('Plaid Link success', metadata);
                   onSuccess(public_token, metadata);
                   setIsLoading(false);
                 },
@@ -146,6 +132,7 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
                   onExit();
                 },
                 onLoad: () => {
+                  console.log('Plaid Link loaded, opening UI');
                   // Open the Plaid Link interface automatically
                   handler.open();
                 },
@@ -155,11 +142,10 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
             } else {
               console.error('Plaid not loaded');
               setErrorDetails('Plaid library failed to load');
-              const errorMessage = "Failed to load Plaid. Please try again.";
               toast({
                 variant: "destructive",
                 title: "Error",
-                description: errorMessage
+                description: "Failed to load Plaid. Please try again."
               });
               setIsLoading(false);
               onExit();
@@ -170,15 +156,20 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
         } catch (fetchError) {
           console.error('Fetch error:', fetchError);
           setErrorDetails(`Fetch error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`);
-          throw fetchError;
+          toast({
+            variant: "destructive",
+            title: "Connection Error",
+            description: "Failed to connect to Plaid. Please try again later."
+          });
+          setIsLoading(false);
+          onExit();
         }
       } catch (error) {
         console.error('Error initializing Plaid Link:', error);
-        const errorMessage = error instanceof Error ? error.message : "Failed to initialize Plaid Link. Please try again.";
         toast({
           variant: "destructive",
           title: "Error",
-          description: errorMessage
+          description: error instanceof Error ? error.message : "Failed to initialize Plaid Link. Please try again."
         });
         setIsLoading(false);
         onExit();
@@ -208,7 +199,9 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
           </DialogDescription>
         </DialogHeader>
         {errorDetails ? (
-          <DialogErrorDetails errorDetails={errorDetails} />
+          <div className="bg-muted p-3 rounded-md overflow-auto max-h-40 text-xs">
+            <pre>{errorDetails}</pre>
+          </div>
         ) : (
           <div className="flex justify-center py-6">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
