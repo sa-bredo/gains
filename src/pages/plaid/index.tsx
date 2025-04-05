@@ -53,7 +53,7 @@ const PlaidPage = () => {
       
       // Fetch accounts from Supabase
       const { data, error } = await supabase
-        .from('plaid_accounts')
+        .from('accounts')
         .select('id, name, institution_name, created_at');
       
       if (error) throw error;

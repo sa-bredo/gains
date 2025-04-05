@@ -126,44 +126,15 @@ serve(async (req) => {
     const accountSubtype = accountData?.subtype || '';
     const accountMask = accountData?.mask || '';
 
-    // Store the plaid item
-    const { data: plaidItemData, error: plaidItemError } = await supabaseClient
-      .from('plaid_items')
+    // Store the account information
+    const { data: accountData2, error: accountError } = await supabaseClient
+      .from('accounts')
       .insert({
         user_id: user.id,
         item_id: itemId,
-        institution_id: institutionId,
-        institution_name: institutionName,
-        access_token_encrypted: encryptedAccessToken,
-      })
-      .select('id')
-      .single();
-
-    if (plaidItemError) {
-      console.error('Error storing plaid item:', plaidItemError);
-      return new Response(JSON.stringify({ 
-        error: 'Database error', 
-        message: 'Failed to store Plaid connection information' 
-      }), { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    console.log('Stored Plaid item in database with ID:', plaidItemData.id);
-
-    // Store the account
-    const { data: accountData2, error: accountError } = await supabaseClient
-      .from('plaid_accounts')
-      .insert({
-        user_id: user.id,
-        plaid_item_id: plaidItemData.id,
-        account_id: accountId,
         name: accountName,
-        type: accountType,
-        subtype: accountSubtype,
-        mask: accountMask,
         institution_name: institutionName,
+        access_token: encryptedAccessToken,
       })
       .select('id, name, institution_name')
       .single();
@@ -191,7 +162,7 @@ serve(async (req) => {
           'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
         },
         body: JSON.stringify({
-          plaid_item_id: plaidItemData.id,
+          account_id: accountData2.id,
         }),
       });
       
