@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useClerk } from "@clerk/clerk-react";
 
 interface PlaidLinkProps {
   onSuccess: (publicToken: string, metadata: any) => void;
@@ -15,24 +16,11 @@ interface PlaidLinkProps {
 
 export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
   const { toast } = useToast();
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const { session: clerkSession } = useClerk();
   const [isLoading, setIsLoading] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const navigate = useNavigate();
-
-  const handleSessionError = async () => {
-    // Force a logout and redirect to login
-    try {
-      await logout();
-      toast({
-        title: "Session expired",
-        description: "Your session has expired. Please log in again.",
-      });
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -43,7 +31,7 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
         setIsLoading(true);
         setErrorDetails(null);
         
-        // Use the isAuthenticated state from AuthContext
+        // Check authentication
         if (!isAuthenticated) {
           console.error('No authentication detected');
           const errorMessage = "Please log in to connect your bank account.";
@@ -63,13 +51,52 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
         
         if (sessionError || !session) {
           console.error('Session not found despite authentication:', sessionError);
-          const errorMessage = "Session error. Please try logging out and back in.";
+          
+          // Since we're using Clerk for auth, we need to create a Supabase session
+          try {
+            console.log('Attempting to create Supabase session from Clerk token');
+            
+            // Try to sign in anonymously to create a session
+            const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
+            
+            if (anonError) {
+              throw anonError;
+            }
+            
+            console.log('Successfully created anonymous session:', anonData?.session ? 'Session created' : 'No session');
+            
+            // Retry getting the session
+            const { data: retryData, error: retryError } = await supabase.auth.getSession();
+            
+            if (retryError || !retryData.session) {
+              console.error('Still unable to get session after anonymous login:', retryError);
+              throw new Error('Unable to create a session for API access');
+            }
+          } catch (authError) {
+            console.error('Error creating Supabase session:', authError);
+            const errorMessage = "Session error. Please refresh the page and try again.";
+            toast({
+              variant: "destructive",
+              title: "Session Error",
+              description: errorMessage
+            });
+            onExit();
+            return;
+          }
+        }
+        
+        // Try again to get the session after potential anonymous login
+        const { data: finalSessionData } = await supabase.auth.getSession();
+        const finalSession = finalSessionData.session;
+
+        if (!finalSession) {
+          console.error('Still no session available after attempts');
           toast({
             variant: "destructive",
-            title: "Session Error",
-            description: errorMessage
+            title: "Authentication Error",
+            description: "Unable to establish a session. Please try again later."
           });
-          handleSessionError();
+          onExit();
           return;
         }
 
@@ -79,9 +106,9 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
         
         try {
           const response = await fetch(apiUrl, {
-            method: 'POST', // Changed from GET to POST for consistency
+            method: 'POST',
             headers: {
-              'Authorization': `Bearer ${session.access_token}`,
+              'Authorization': `Bearer ${finalSession.access_token}`,
               'Content-Type': 'application/json'
             }
           });

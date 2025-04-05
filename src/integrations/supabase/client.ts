@@ -27,6 +27,9 @@ export const supabase = createClient<Database>(
   {
     auth: {
       persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce'
     },
     global: {
       fetch: (url: RequestInfo | URL, options?: RequestInit) => {

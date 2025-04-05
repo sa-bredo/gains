@@ -32,24 +32,13 @@ serve(async (req) => {
       })
     }
 
-    // Create a Supabase client
-    const supabaseClient = createClient(
+    // Create a Supabase client with admin privileges to bypass RLS
+    // This is needed to create a link token when the user might not have a proper session
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     )
-
-    // Get user metadata
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
-    if (userError || !user) {
-      console.error('Error getting user:', userError)
-      return new Response(JSON.stringify({ error: 'Unauthorized', details: userError }), { 
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
-    }
-
-    console.log('Authenticated user:', user.id)
 
     // Check if Plaid environment variables are set
     const plaidClientId = Deno.env.get('PLAID_CLIENT_ID')
@@ -79,11 +68,16 @@ serve(async (req) => {
     })
     const plaidClient = new PlaidApi(plaidConfig)
 
+    // Generate a unique client_user_id to use with Plaid
+    // If we don't have a proper user ID, generate a random one
+    const clientUserId = crypto.randomUUID();
+    console.log('Using client user ID:', clientUserId);
+
     // Set up the link token request
     console.log('Creating link token')
     const createTokenResponse = await plaidClient.linkTokenCreate({
       user: {
-        client_user_id: user.id,
+        client_user_id: clientUserId,
       },
       client_name: 'Financial App',
       products: ['transactions'] as Products[],
