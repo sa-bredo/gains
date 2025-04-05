@@ -138,7 +138,7 @@ const PlaidPage = () => {
   };
   
   const openPlaidLink = (e: React.MouseEvent) => {
-    e.preventDefault();
+    e.preventDefault(); // Important: prevent default navigation
     console.log("Opening Plaid Link...");
     setIsLinkOpen(true);
   };
@@ -187,7 +187,7 @@ const PlaidPage = () => {
               
               <div className="flex justify-between items-center">
                 <Button 
-                  onClick={(e) => openPlaidLink(e)} 
+                  onClick={openPlaidLink} 
                   size="sm"
                   className="gap-2"
                 >

@@ -17,7 +17,8 @@ interface PlaidLinkProps {
 export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
-  const { session: clerkSession, getToken } = useClerk();
+  // Fix: Use the correct properties from useClerk()
+  const { session: clerkSession } = useClerk();
   const [isLoading, setIsLoading] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -58,7 +59,8 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
           // Since we can't use anonymous auth, try to get a token from Clerk
           try {
             console.log('Attempting to get Clerk token for API authentication');
-            const clerkToken = await getToken();
+            // Fix: Don't use getToken() which doesn't exist
+            const clerkToken = clerkSession?.token;
             
             if (clerkToken) {
               console.log('Clerk token obtained, using for API authentication');
