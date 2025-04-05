@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Route, Routes, Navigate, useParams } from "react-router-dom";
 import { ThemeProvider } from "./components/theme-provider";
@@ -33,6 +34,9 @@ import EditFormPage from "./pages/forms/edit";
 import FormSubmissionsPage from "./pages/forms/submissions";
 import PublicFormPage from "./pages/form/[publicUrl]";
 import FormExample from "@/pages/form-example";
+// Import transaction pages
+import TransactionsPage from "./pages/financials/transactions";
+import GoCardlessTransactionsPage from "./pages/financials/transactions-gocardless";
 
 // Create a redirect component that gets the ID parameter and redirects to the editor route
 const EditToEditorRedirect = () => {
@@ -83,6 +87,9 @@ function App() {
           <Route path="/forms/new" element={<NewFormPage />} />
           <Route path="/forms/edit/:id" element={<EditFormPage />} />
           <Route path="/forms/:id/submissions" element={<FormSubmissionsPage />} />
+          {/* Add transaction routes */}
+          <Route path="/financials/transactions" element={<TransactionsPage />} />
+          <Route path="/financials/transactions-gocardless" element={<GoCardlessTransactionsPage />} />
         </Route>
       
         <Route path="*" element={<NotFound />} />
