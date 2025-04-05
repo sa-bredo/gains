@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
@@ -52,7 +51,6 @@ const PlaidPage = () => {
       setIsLoading(true);
       console.log("Fetching accounts...");
       
-      // Fetch accounts from Supabase
       const { data, error } = await supabase
         .from('accounts')
         .select('id, name, institution_name, created_at');
@@ -76,22 +74,11 @@ const PlaidPage = () => {
     }
   };
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await fetchAccounts();
-    setIsRefreshing(false);
-    toast({
-      title: "Accounts refreshed",
-      description: "Your connected accounts have been refreshed."
-    });
-  };
-
   const handlePlaidSuccess = async (publicToken: string, metadata: any) => {
     try {
       setIsLinkOpen(false);
       console.log("Plaid success, exchanging public token...", metadata);
       
-      // Call the exchange-public-token function
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -131,7 +118,6 @@ const PlaidPage = () => {
           description: `Account ${result.account.name} connected successfully.`
         });
         
-        // Refresh the accounts list
         fetchAccounts();
       } else {
         throw new Error(result.message || "Failed to connect account");
@@ -151,9 +137,19 @@ const PlaidPage = () => {
   };
   
   const openPlaidLink = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent default navigation
+    e.preventDefault();
     console.log("Opening Plaid Link...");
     setIsLinkOpen(true);
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchAccounts();
+    setIsRefreshing(false);
+    toast({
+      title: "Accounts refreshed",
+      description: "Your connected accounts have been refreshed."
+    });
   };
 
   return (
