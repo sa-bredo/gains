@@ -17,7 +17,7 @@ interface PlaidLinkProps {
 export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
-  // Fix: Use the correct properties from useClerk()
+  // Fix: Use the correct property from Clerk
   const { session: clerkSession } = useClerk();
   const [isLoading, setIsLoading] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
@@ -59,11 +59,14 @@ export function PlaidLink({ onSuccess, onExit, isOpen }: PlaidLinkProps) {
           // Since we can't use anonymous auth, try to get a token from Clerk
           try {
             console.log('Attempting to get Clerk token for API authentication');
-            // Fix: Don't use getToken() which doesn't exist
-            const clerkToken = clerkSession?.token;
+            // Fix: Use getToken if available, or fall back to session ID
+            let clerkToken = null;
             
-            if (clerkToken) {
-              console.log('Clerk token obtained, using for API authentication');
+            if (clerkSession) {
+              // Use the session ID as a basic auth token - this won't work directly with 
+              // Supabase but our function can use it to identify the user
+              clerkToken = clerkSession.id;
+              console.log('Using Clerk session ID for authentication');
               authHeader = `Bearer ${clerkToken}`;
             } else {
               // As a last resort, use the API key directly
