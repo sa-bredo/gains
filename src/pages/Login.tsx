@@ -27,6 +27,8 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
   
   // Get the intended destination from location state or default to dashboard
   const from = location.state?.from?.pathname || "/dashboard";
@@ -131,6 +133,43 @@ export default function LoginPage() {
     }
   };
   
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Please enter your email address");
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      setError("");
+      
+      if (!signIn) {
+        throw new Error("Sign in not available");
+      }
+      
+      await signIn.create({
+        strategy: "reset_password_email_code",
+        identifier: email,
+      });
+      
+      setResetEmailSent(true);
+      toast({
+        title: "Password reset email sent",
+        description: "Check your email for instructions to reset your password.",
+      });
+    } catch (err: any) {
+      console.error("Password reset error:", err);
+      setError(err.errors?.[0]?.message || "Failed to send reset email");
+      toast({
+        title: "Failed to send reset email",
+        description: err.errors?.[0]?.message || "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
   if (!isLoaded || !isSignInLoaded) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center p-6 md:p-10">
@@ -155,7 +194,16 @@ export default function LoginPage() {
         </div>
         
         <div className="bg-card p-8 rounded-lg shadow-md border border-border">
-          <h2 className="text-2xl font-bold text-center mb-6">Sign in to your account</h2>
+          <h2 className="text-2xl font-bold text-center mb-6">
+            {showResetPassword ? "Reset your password" : "Sign in to your account"}
+          </h2>
+          
+          {resetEmailSent && (
+            <div className="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 p-3 rounded-md mb-4 flex items-center">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              <span className="text-sm">Password reset email sent! Check your inbox.</span>
+            </div>
+          )}
           
           {error && (
             <div className="bg-destructive/15 text-destructive p-3 rounded-md mb-4 flex items-center">
@@ -164,26 +212,76 @@ export default function LoginPage() {
             </div>
           )}
           
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="companyName" className="text-sm font-medium">
-                Company Name
-              </label>
-              <div className="relative">
-                <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="companyName"
-                  type="text"
-                  placeholder="Studio Anatomy"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  className="pl-10"
-                  disabled={isSubmitting}
-                />
+          {showResetPassword ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium">
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    disabled={isSubmitting}
+                  />
+                </div>
               </div>
+              
+              <Button 
+                type="button" 
+                onClick={handleForgotPassword} 
+                className="w-full" 
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending reset email...
+                  </>
+                ) : (
+                  "Send reset email"
+                )}
+              </Button>
+              
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setShowResetPassword(false);
+                  setError("");
+                  setResetEmailSent(false);
+                }}
+              >
+                Back to sign in
+              </Button>
             </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="companyName" className="text-sm font-medium">
+                  Company Name
+                </label>
+                <div className="relative">
+                  <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="companyName"
+                    type="text"
+                    placeholder="Studio Anatomy"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    className="pl-10"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
 
-            <div className="space-y-2">
+              <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">
                 Email
               </label>
@@ -206,9 +304,13 @@ export default function LoginPage() {
                 <label htmlFor="password" className="text-sm font-medium">
                   Password
                 </label>
-                <a href="#" className="text-sm text-primary hover:underline">
+                <button
+                  type="button"
+                  onClick={() => setShowResetPassword(true)}
+                  className="text-sm text-primary hover:underline"
+                >
                   Forgot password?
-                </a>
+                </button>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -234,7 +336,8 @@ export default function LoginPage() {
                 "Sign in"
               )}
             </Button>
-          </form>
+            </form>
+          )}
           
           <div className="mt-6 text-center text-sm">
             <p className="text-muted-foreground">
