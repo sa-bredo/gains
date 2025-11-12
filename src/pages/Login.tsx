@@ -27,7 +27,6 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const [showResetPassword, setShowResetPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   
   // Get the intended destination from location state or default to dashboard
@@ -147,6 +146,7 @@ export default function LoginPage() {
         throw new Error("Sign in not available");
       }
       
+      // Send password reset email with a magic link
       await signIn.create({
         strategy: "reset_password_email_code",
         identifier: email,
@@ -154,8 +154,8 @@ export default function LoginPage() {
       
       setResetEmailSent(true);
       toast({
-        title: "Password reset email sent",
-        description: "Check your email for instructions to reset your password.",
+        title: "Password reset link sent",
+        description: "Check your email for a link to reset your password.",
       });
     } catch (err: any) {
       console.error("Password reset error:", err);
@@ -195,13 +195,13 @@ export default function LoginPage() {
         
         <div className="bg-card p-8 rounded-lg shadow-md border border-border">
           <h2 className="text-2xl font-bold text-center mb-6">
-            {showResetPassword ? "Reset your password" : "Sign in to your account"}
+            Sign in to your account
           </h2>
           
           {resetEmailSent && (
             <div className="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 p-3 rounded-md mb-4 flex items-center">
               <AlertCircle className="h-4 w-4 mr-2" />
-              <span className="text-sm">Password reset email sent! Check your inbox.</span>
+              <span className="text-sm">Password reset link sent! Check your inbox for a link to reset your password.</span>
             </div>
           )}
           
@@ -212,57 +212,7 @@ export default function LoginPage() {
             </div>
           )}
           
-          {showResetPassword ? (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="name@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
-              
-              <Button 
-                type="button" 
-                onClick={handleForgotPassword} 
-                className="w-full" 
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending reset email...
-                  </>
-                ) : (
-                  "Send reset email"
-                )}
-              </Button>
-              
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full"
-                onClick={() => {
-                  setShowResetPassword(false);
-                  setError("");
-                  setResetEmailSent(false);
-                }}
-              >
-                Back to sign in
-              </Button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <label htmlFor="companyName" className="text-sm font-medium">
                   Company Name
@@ -306,8 +256,9 @@ export default function LoginPage() {
                 </label>
                 <button
                   type="button"
-                  onClick={() => setShowResetPassword(true)}
+                  onClick={handleForgotPassword}
                   className="text-sm text-primary hover:underline"
+                  disabled={isSubmitting}
                 >
                   Forgot password?
                 </button>
@@ -336,8 +287,7 @@ export default function LoginPage() {
                 "Sign in"
               )}
             </Button>
-            </form>
-          )}
+          </form>
           
           <div className="mt-6 text-center text-sm">
             <p className="text-muted-foreground">
