@@ -14,29 +14,40 @@ export default function ResetPassword() {
   
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successfulReset, setSuccessfulReset] = useState(false);
   const [isVerifying, setIsVerifying] = useState(true);
   
-  const ticket = searchParams.get("__clerk_ticket");
+  const code = searchParams.get("code");
+  const email = searchParams.get("email") || "";
   
-  // Verify the ticket when component mounts
+  // Verify the code and email when component mounts
   useEffect(() => {
-    const verifyTicket = async () => {
-      if (!ticket) {
-        setError("Invalid or missing reset token. Please request a new password reset link.");
+    const verifyParams = async () => {
+      if (!code || !email) {
+        setError("Invalid or missing reset code. Please request a new password reset.");
         setIsVerifying(false);
         return;
       }
       
-      // Ticket is valid if it exists, user can now set password
+      // Start the sign-in with the email
+      try {
+        if (signIn) {
+          await signIn.create({
+            strategy: "reset_password_email_code",
+            identifier: email,
+          });
+        }
+      } catch (err) {
+        console.error("Error initializing reset:", err);
+      }
+      
       setIsVerifying(false);
     };
     
-    verifyTicket();
-  }, [ticket]);
+    verifyParams();
+  }, [code, email, signIn]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,8 +67,8 @@ export default function ResetPassword() {
       return;
     }
     
-    if (!ticket) {
-      setError("Invalid reset token");
+    if (!code) {
+      setError("Invalid reset code");
       return;
     }
     
@@ -69,19 +80,15 @@ export default function ResetPassword() {
         throw new Error("Sign in not available");
       }
       
-      // Use the ticket directly to reset the password
-      const result = await signIn.create({
-        strategy: "ticket",
-        ticket: ticket,
-      });
-      
-      // Now reset the password
-      const resetResult = await signIn.resetPassword({
+      // Use the code from the URL to reset the password
+      const result = await signIn.attemptFirstFactor({
+        strategy: "reset_password_email_code",
+        code: code,
         password: password,
       });
       
-      if (resetResult.status === "complete") {
-        await setActive({ session: resetResult.createdSessionId });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
         setSuccessfulReset(true);
         
         toast({
@@ -97,10 +104,10 @@ export default function ResetPassword() {
       }
     } catch (err: any) {
       console.error("Password reset error:", err);
-      setError(err.errors?.[0]?.message || "Failed to reset password. The link may have expired.");
+      setError(err.errors?.[0]?.message || "Failed to reset password. The code may have expired.");
       toast({
         title: "Password reset failed",
-        description: err.errors?.[0]?.message || "Please request a new reset link",
+        description: err.errors?.[0]?.message || "Please request a new reset code",
         variant: "destructive",
       });
     } finally {
@@ -173,7 +180,7 @@ export default function ResetPassword() {
             </div>
           )}
           
-          {!ticket ? (
+          {!code || !email ? (
             <div className="text-center space-y-4">
               <p className="text-muted-foreground">
                 This reset link is invalid or has expired.

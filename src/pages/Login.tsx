@@ -146,7 +146,7 @@ export default function LoginPage() {
         throw new Error("Sign in not available");
       }
       
-      // Send password reset email with a magic link
+      // Send password reset email
       await signIn.create({
         strategy: "reset_password_email_code",
         identifier: email,
@@ -154,8 +154,8 @@ export default function LoginPage() {
       
       setResetEmailSent(true);
       toast({
-        title: "Password reset link sent",
-        description: "Check your email for a link to reset your password.",
+        title: "Password reset code sent",
+        description: "Check your email for a code to reset your password. You can use the link in the email to reset directly.",
       });
     } catch (err: any) {
       console.error("Password reset error:", err);
