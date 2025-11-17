@@ -12,80 +12,50 @@ export default function ResetPassword() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
+  const [email, setEmail] = useState("");
+  const [resetCode, setResetCode] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successfulReset, setSuccessfulReset] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
-  const code = searchParams.get("code");
-  const email = searchParams.get("email") || "";
-  
-  // Verify the code and email when component mounts
-  useEffect(() => {
-    const verifyParams = async () => {
-      if (!code || !email) {
-        setError("Invalid or missing reset code. Please request a new password reset.");
-        setIsVerifying(false);
-        return;
-      }
-      
-      // Start the sign-in with the email
-      try {
-        if (signIn) {
-          await signIn.create({
-            strategy: "reset_password_email_code",
-            identifier: email,
-          });
-        }
-      } catch (err) {
-        console.error("Error initializing reset:", err);
-      }
-      
-      setIsVerifying(false);
-    };
-    
-    verifyParams();
-  }, [code, email, signIn]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     
-    if (!password || !confirmPassword) {
-      setError("Please fill in all fields");
+    if (!email || !email.includes("@")) {
+      setError("Please enter a valid email address");
       return;
     }
     
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
+    if (!resetCode || resetCode.length < 6) {
+      setError("Please enter the 6-digit code from your email");
       return;
     }
     
-    if (password.length < 8) {
+    if (!password || password.length < 8) {
       setError("Password must be at least 8 characters long");
-      return;
-    }
-    
-    if (!code) {
-      setError("Invalid reset code");
       return;
     }
     
     try {
       setIsSubmitting(true);
-      setError("");
       
       if (!signIn) {
         throw new Error("Sign in not available");
       }
       
-      // Use the code from the URL to reset the password
+      // First, create the reset password flow
+      await signIn.create({
+        strategy: "reset_password_email_code",
+        identifier: email,
+      });
+      
+      // Then attempt to reset with the code
       const result = await signIn.attemptFirstFactor({
         strategy: "reset_password_email_code",
-        code: code,
+        code: resetCode,
         password: password,
       });
       
@@ -106,27 +76,16 @@ export default function ResetPassword() {
       }
     } catch (err: any) {
       console.error("Password reset error:", err);
-      setError(err.errors?.[0]?.message || "Failed to reset password. The code may have expired.");
+      setError(err.errors?.[0]?.message || "Failed to reset password. Please check your code and try again.");
       toast({
         title: "Password reset failed",
-        description: err.errors?.[0]?.message || "Please request a new reset code",
+        description: err.errors?.[0]?.message || "Please check your code and try again",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
-  
-  if (isVerifying) {
-    return (
-      <div className="flex min-h-screen w-full items-center justify-center p-6 md:p-10">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Verifying reset link...</h1>
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-        </div>
-      </div>
-    );
-  }
   
   if (successfulReset) {
     return (
@@ -224,60 +183,18 @@ export default function ResetPassword() {
                   </button>
                 </div>
               </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="confirmPassword" className="text-sm font-medium">
-                  Confirm New Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Confirm new password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-10 pr-10"
-                    disabled={isSubmitting}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                    disabled={isSubmitting}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-              
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Resetting password...
-                  </>
-                ) : (
-                  "Reset password"
-                )}
-              </Button>
-              
-              <div className="text-center">
-                <Link 
-                  to="/login" 
-                  className="text-sm text-primary hover:underline"
-                >
-                  Back to login
-                </Link>
-              </div>
             </form>
-          )}
+
+            <div className="text-center mt-4">
+              <Link 
+                to="/login" 
+                className="text-sm text-primary hover:underline"
+              >
+                Back to login
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
