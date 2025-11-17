@@ -84,13 +84,7 @@ export default function ResetPassword() {
         throw new Error("Sign in not available");
       }
       
-      // First, create the reset password flow
-      await signIn.create({
-        strategy: "reset_password_email_code",
-        identifier: email,
-      });
-      
-      // Then attempt to reset with the code
+      // Attempt to reset with the code the user already has
       const result = await signIn.attemptFirstFactor({
         strategy: "reset_password_email_code",
         code: resetCode,
