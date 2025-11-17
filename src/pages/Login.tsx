@@ -27,7 +27,6 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const [resetEmailSent, setResetEmailSent] = useState(false);
   
   // Get the intended destination from location state or default to dashboard
   const from = location.state?.from?.pathname || "/dashboard";
@@ -132,44 +131,6 @@ export default function LoginPage() {
     }
   };
   
-  const handleForgotPassword = async () => {
-    if (!email) {
-      setError("Please enter your email address");
-      return;
-    }
-    
-    try {
-      setIsSubmitting(true);
-      setError("");
-      
-      if (!signIn) {
-        throw new Error("Sign in not available");
-      }
-      
-      // Send password reset email
-      await signIn.create({
-        strategy: "reset_password_email_code",
-        identifier: email,
-      });
-      
-      setResetEmailSent(true);
-      toast({
-        title: "Password reset code sent",
-        description: "Check your email for a code to reset your password. You can use the link in the email to reset directly.",
-      });
-    } catch (err: any) {
-      console.error("Password reset error:", err);
-      setError(err.errors?.[0]?.message || "Failed to send reset email");
-      toast({
-        title: "Failed to send reset email",
-        description: err.errors?.[0]?.message || "Please try again",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
   if (!isLoaded || !isSignInLoaded) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center p-6 md:p-10">
@@ -197,13 +158,6 @@ export default function LoginPage() {
           <h2 className="text-2xl font-bold text-center mb-6">
             Sign in to your account
           </h2>
-          
-          {resetEmailSent && (
-            <div className="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 p-3 rounded-md mb-4 flex items-center">
-              <AlertCircle className="h-4 w-4 mr-2" />
-              <span className="text-sm">Password reset link sent! Check your inbox for a link to reset your password.</span>
-            </div>
-          )}
           
           {error && (
             <div className="bg-destructive/15 text-destructive p-3 rounded-md mb-4 flex items-center">
@@ -254,14 +208,12 @@ export default function LoginPage() {
                 <label htmlFor="password" className="text-sm font-medium">
                   Password
                 </label>
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
+                <Link
+                  to="/forgot-password"
                   className="text-sm text-primary hover:underline"
-                  disabled={isSubmitting}
                 >
                   Forgot password?
-                </button>
+                </Link>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />

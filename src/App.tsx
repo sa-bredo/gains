@@ -4,6 +4,7 @@ import { Route, Routes, Navigate, useParams } from "react-router-dom";
 import { ThemeProvider } from "./components/theme-provider";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
+import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import SignUpPage from "@/pages/SignUp";
 import VerifyEmailPage from "@/pages/VerifyEmail";
@@ -56,6 +57,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
