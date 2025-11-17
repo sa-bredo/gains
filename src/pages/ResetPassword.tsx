@@ -15,9 +15,48 @@ export default function ResetPassword() {
   const [resetCode, setResetCode] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState("");
   const [successfulReset, setSuccessfulReset] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  
+  const handleResendCode = async () => {
+    if (!email || !email.includes("@")) {
+      setError("Please enter a valid email address first");
+      return;
+    }
+    
+    try {
+      setIsResending(true);
+      setError("");
+      
+      if (!signIn) {
+        throw new Error("Sign in not available");
+      }
+      
+      await signIn.create({
+        strategy: "reset_password_email_code",
+        identifier: email,
+      });
+      
+      toast({
+        title: "Code resent",
+        description: "A new reset code has been sent to your email address.",
+      });
+      
+      setResetCode("");
+    } catch (err: any) {
+      console.error("Resend code error:", err);
+      setError(err.errors?.[0]?.message || "Failed to resend code. Please try again.");
+      toast({
+        title: "Failed to resend code",
+        description: err.errors?.[0]?.message || "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResending(false);
+    }
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,9 +202,19 @@ export default function ResetPassword() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="resetCode" className="text-sm font-medium">
-                Reset Code
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="resetCode" className="text-sm font-medium">
+                  Reset Code
+                </label>
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={isResending || isSubmitting}
+                  className="text-xs text-primary hover:underline disabled:opacity-50"
+                >
+                  {isResending ? "Sending..." : "Resend code"}
+                </button>
+              </div>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
