@@ -41,7 +41,7 @@ export default function ResetPassword() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password || !confirmPassword) {
+    if (!password || !confirmPassword) {
       setError("Please fill in all fields");
       return;
     }
@@ -69,22 +69,19 @@ export default function ResetPassword() {
         throw new Error("Sign in not available");
       }
       
-      // Reset password using the ticket from the email link
-      // First, create the sign-in attempt with the code from the URL
-      await signIn.create({
-        strategy: "reset_password_email_code",
-        identifier: email || "",  // Email should come from the ticket context
+      // Use the ticket directly to reset the password
+      const result = await signIn.create({
+        strategy: "ticket",
+        ticket: ticket,
       });
       
-      // Then attempt to reset with the code and new password
-      const result = await signIn.attemptFirstFactor({
-        strategy: "reset_password_email_code",
-        code: ticket,
+      // Now reset the password
+      const resetResult = await signIn.resetPassword({
         password: password,
       });
       
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
+      if (resetResult.status === "complete") {
+        await setActive({ session: resetResult.createdSessionId });
         setSuccessfulReset(true);
         
         toast({
@@ -189,24 +186,6 @@ export default function ResetPassword() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="name@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
-              
               <div className="space-y-2">
                 <label htmlFor="password" className="text-sm font-medium">
                   New Password
