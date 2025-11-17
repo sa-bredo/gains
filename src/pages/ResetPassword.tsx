@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { useSignIn } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,6 @@ export default function ResetPassword() {
   const { signIn, setActive } = useSignIn();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   
   const [email, setEmail] = useState("");
   const [resetCode, setResetCode] = useState("");
@@ -134,67 +133,111 @@ export default function ResetPassword() {
             Reset your password
           </h2>
           
-          {error && (
-            <div className="bg-destructive/15 text-destructive p-3 rounded-md mb-4 flex items-center">
-              <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
-              <span className="text-sm">{error}</span>
-            </div>
-          )}
-          
-          {!code || !email ? (
-            <div className="text-center space-y-4">
-              <p className="text-muted-foreground">
-                This reset link is invalid or has expired.
-              </p>
-              <Link to="/login">
-                <Button className="w-full">
-                  Return to login
-                </Button>
-              </Link>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">
-                  New Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter new password (min. 8 characters)"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10"
-                    disabled={isSubmitting}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                    disabled={isSubmitting}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="rounded-lg border border-destructive bg-destructive/10 p-3">
+                <div className="flex gap-2">
+                  <AlertCircle className="h-4 w-4 text-destructive mt-0.5" />
+                  <p className="text-sm text-destructive">{error}</p>
                 </div>
               </div>
-            </form>
+            )}
 
-            <div className="text-center mt-4">
-              <Link 
-                to="/login" 
-                className="text-sm text-primary hover:underline"
-              >
-                Back to login
-              </Link>
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium">
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10"
+                  disabled={isSubmitting}
+                  autoComplete="email"
+                />
+              </div>
             </div>
+
+            <div className="space-y-2">
+              <label htmlFor="resetCode" className="text-sm font-medium">
+                Reset Code
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="resetCode"
+                  type="text"
+                  placeholder="Enter 6-digit code from email"
+                  value={resetCode}
+                  onChange={(e) => setResetCode(e.target.value)}
+                  className="pl-10"
+                  disabled={isSubmitting}
+                  maxLength={6}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium">
+                New Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter new password (min. 8 characters)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 pr-10"
+                  disabled={isSubmitting}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                  disabled={isSubmitting}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+            
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Resetting password...
+                </>
+              ) : (
+                "Reset password"
+              )}
+            </Button>
+          </form>
+
+          <div className="text-center mt-4">
+            <Link 
+              to="/login" 
+              className="text-sm text-primary hover:underline"
+            >
+              Back to login
+            </Link>
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
