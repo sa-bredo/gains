@@ -13,8 +13,7 @@ import {
   Table,
   MessageSquare,
   Minus,
-  FileText,
-  X,
+  Link,
 } from 'lucide-react';
 import { 
   Block, 
@@ -61,7 +60,14 @@ const blockTypeIcons: Record<BlockType, React.ElementType> = {
   divider: Minus,
 };
 
-const slashMenuItems: { type: BlockType; label: string; description: string; icon: React.ElementType }[] = [
+type SlashMenuItem = {
+  type: BlockType | 'link';
+  label: string;
+  description: string;
+  icon: React.ElementType;
+};
+
+const slashMenuItems: SlashMenuItem[] = [
   { type: 'text', label: 'Text', description: 'Plain text block', icon: Type },
   { type: 'heading1', label: 'Heading 1', description: 'Large section heading', icon: Heading1 },
   { type: 'heading2', label: 'Heading 2', description: 'Medium section heading', icon: Heading2 },
@@ -72,6 +78,7 @@ const slashMenuItems: { type: BlockType; label: string; description: string; ico
   { type: 'table', label: 'Table', description: 'Inline database table', icon: Table },
   { type: 'callout', label: 'Callout', description: 'Highlighted info box', icon: MessageSquare },
   { type: 'divider', label: 'Divider', description: 'Horizontal separator', icon: Minus },
+  { type: 'link', label: 'Link to page', description: 'Link to another document', icon: Link },
 ];
 
 interface SlashMenuProps {
@@ -79,7 +86,7 @@ interface SlashMenuProps {
   position: { top: number; left: number };
   filter: string;
   selectedIndex: number;
-  onSelect: (type: BlockType) => void;
+  onSelect: (type: BlockType | 'link') => void;
   onClose: () => void;
 }
 
@@ -308,7 +315,29 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     setMentionMenu(prev => ({ ...prev, isOpen: false, filter: '', selectedIndex: 0 }));
   }, []);
 
-  const handleSlashMenuSelect = useCallback((type: BlockType) => {
+  const handleSlashMenuSelect = useCallback((type: BlockType | 'link') => {
+    if (type === 'link') {
+      // Clear the slash command and open the link picker
+      updateBlock(slashMenu.blockIndex, { content: '' });
+      closeSlashMenu();
+      // Open the mention/link menu
+      const selection = window.getSelection();
+      let caretPos = { top: 100, left: 100 };
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        caretPos = { top: rect.bottom + 8, left: Math.max(rect.left, 16) };
+      }
+      setMentionMenu({
+        isOpen: true,
+        blockIndex: slashMenu.blockIndex,
+        position: caretPos,
+        filter: '',
+        selectedIndex: 0,
+        startOffset: 0,
+      });
+      return;
+    }
     changeBlockType(slashMenu.blockIndex, type);
     closeSlashMenu();
   }, [slashMenu.blockIndex, closeSlashMenu]);
@@ -318,9 +347,11 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     const block = blocks[blockIndex];
     const content = block.content;
     
-    // Find the @ symbol and replace from there
+    // Replace content from startOffset (handles both @ and /link cases)
     const beforeMention = content.slice(0, mentionMenu.startOffset);
-    const afterMention = content.slice(mentionMenu.startOffset + mentionMenu.filter.length + 1); // +1 for @
+    // Calculate how much to skip - if startOffset is 0, content was cleared
+    const skipLength = mentionMenu.startOffset === 0 ? content.length : mentionMenu.filter.length + 1;
+    const afterMention = content.slice(mentionMenu.startOffset + skipLength);
     
     // Insert the link marker
     const linkText = `[[${doc.id}|${doc.icon || '📄'} ${doc.title}]]`;
@@ -357,30 +388,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       closeSlashMenu();
     }
 
-    // Check for @ mention
-    const lastAtIndex = content.lastIndexOf('@');
-    if (lastAtIndex !== -1) {
-      const textAfterAt = content.slice(lastAtIndex + 1);
-      // Check if there's no space before the cursor position (we're still typing the mention)
-      const hasSpaceAfterAt = textAfterAt.includes(' ');
-      
-      if (!hasSpaceAfterAt || textAfterAt.indexOf(' ') > textAfterAt.length - 1) {
-        const filter = textAfterAt.split(' ')[0] || '';
-        setMentionMenu({
-          isOpen: true,
-          blockIndex: index,
-          position: caretPos,
-          filter,
-          selectedIndex: 0,
-          startOffset: lastAtIndex,
-        });
-        closeSlashMenu();
-      } else if (mentionMenu.isOpen && mentionMenu.blockIndex === index) {
-        closeMentionMenu();
-      }
-    } else if (mentionMenu.isOpen && mentionMenu.blockIndex === index) {
-      closeMentionMenu();
-    }
+    // Note: @ mentions removed - use /link command instead
   };
 
   const handleKeyDown = (index: number) => (e: React.KeyboardEvent) => {
