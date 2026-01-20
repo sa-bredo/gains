@@ -6,10 +6,10 @@ import {
   History, 
   Settings,
   ChevronLeft,
-  Smile,
 } from 'lucide-react';
 import { Document, Block } from './types';
 import { DocumentEditor } from './DocumentEditor';
+import { Breadcrumbs } from './Breadcrumbs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +19,9 @@ import {
 
 interface DocumentViewProps {
   document: Document;
+  documents: Document[];
   onUpdateDocument: (updates: Partial<Document>) => void;
+  onNavigate: (docId: string) => void;
   onBack?: () => void;
   isMobile?: boolean;
 }
@@ -28,7 +30,9 @@ const EMOJI_OPTIONS = ['📄', '📝', '📋', '📊', '📈', '📉', '💡', '
 
 export const DocumentView: React.FC<DocumentViewProps> = ({
   document,
+  documents,
   onUpdateDocument,
+  onNavigate,
   onBack,
   isMobile = false,
 }) => {
@@ -62,6 +66,13 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
 
   const handleIconChange = (icon: string) => {
     onUpdateDocument({ icon });
+  };
+
+  const handleBreadcrumbNavigate = (docId: string | null) => {
+    if (docId) {
+      onNavigate(docId);
+    }
+    // For null (root), we could navigate to a "home" view, but for now just stay
   };
 
   return (
@@ -110,8 +121,15 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
       {/* Document Content */}
       <main className="flex-1 overflow-y-auto">
         {/* Title Section */}
-        <div className="max-w-4xl mx-auto px-8 pt-16 pb-4">
-          <div className="flex items-start gap-3">
+        <div className="max-w-4xl mx-auto px-8 pt-8 pb-4">
+          {/* Breadcrumbs */}
+          <Breadcrumbs
+            documents={documents}
+            currentDocId={document.id}
+            onNavigate={handleBreadcrumbNavigate}
+          />
+
+          <div className="flex items-start gap-3 mt-4">
             {/* Icon Picker */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

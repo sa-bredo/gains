@@ -1,27 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, 
   Plus, 
-  ChevronRight, 
   FileText, 
-  Settings,
-  Star,
-  Trash2,
-  MoreHorizontal,
 } from 'lucide-react';
-import { Document, createDefaultDocument } from './types';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Document } from './types';
+import { SidebarTreeNode } from './SidebarTreeNode';
+import { buildDocumentTree, getExpandedIdsForSearch } from './utils/documentTree';
 
 interface SidebarProps {
   documents: Document[];
   activeDocId: string | null;
   onSelectDoc: (id: string) => void;
-  onCreateDoc: () => void;
+  onCreateDoc: (parentId?: string) => void;
   onDeleteDoc: (id: string) => void;
   onRenameDoc: (id: string, title: string) => void;
 }
@@ -35,11 +26,87 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onRenameDoc,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [expanded, setExpanded] = useState(true);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  const filteredDocs = documents.filter(doc =>
-    doc.title.toLowerCase().includes(searchQuery.toLowerCase())
+  // Build tree structure
+  const tree = useMemo(() => buildDocumentTree(documents), [documents]);
+
+  // Auto-expand ancestors when searching
+  const searchExpandedIds = useMemo(
+    () => getExpandedIdsForSearch(documents, searchQuery),
+    [documents, searchQuery]
   );
+
+  // Combined expanded state (manual + search)
+  const effectiveExpandedIds = useMemo(() => {
+    const combined = new Set(expandedIds);
+    searchExpandedIds.forEach(id => combined.add(id));
+    return combined;
+  }, [expandedIds, searchExpandedIds]);
+
+  // Auto-expand parent when a child is active
+  useEffect(() => {
+    if (activeDocId) {
+      const activeDoc = documents.find(d => d.id === activeDocId);
+      if (activeDoc?.parentId) {
+        setExpandedIds(prev => {
+          const next = new Set(prev);
+          let current = activeDoc;
+          while (current?.parentId) {
+            next.add(current.parentId);
+            current = documents.find(d => d.id === current!.parentId);
+          }
+          return next;
+        });
+      }
+    }
+  }, [activeDocId, documents]);
+
+  const handleToggleExpand = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleCreateSubpage = (parentId: string) => {
+    // Expand the parent
+    setExpandedIds(prev => new Set(prev).add(parentId));
+    onCreateDoc(parentId);
+  };
+
+  // Filter tree to only show matching docs and their ancestors
+  const filteredTree = useMemo(() => {
+    if (!searchQuery.trim()) return tree;
+    
+    const matchingIds = new Set(
+      documents
+        .filter(d => d.title.toLowerCase().includes(searchQuery.toLowerCase()))
+        .map(d => d.id)
+    );
+    
+    // Also include ancestors of matching docs
+    searchExpandedIds.forEach(id => matchingIds.add(id));
+    
+    const filterNodes = (nodes: ReturnType<typeof buildDocumentTree>): ReturnType<typeof buildDocumentTree> => {
+      return nodes.filter(node => {
+        const hasMatchingDescendant = node.children.some(
+          child => matchingIds.has(child.document.id) || filterNodes([child]).length > 0
+        );
+        return matchingIds.has(node.document.id) || hasMatchingDescendant;
+      }).map(node => ({
+        ...node,
+        children: filterNodes(node.children),
+      }));
+    };
+    
+    return filterNodes(tree);
+  }, [tree, searchQuery, documents, searchExpandedIds]);
 
   return (
     <aside className="w-64 h-full bg-kb-sidebar border-r border-border flex flex-col">
@@ -65,78 +132,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Documents List */}
+      {/* Documents Tree */}
       <div className="flex-1 overflow-y-auto p-2">
-        <div className="mb-2">
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground kb-transition w-full"
-          >
-            <ChevronRight 
-              size={14} 
-              className={`kb-transition ${expanded ? 'rotate-90' : ''}`} 
+        <div className="space-y-0.5">
+          {filteredTree.map((node) => (
+            <SidebarTreeNode
+              key={node.document.id}
+              node={node}
+              documents={documents}
+              activeDocId={activeDocId}
+              expandedIds={effectiveExpandedIds}
+              onToggleExpand={handleToggleExpand}
+              onSelectDoc={onSelectDoc}
+              onCreateSubpage={handleCreateSubpage}
+              onDeleteDoc={onDeleteDoc}
+              onRenameDoc={onRenameDoc}
+              searchQuery={searchQuery || undefined}
             />
-            Documents
-          </button>
+          ))}
+
+          {filteredTree.length === 0 && (
+            <p className="px-2 py-4 text-sm text-muted-foreground text-center">
+              No documents found
+            </p>
+          )}
         </div>
-
-        {expanded && (
-          <div className="space-y-0.5 animate-fade-in">
-            {filteredDocs.map((doc) => (
-              <div
-                key={doc.id}
-                className={`group flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer kb-transition ${
-                  activeDocId === doc.id
-                    ? 'bg-kb-sidebar-active text-accent-foreground'
-                    : 'hover:bg-kb-sidebar-hover text-foreground'
-                }`}
-                onClick={() => onSelectDoc(doc.id)}
-              >
-                <span className="text-lg leading-none">{doc.icon || '📄'}</span>
-                <span className="flex-1 truncate text-sm">{doc.title}</span>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <button className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-muted kb-transition">
-                      <MoreHorizontal size={14} />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={(e) => {
-                      e.stopPropagation();
-                      const newTitle = prompt('Document title:', doc.title);
-                      if (newTitle) onRenameDoc(doc.id, newTitle);
-                    }}>
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteDoc(doc.id);
-                      }}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 size={14} className="mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ))}
-
-            {filteredDocs.length === 0 && (
-              <p className="px-2 py-4 text-sm text-muted-foreground text-center">
-                No documents found
-              </p>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Footer */}
       <div className="p-2 border-t border-border">
         <button
-          onClick={onCreateDoc}
+          onClick={() => onCreateDoc()}
           className="flex items-center gap-2 w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-kb-sidebar-hover rounded-lg kb-transition"
         >
           <Plus size={16} />

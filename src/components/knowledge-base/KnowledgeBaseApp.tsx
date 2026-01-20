@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Document, createDefaultDocument, generateId } from './types';
 import { Sidebar } from './Sidebar';
 import { DocumentView } from './DocumentView';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { getDescendants } from './utils/documentTree';
 
-// Sample documents for demo
+// Sample documents for demo (with hierarchy)
 const createSampleDocuments = (): Document[] => {
   const gettingStarted = createDefaultDocument('Getting Started');
   gettingStarted.icon = '🚀';
@@ -16,9 +17,43 @@ const createSampleDocuments = (): Document[] => {
     { id: generateId(), type: 'todo', content: 'Rich text editing', properties: { checked: true } },
     { id: generateId(), type: 'todo', content: 'Multiple block types', properties: { checked: true } },
     { id: generateId(), type: 'todo', content: 'Inline tables with views', properties: { checked: true } },
-    { id: generateId(), type: 'todo', content: 'Real-time collaboration', properties: { checked: false } },
+    { id: generateId(), type: 'todo', content: 'Subpages & folders', properties: { checked: true } },
     { id: generateId(), type: 'divider', content: '' },
     { id: generateId(), type: 'text', content: 'Try adding a table below to see the inline database feature!' },
+  ];
+
+  // Create subpages for Getting Started
+  const quickStart = createDefaultDocument('Quick Start Guide');
+  quickStart.icon = '⚡';
+  quickStart.parentId = gettingStarted.id;
+  quickStart.blocks = [
+    { id: generateId(), type: 'heading1', content: 'Quick Start Guide' },
+    { id: generateId(), type: 'text', content: 'Get up and running in 5 minutes.' },
+  ];
+
+  const tutorials = createDefaultDocument('Tutorials');
+  tutorials.icon = '📖';
+  tutorials.parentId = gettingStarted.id;
+  tutorials.blocks = [
+    { id: generateId(), type: 'heading1', content: 'Tutorials' },
+    { id: generateId(), type: 'text', content: 'Step-by-step guides for common tasks.' },
+  ];
+
+  // Nested subpage (grandchild)
+  const basicTutorial = createDefaultDocument('Basic Tutorial');
+  basicTutorial.icon = '📝';
+  basicTutorial.parentId = tutorials.id;
+  basicTutorial.blocks = [
+    { id: generateId(), type: 'heading1', content: 'Basic Tutorial' },
+    { id: generateId(), type: 'text', content: 'Learn the fundamentals.' },
+  ];
+
+  const advancedTutorial = createDefaultDocument('Advanced Tutorial');
+  advancedTutorial.icon = '🎓';
+  advancedTutorial.parentId = tutorials.id;
+  advancedTutorial.blocks = [
+    { id: generateId(), type: 'heading1', content: 'Advanced Tutorial' },
+    { id: generateId(), type: 'text', content: 'Deep dive into advanced features.' },
   ];
 
   const projectTracker = createDefaultDocument('Project Tracker');
@@ -69,7 +104,7 @@ const createSampleDocuments = (): Document[] => {
     { id: generateId(), type: 'callout', content: 'Action item: Mike to share updated timeline by EOD Friday', properties: { calloutType: 'warning' } },
   ];
 
-  return [gettingStarted, projectTracker, meetingNotes];
+  return [gettingStarted, quickStart, tutorials, basicTutorial, advancedTutorial, projectTracker, meetingNotes];
 };
 
 export const KnowledgeBaseApp: React.FC = () => {
@@ -80,17 +115,25 @@ export const KnowledgeBaseApp: React.FC = () => {
 
   const activeDocument = documents.find(d => d.id === activeDocId);
 
-  const handleCreateDoc = () => {
+  const handleCreateDoc = (parentId?: string) => {
     const newDoc = createDefaultDocument();
+    if (parentId) {
+      newDoc.parentId = parentId;
+    }
     setDocuments(prev => [...prev, newDoc]);
     setActiveDocId(newDoc.id);
     if (isMobile) setShowSidebar(false);
   };
 
   const handleDeleteDoc = (id: string) => {
-    setDocuments(prev => prev.filter(d => d.id !== id));
-    if (activeDocId === id) {
-      const remaining = documents.filter(d => d.id !== id);
+    // Get all descendants to delete as well
+    const descendants = getDescendants(documents, id);
+    const idsToDelete = new Set([id, ...descendants.map(d => d.id)]);
+    
+    setDocuments(prev => prev.filter(d => !idsToDelete.has(d.id)));
+    
+    if (idsToDelete.has(activeDocId || '')) {
+      const remaining = documents.filter(d => !idsToDelete.has(d.id));
       setActiveDocId(remaining[0]?.id || null);
     }
   };
@@ -131,7 +174,9 @@ export const KnowledgeBaseApp: React.FC = () => {
       {activeDocument ? (
         <DocumentView
           document={activeDocument}
+          documents={documents}
           onUpdateDocument={handleUpdateDocument}
+          onNavigate={handleSelectDoc}
           onBack={() => setShowSidebar(true)}
           isMobile={isMobile}
         />
@@ -142,7 +187,7 @@ export const KnowledgeBaseApp: React.FC = () => {
             <h2 className="text-2xl font-semibold text-foreground mb-2">No document selected</h2>
             <p className="text-muted-foreground mb-4">Create a new document or select one from the sidebar</p>
             <button
-              onClick={handleCreateDoc}
+              onClick={() => handleCreateDoc()}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 kb-transition"
             >
               Create Document
