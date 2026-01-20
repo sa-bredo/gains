@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   ChevronRight, 
   MoreHorizontal, 
   Trash2,
   FilePlus,
-  Move,
+  Pencil,
 } from 'lucide-react';
 import { Document } from './types';
-import { TreeNode, hasChildren } from './utils/documentTree';
+import { TreeNode } from './utils/documentTree';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,7 +69,7 @@ export const SidebarTreeNode: React.FC<SidebarTreeNodeProps> = ({
   return (
     <div className="animate-fade-in">
       <div
-        className={`group flex items-center gap-1 py-1 pr-2 rounded-lg cursor-pointer kb-transition ${
+        className={`group flex items-center gap-1 py-1.5 pr-2 rounded-lg cursor-pointer kb-transition ${
           isActive
             ? 'bg-kb-sidebar-active text-accent-foreground'
             : 'hover:bg-kb-sidebar-hover text-foreground'
@@ -113,37 +113,36 @@ export const SidebarTreeNode: React.FC<SidebarTreeNodeProps> = ({
               <MoreHorizontal size={14} />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent 
+            align="start" 
+            sideOffset={4}
+            className="w-48 rounded-xl bg-popover border border-border shadow-lg p-1.5"
+          >
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
                 onCreateSubpage(doc.id);
               }}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm cursor-pointer focus:bg-muted"
             >
-              <FilePlus size={14} className="mr-2" />
-              Add subpage
+              <FilePlus size={16} className="text-muted-foreground" />
+              <span>Add subpage</span>
             </DropdownMenuItem>
+            
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
                 const newTitle = prompt('Document title:', doc.title);
                 if (newTitle) onRenameDoc(doc.id, newTitle);
               }}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm cursor-pointer focus:bg-muted"
             >
-              Rename
+              <Pencil size={16} className="text-muted-foreground" />
+              <span>Rename</span>
             </DropdownMenuItem>
-            {onMoveDoc && (
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMoveDoc(doc.id);
-                }}
-              >
-                <Move size={14} className="mr-2" />
-                Move to...
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
+            
+            <DropdownMenuSeparator className="my-1.5 -mx-1.5 bg-border" />
+            
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
@@ -155,10 +154,10 @@ export const SidebarTreeNode: React.FC<SidebarTreeNodeProps> = ({
                   onDeleteDoc(doc.id);
                 }
               }}
-              className="text-destructive focus:text-destructive"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
             >
-              <Trash2 size={14} className="mr-2" />
-              Delete
+              <Trash2 size={16} />
+              <span>Delete</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
