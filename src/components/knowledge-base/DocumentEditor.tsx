@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   Plus, 
   GripVertical, 
@@ -20,6 +20,7 @@ import {
   CalloutType,
   createDefaultBlock, 
   createDefaultTable,
+  BLOCK_TYPES,
 } from './types';
 import { 
   TextBlock, 
@@ -56,10 +57,116 @@ const blockTypeIcons: Record<BlockType, React.ElementType> = {
   divider: Minus,
 };
 
+const slashMenuItems: { type: BlockType; label: string; description: string; icon: React.ElementType }[] = [
+  { type: 'text', label: 'Text', description: 'Plain text block', icon: Type },
+  { type: 'heading1', label: 'Heading 1', description: 'Large section heading', icon: Heading1 },
+  { type: 'heading2', label: 'Heading 2', description: 'Medium section heading', icon: Heading2 },
+  { type: 'heading3', label: 'Heading 3', description: 'Small section heading', icon: Heading3 },
+  { type: 'bulletList', label: 'Bullet List', description: 'Unordered list', icon: List },
+  { type: 'numberedList', label: 'Numbered List', description: 'Ordered list', icon: ListOrdered },
+  { type: 'todo', label: 'To-do', description: 'Checkbox item', icon: CheckSquare },
+  { type: 'table', label: 'Table', description: 'Inline database table', icon: Table },
+  { type: 'callout', label: 'Callout', description: 'Highlighted info box', icon: MessageSquare },
+  { type: 'divider', label: 'Divider', description: 'Horizontal separator', icon: Minus },
+];
+
+interface SlashMenuProps {
+  isOpen: boolean;
+  position: { top: number; left: number };
+  filter: string;
+  selectedIndex: number;
+  onSelect: (type: BlockType) => void;
+  onClose: () => void;
+}
+
+const SlashMenu: React.FC<SlashMenuProps> = ({
+  isOpen,
+  position,
+  filter,
+  selectedIndex,
+  onSelect,
+  onClose,
+}) => {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const filteredItems = slashMenuItems.filter(
+    item =>
+      item.label.toLowerCase().includes(filter.toLowerCase()) ||
+      item.description.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, onClose]);
+
+  if (!isOpen || filteredItems.length === 0) return null;
+
+  return (
+    <div
+      ref={menuRef}
+      className="fixed z-50 bg-popover border border-border rounded-xl shadow-lg p-1.5 w-64 max-h-80 overflow-y-auto animate-fade-in"
+      style={{ top: position.top, left: position.left }}
+    >
+      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        Basic blocks
+      </div>
+      {filteredItems.map((item, index) => {
+        const Icon = item.icon;
+        const isSelected = index === selectedIndex;
+        return (
+          <button
+            key={item.type}
+            onClick={() => onSelect(item.type)}
+            className={`w-full flex items-center gap-3 px-2 py-2 rounded-lg text-left kb-transition ${
+              isSelected ? 'bg-muted' : 'hover:bg-muted/50'
+            }`}
+          >
+            <div className="w-10 h-10 rounded-lg bg-muted/50 border border-border flex items-center justify-center flex-shrink-0">
+              <Icon size={20} className="text-muted-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-foreground">{item.label}</div>
+              <div className="text-xs text-muted-foreground truncate">{item.description}</div>
+            </div>
+          </button>
+        );
+      })}
+      {filteredItems.length === 0 && (
+        <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+          No blocks found
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const DocumentEditor: React.FC<DocumentEditorProps> = ({ 
   blocks, 
   onBlocksChange,
 }) => {
+  const [slashMenu, setSlashMenu] = useState<{
+    isOpen: boolean;
+    blockIndex: number;
+    position: { top: number; left: number };
+    filter: string;
+    selectedIndex: number;
+  }>({
+    isOpen: false,
+    blockIndex: -1,
+    position: { top: 0, left: 0 },
+    filter: '',
+    selectedIndex: 0,
+  });
+
   const updateBlock = (index: number, updates: Partial<Block>) => {
     const newBlocks = [...blocks];
     newBlocks[index] = { ...newBlocks[index], ...updates };
@@ -90,6 +197,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     const newBlock: Block = {
       ...block,
       type,
+      content: '', // Clear the slash command text
       properties: type === 'callout' ? { calloutType: 'info' } : 
                   type === 'todo' ? { checked: false } : undefined,
     };
@@ -101,8 +209,88 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     onBlocksChange(newBlocks);
   };
 
+  const closeSlashMenu = useCallback(() => {
+    setSlashMenu(prev => ({ ...prev, isOpen: false, filter: '', selectedIndex: 0 }));
+  }, []);
+
+  const handleSlashMenuSelect = useCallback((type: BlockType) => {
+    changeBlockType(slashMenu.blockIndex, type);
+    closeSlashMenu();
+  }, [slashMenu.blockIndex, closeSlashMenu]);
+
+  const handleContentChange = (index: number, content: string) => {
+    updateBlock(index, { content });
+
+    // Check for slash command
+    if (content.startsWith('/')) {
+      const filter = content.slice(1);
+      
+      // Get caret position for menu placement
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        
+        setSlashMenu({
+          isOpen: true,
+          blockIndex: index,
+          position: { 
+            top: rect.bottom + 8, 
+            left: Math.max(rect.left, 16) 
+          },
+          filter,
+          selectedIndex: 0,
+        });
+      }
+    } else if (slashMenu.isOpen && slashMenu.blockIndex === index) {
+      closeSlashMenu();
+    }
+  };
+
   const handleKeyDown = (index: number) => (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Handle slash menu navigation
+    if (slashMenu.isOpen && slashMenu.blockIndex === index) {
+      const filteredItems = slashMenuItems.filter(
+        item =>
+          item.label.toLowerCase().includes(slashMenu.filter.toLowerCase()) ||
+          item.description.toLowerCase().includes(slashMenu.filter.toLowerCase())
+      );
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSlashMenu(prev => ({
+          ...prev,
+          selectedIndex: Math.min(prev.selectedIndex + 1, filteredItems.length - 1),
+        }));
+        return;
+      }
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSlashMenu(prev => ({
+          ...prev,
+          selectedIndex: Math.max(prev.selectedIndex - 1, 0),
+        }));
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (filteredItems.length > 0) {
+          handleSlashMenuSelect(filteredItems[slashMenu.selectedIndex].type);
+        }
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeSlashMenu();
+        return;
+      }
+    }
+
+    // Regular key handling
+    if (e.key === 'Enter' && !e.shiftKey && !slashMenu.isOpen) {
       e.preventDefault();
       insertBlock(index, 'text');
     }
@@ -115,7 +303,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const renderBlock = (block: Block, index: number) => {
     const commonProps = {
       block,
-      onUpdate: (content: string) => updateBlock(index, { content }),
+      onUpdate: (content: string) => handleContentChange(index, content),
       onKeyDown: handleKeyDown(index),
     };
 
@@ -197,37 +385,37 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                       <Plus size={16} />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
-                    <DropdownMenuItem onClick={() => insertBlock(index, 'text')}>
+                  <DropdownMenuContent align="start" className="w-48 rounded-xl p-1.5">
+                    <DropdownMenuItem onClick={() => insertBlock(index, 'text')} className="rounded-lg">
                       <Type size={16} className="mr-2" /> Text
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => insertBlock(index, 'heading1')}>
+                    <DropdownMenuItem onClick={() => insertBlock(index, 'heading1')} className="rounded-lg">
                       <Heading1 size={16} className="mr-2" /> Heading 1
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => insertBlock(index, 'heading2')}>
+                    <DropdownMenuItem onClick={() => insertBlock(index, 'heading2')} className="rounded-lg">
                       <Heading2 size={16} className="mr-2" /> Heading 2
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => insertBlock(index, 'heading3')}>
+                    <DropdownMenuItem onClick={() => insertBlock(index, 'heading3')} className="rounded-lg">
                       <Heading3 size={16} className="mr-2" /> Heading 3
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => insertBlock(index, 'bulletList')}>
+                    <DropdownMenuSeparator className="my-1" />
+                    <DropdownMenuItem onClick={() => insertBlock(index, 'bulletList')} className="rounded-lg">
                       <List size={16} className="mr-2" /> Bullet List
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => insertBlock(index, 'numberedList')}>
+                    <DropdownMenuItem onClick={() => insertBlock(index, 'numberedList')} className="rounded-lg">
                       <ListOrdered size={16} className="mr-2" /> Numbered List
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => insertBlock(index, 'todo')}>
+                    <DropdownMenuItem onClick={() => insertBlock(index, 'todo')} className="rounded-lg">
                       <CheckSquare size={16} className="mr-2" /> To-do
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => insertBlock(index, 'table')}>
+                    <DropdownMenuSeparator className="my-1" />
+                    <DropdownMenuItem onClick={() => insertBlock(index, 'table')} className="rounded-lg">
                       <Table size={16} className="mr-2" /> Table
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => insertBlock(index, 'callout')}>
+                    <DropdownMenuItem onClick={() => insertBlock(index, 'callout')} className="rounded-lg">
                       <MessageSquare size={16} className="mr-2" /> Callout
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => insertBlock(index, 'divider')}>
+                    <DropdownMenuItem onClick={() => insertBlock(index, 'divider')} className="rounded-lg">
                       <Minus size={16} className="mr-2" /> Divider
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -242,23 +430,23 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                       <GripVertical size={16} />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
-                    <DropdownMenuItem onClick={() => changeBlockType(index, 'text')}>
+                  <DropdownMenuContent align="start" className="w-48 rounded-xl p-1.5">
+                    <DropdownMenuItem onClick={() => changeBlockType(index, 'text')} className="rounded-lg">
                       <Type size={16} className="mr-2" /> Turn into Text
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => changeBlockType(index, 'heading1')}>
+                    <DropdownMenuItem onClick={() => changeBlockType(index, 'heading1')} className="rounded-lg">
                       <Heading1 size={16} className="mr-2" /> Turn into H1
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => changeBlockType(index, 'heading2')}>
+                    <DropdownMenuItem onClick={() => changeBlockType(index, 'heading2')} className="rounded-lg">
                       <Heading2 size={16} className="mr-2" /> Turn into H2
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => changeBlockType(index, 'callout')}>
+                    <DropdownMenuItem onClick={() => changeBlockType(index, 'callout')} className="rounded-lg">
                       <MessageSquare size={16} className="mr-2" /> Turn into Callout
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
+                    <DropdownMenuSeparator className="my-1" />
                     <DropdownMenuItem 
                       onClick={() => deleteBlock(index)}
-                      className="text-destructive focus:text-destructive"
+                      className="text-destructive focus:text-destructive rounded-lg"
                     >
                       <Trash2 size={16} className="mr-2" /> Delete
                     </DropdownMenuItem>
@@ -274,6 +462,16 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           );
         })}
       </div>
+
+      {/* Slash Command Menu */}
+      <SlashMenu
+        isOpen={slashMenu.isOpen}
+        position={slashMenu.position}
+        filter={slashMenu.filter}
+        selectedIndex={slashMenu.selectedIndex}
+        onSelect={handleSlashMenuSelect}
+        onClose={closeSlashMenu}
+      />
     </div>
   );
 };
