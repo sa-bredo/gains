@@ -207,7 +207,9 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
         {/* Blocks */}
         <DocumentEditor 
           blocks={document.blocks} 
-          onBlocksChange={handleBlocksChange} 
+          onBlocksChange={handleBlocksChange}
+          documents={documents}
+          onNavigateToDoc={onNavigate}
         />
       </main>
     </div>
