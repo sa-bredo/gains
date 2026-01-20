@@ -2,95 +2,122 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* Knowledge Base Design System - Coda/Notion inspired */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 45 25% 98%;
+    --foreground: 30 10% 15%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 45 30% 99%;
+    --card-foreground: 30 10% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 45 30% 99%;
+    --popover-foreground: 30 10% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 220 70% 50%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 45 20% 94%;
+    --secondary-foreground: 30 10% 25%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 45 15% 92%;
+    --muted-foreground: 30 8% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 220 60% 96%;
+    --accent-foreground: 220 70% 40%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 30 15% 88%;
+    --input: 30 15% 88%;
+    --ring: 220 70% 50%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Knowledge Base specific tokens */
+    --kb-sidebar: 45 20% 96%;
+    --kb-sidebar-hover: 45 25% 92%;
+    --kb-sidebar-active: 220 60% 95%;
+    --kb-editor: 45 30% 99%;
+    --kb-block-hover: 45 30% 97%;
+    --kb-table-header: 45 20% 95%;
+    --kb-table-row-hover: 45 25% 97%;
+    --kb-table-border: 30 15% 90%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Block accent colors */
+    --kb-callout-info: 210 100% 96%;
+    --kb-callout-warning: 45 100% 94%;
+    --kb-callout-success: 142 76% 94%;
+    --kb-callout-error: 0 86% 96%;
 
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar */
+    --sidebar-background: 45 20% 96%;
+    --sidebar-foreground: 30 10% 25%;
+    --sidebar-primary: 220 70% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 60% 96%;
+    --sidebar-accent-foreground: 220 70% 40%;
+    --sidebar-border: 30 15% 88%;
+    --sidebar-ring: 220 70% 50%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 30 15% 8%;
+    --foreground: 45 15% 92%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 30 15% 10%;
+    --card-foreground: 45 15% 92%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 30 15% 10%;
+    --popover-foreground: 45 15% 92%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 220 70% 60%;
+    --primary-foreground: 30 15% 8%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 30 12% 18%;
+    --secondary-foreground: 45 15% 92%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 30 12% 18%;
+    --muted-foreground: 45 10% 55%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 220 50% 20%;
+    --accent-foreground: 220 70% 75%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 30 12% 22%;
+    --input: 30 12% 22%;
+    --ring: 220 70% 60%;
+
+    /* Knowledge Base specific tokens - dark */
+    --kb-sidebar: 30 15% 10%;
+    --kb-sidebar-hover: 30 12% 14%;
+    --kb-sidebar-active: 220 50% 18%;
+    --kb-editor: 30 15% 8%;
+    --kb-block-hover: 30 12% 12%;
+    --kb-table-header: 30 12% 14%;
+    --kb-table-row-hover: 30 12% 12%;
+    --kb-table-border: 30 12% 20%;
+
+    /* Block accent colors - dark */
+    --kb-callout-info: 210 60% 18%;
+    --kb-callout-warning: 45 60% 18%;
+    --kb-callout-success: 142 40% 18%;
+    --kb-callout-error: 0 50% 18%;
+
+    --sidebar-background: 30 15% 10%;
+    --sidebar-foreground: 45 15% 92%;
+    --sidebar-primary: 220 70% 60%;
+    --sidebar-primary-foreground: 30 15% 8%;
+    --sidebar-accent: 220 50% 20%;
+    --sidebar-accent-foreground: 220 70% 75%;
+    --sidebar-border: 30 12% 22%;
+    --sidebar-ring: 220 70% 60%;
   }
 }
 
@@ -100,6 +127,21 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+@layer utilities {
+  .kb-focus-ring {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  .kb-transition {
+    @apply transition-all duration-200 ease-out;
+  }
+
+  .kb-block-drag-handle {
+    @apply opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing;
   }
 }
