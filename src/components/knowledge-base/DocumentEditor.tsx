@@ -13,6 +13,8 @@ import {
   Table,
   MessageSquare,
   Minus,
+  FileText,
+  X,
 } from 'lucide-react';
 import { 
   Block, 
@@ -20,7 +22,7 @@ import {
   CalloutType,
   createDefaultBlock, 
   createDefaultTable,
-  BLOCK_TYPES,
+  Document,
 } from './types';
 import { 
   TextBlock, 
@@ -42,6 +44,8 @@ import {
 interface DocumentEditorProps {
   blocks: Block[];
   onBlocksChange: (blocks: Block[]) => void;
+  documents?: Document[];
+  onNavigateToDoc?: (docId: string) => void;
 }
 
 const blockTypeIcons: Record<BlockType, React.ElementType> = {
@@ -140,9 +144,78 @@ const SlashMenu: React.FC<SlashMenuProps> = ({
           </button>
         );
       })}
-      {filteredItems.length === 0 && (
+    </div>
+  );
+};
+
+interface MentionMenuProps {
+  isOpen: boolean;
+  position: { top: number; left: number };
+  filter: string;
+  selectedIndex: number;
+  documents: Document[];
+  onSelect: (doc: Document) => void;
+  onClose: () => void;
+}
+
+const MentionMenu: React.FC<MentionMenuProps> = ({
+  isOpen,
+  position,
+  filter,
+  selectedIndex,
+  documents,
+  onSelect,
+  onClose,
+}) => {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const filteredDocs = documents.filter(doc =>
+    doc.title.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      ref={menuRef}
+      className="fixed z-50 bg-popover border border-border rounded-xl shadow-lg p-1.5 w-72 max-h-80 overflow-y-auto animate-fade-in"
+      style={{ top: position.top, left: position.left }}
+    >
+      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        Link to page
+      </div>
+      {filteredDocs.length > 0 ? (
+        filteredDocs.map((doc, index) => {
+          const isSelected = index === selectedIndex;
+          return (
+            <button
+              key={doc.id}
+              onClick={() => onSelect(doc)}
+              className={`w-full flex items-center gap-3 px-2 py-2 rounded-lg text-left kb-transition ${
+                isSelected ? 'bg-muted' : 'hover:bg-muted/50'
+              }`}
+            >
+              <span className="text-lg leading-none">{doc.icon || '📄'}</span>
+              <span className="flex-1 text-sm text-foreground truncate">{doc.title}</span>
+            </button>
+          );
+        })
+      ) : (
         <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-          No blocks found
+          No pages found
         </div>
       )}
     </div>
@@ -152,6 +225,8 @@ const SlashMenu: React.FC<SlashMenuProps> = ({
 export const DocumentEditor: React.FC<DocumentEditorProps> = ({ 
   blocks, 
   onBlocksChange,
+  documents = [],
+  onNavigateToDoc,
 }) => {
   const [slashMenu, setSlashMenu] = useState<{
     isOpen: boolean;
@@ -165,6 +240,22 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     position: { top: 0, left: 0 },
     filter: '',
     selectedIndex: 0,
+  });
+
+  const [mentionMenu, setMentionMenu] = useState<{
+    isOpen: boolean;
+    blockIndex: number;
+    position: { top: number; left: number };
+    filter: string;
+    selectedIndex: number;
+    startOffset: number;
+  }>({
+    isOpen: false,
+    blockIndex: -1,
+    position: { top: 0, left: 0 },
+    filter: '',
+    selectedIndex: 0,
+    startOffset: 0,
   });
 
   const updateBlock = (index: number, updates: Partial<Block>) => {
@@ -197,7 +288,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     const newBlock: Block = {
       ...block,
       type,
-      content: '', // Clear the slash command text
+      content: '',
       properties: type === 'callout' ? { calloutType: 'info' } : 
                   type === 'todo' ? { checked: false } : undefined,
     };
@@ -213,37 +304,82 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     setSlashMenu(prev => ({ ...prev, isOpen: false, filter: '', selectedIndex: 0 }));
   }, []);
 
+  const closeMentionMenu = useCallback(() => {
+    setMentionMenu(prev => ({ ...prev, isOpen: false, filter: '', selectedIndex: 0 }));
+  }, []);
+
   const handleSlashMenuSelect = useCallback((type: BlockType) => {
     changeBlockType(slashMenu.blockIndex, type);
     closeSlashMenu();
   }, [slashMenu.blockIndex, closeSlashMenu]);
 
+  const handleMentionSelect = useCallback((doc: Document) => {
+    const blockIndex = mentionMenu.blockIndex;
+    const block = blocks[blockIndex];
+    const content = block.content;
+    
+    // Find the @ symbol and replace from there
+    const beforeMention = content.slice(0, mentionMenu.startOffset);
+    const afterMention = content.slice(mentionMenu.startOffset + mentionMenu.filter.length + 1); // +1 for @
+    
+    // Insert the link marker
+    const linkText = `[[${doc.id}|${doc.icon || '📄'} ${doc.title}]]`;
+    const newContent = beforeMention + linkText + afterMention;
+    
+    updateBlock(blockIndex, { content: newContent });
+    closeMentionMenu();
+  }, [mentionMenu, blocks, closeMentionMenu]);
+
   const handleContentChange = (index: number, content: string) => {
     updateBlock(index, { content });
+
+    // Get caret position
+    const selection = window.getSelection();
+    let caretPos = { top: 0, left: 0 };
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      caretPos = { top: rect.bottom + 8, left: Math.max(rect.left, 16) };
+    }
 
     // Check for slash command
     if (content.startsWith('/')) {
       const filter = content.slice(1);
-      
-      // Get caret position for menu placement
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-        
-        setSlashMenu({
-          isOpen: true,
-          blockIndex: index,
-          position: { 
-            top: rect.bottom + 8, 
-            left: Math.max(rect.left, 16) 
-          },
-          filter,
-          selectedIndex: 0,
-        });
-      }
+      setSlashMenu({
+        isOpen: true,
+        blockIndex: index,
+        position: caretPos,
+        filter,
+        selectedIndex: 0,
+      });
+      closeMentionMenu();
     } else if (slashMenu.isOpen && slashMenu.blockIndex === index) {
       closeSlashMenu();
+    }
+
+    // Check for @ mention
+    const lastAtIndex = content.lastIndexOf('@');
+    if (lastAtIndex !== -1) {
+      const textAfterAt = content.slice(lastAtIndex + 1);
+      // Check if there's no space before the cursor position (we're still typing the mention)
+      const hasSpaceAfterAt = textAfterAt.includes(' ');
+      
+      if (!hasSpaceAfterAt || textAfterAt.indexOf(' ') > textAfterAt.length - 1) {
+        const filter = textAfterAt.split(' ')[0] || '';
+        setMentionMenu({
+          isOpen: true,
+          blockIndex: index,
+          position: caretPos,
+          filter,
+          selectedIndex: 0,
+          startOffset: lastAtIndex,
+        });
+        closeSlashMenu();
+      } else if (mentionMenu.isOpen && mentionMenu.blockIndex === index) {
+        closeMentionMenu();
+      }
+    } else if (mentionMenu.isOpen && mentionMenu.blockIndex === index) {
+      closeMentionMenu();
     }
   };
 
@@ -289,8 +425,47 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       }
     }
 
+    // Handle mention menu navigation
+    if (mentionMenu.isOpen && mentionMenu.blockIndex === index) {
+      const filteredDocs = documents.filter(doc =>
+        doc.title.toLowerCase().includes(mentionMenu.filter.toLowerCase())
+      );
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionMenu(prev => ({
+          ...prev,
+          selectedIndex: Math.min(prev.selectedIndex + 1, filteredDocs.length - 1),
+        }));
+        return;
+      }
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionMenu(prev => ({
+          ...prev,
+          selectedIndex: Math.max(prev.selectedIndex - 1, 0),
+        }));
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (filteredDocs.length > 0) {
+          handleMentionSelect(filteredDocs[mentionMenu.selectedIndex]);
+        }
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeMentionMenu();
+        return;
+      }
+    }
+
     // Regular key handling
-    if (e.key === 'Enter' && !e.shiftKey && !slashMenu.isOpen) {
+    if (e.key === 'Enter' && !e.shiftKey && !slashMenu.isOpen && !mentionMenu.isOpen) {
       e.preventDefault();
       insertBlock(index, 'text');
     }
@@ -300,11 +475,52 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     }
   };
 
+  // Parse content for links and render them
+  const parseContentWithLinks = (content: string, onNavigate?: (docId: string) => void) => {
+    const linkRegex = /\[\[([^|]+)\|([^\]]+)\]\]/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = linkRegex.exec(content)) !== null) {
+      // Add text before the link
+      if (match.index > lastIndex) {
+        parts.push(content.slice(lastIndex, match.index));
+      }
+
+      const docId = match[1];
+      const displayText = match[2];
+
+      parts.push(
+        <button
+          key={`${docId}-${match.index}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onNavigate?.(docId);
+          }}
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 text-sm font-medium kb-transition"
+        >
+          {displayText}
+        </button>
+      );
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < content.length) {
+      parts.push(content.slice(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : content;
+  };
+
   const renderBlock = (block: Block, index: number) => {
     const commonProps = {
       block,
       onUpdate: (content: string) => handleContentChange(index, content),
       onKeyDown: handleKeyDown(index),
+      parseContent: (content: string) => parseContentWithLinks(content, onNavigateToDoc),
     };
 
     switch (block.type) {
@@ -471,6 +687,17 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         selectedIndex={slashMenu.selectedIndex}
         onSelect={handleSlashMenuSelect}
         onClose={closeSlashMenu}
+      />
+
+      {/* Mention Menu */}
+      <MentionMenu
+        isOpen={mentionMenu.isOpen}
+        position={mentionMenu.position}
+        filter={mentionMenu.filter}
+        selectedIndex={mentionMenu.selectedIndex}
+        documents={documents}
+        onSelect={handleMentionSelect}
+        onClose={closeMentionMenu}
       />
     </div>
   );
