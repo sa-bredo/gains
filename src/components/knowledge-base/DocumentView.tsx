@@ -6,6 +6,7 @@ import {
   History, 
   Settings,
   ChevronLeft,
+  FileText,
 } from 'lucide-react';
 import { Document, Block } from './types';
 import { DocumentEditor } from './DocumentEditor';
@@ -39,6 +40,9 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState(document.title);
   const titleRef = useRef<HTMLInputElement>(null);
+
+  // Get child documents (subpages)
+  const subpages = documents.filter(d => d.parentId === document.id);
 
   useEffect(() => {
     setTitle(document.title);
@@ -109,8 +113,8 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
                 <MoreHorizontal size={18} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>
+            <DropdownMenuContent align="end" className="rounded-xl p-1.5">
+              <DropdownMenuItem className="rounded-lg">
                 <Settings size={14} className="mr-2" /> Settings
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -137,7 +141,7 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
                   {document.icon || '📄'}
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="p-2">
+              <DropdownMenuContent align="start" className="p-2 rounded-xl">
                 <div className="grid grid-cols-8 gap-1">
                   {EMOJI_OPTIONS.map((emoji) => (
                     <button
@@ -180,6 +184,24 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
               )}
             </div>
           </div>
+
+          {/* Subpages Section */}
+          {subpages.length > 0 && (
+            <div className="mt-6 space-y-1">
+              {subpages.map((subpage) => (
+                <button
+                  key={subpage.id}
+                  onClick={() => onNavigate(subpage.id)}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/50 text-left group kb-transition"
+                >
+                  <span className="text-xl leading-none">{subpage.icon || '📄'}</span>
+                  <span className="flex-1 text-foreground group-hover:text-primary truncate">
+                    {subpage.title}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Blocks */}
