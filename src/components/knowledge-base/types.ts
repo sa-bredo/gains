@@ -26,7 +26,8 @@ export type BlockType =
   | 'divider'
   | 'todo'
   | 'bulletList'
-  | 'numberedList';
+  | 'numberedList'
+  | 'image';
 
 export interface SelectOption {
   id: string;
@@ -101,6 +102,8 @@ export interface Block {
     checked?: boolean;
     tableId?: string;
     align?: string;
+    imageUrl?: string;
+    imageCaption?: string;
   };
   table?: InlineTable;
 }
