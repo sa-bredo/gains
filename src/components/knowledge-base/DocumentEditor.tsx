@@ -292,14 +292,14 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     onBlocksChange(newBlocks);
   };
 
-  const changeBlockType = (index: number, type: BlockType) => {
+  const changeBlockType = (index: number, type: BlockType, preserveContent: boolean = false) => {
     const block = blocks[index];
     const newBlock: Block = {
       ...block,
       type,
-      content: '',
-      properties: type === 'callout' ? { calloutType: 'info' } : 
-                  type === 'todo' ? { checked: false } : undefined,
+      content: preserveContent ? block.content : '',
+      properties: type === 'callout' ? { calloutType: 'info', ...block.properties } : 
+                  type === 'todo' ? { checked: false, ...block.properties } : block.properties,
     };
     if (type === 'table' && !block.table) {
       newBlock.table = createDefaultTable();
@@ -639,7 +639,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       case 'heading3':
       case 'text':
         if (blockIndex >= 0) {
-          changeBlockType(blockIndex, format as BlockType);
+          changeBlockType(blockIndex, format as BlockType, true);
         }
         break;
       case 'color':
