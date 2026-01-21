@@ -100,6 +100,7 @@ export interface Block {
     calloutType?: CalloutType;
     checked?: boolean;
     tableId?: string;
+    align?: string;
   };
   table?: InlineTable;
 }

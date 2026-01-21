@@ -599,8 +599,26 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   };
 
   const handleFormat = useCallback((format: string, value?: string) => {
-    // For now, log the format action - can be extended with rich text support
-    console.log('Format:', format, value);
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) return;
+
+    // Find which block the selection is in
+    const findBlockIndex = (): number => {
+      if (!editorRef.current) return -1;
+      const range = selection.getRangeAt(0);
+      let node: Node | null = range.startContainer;
+      
+      while (node && node !== editorRef.current) {
+        if (node.parentElement?.closest('[data-block-index]')) {
+          const blockEl = node.parentElement?.closest('[data-block-index]');
+          return parseInt(blockEl?.getAttribute('data-block-index') || '-1', 10);
+        }
+        node = node.parentNode;
+      }
+      return -1;
+    };
+
+    const blockIndex = findBlockIndex();
     
     // Apply text formatting using document.execCommand (works for contentEditable)
     switch (format) {
@@ -616,10 +634,57 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       case 'strikethrough':
         document.execCommand('strikeThrough', false);
         break;
+      case 'heading1':
+      case 'heading2':
+      case 'heading3':
+      case 'text':
+        if (blockIndex >= 0) {
+          changeBlockType(blockIndex, format as BlockType);
+        }
+        break;
+      case 'color':
+        if (value) {
+          // Extract color from Tailwind class (e.g., "text-red-500" -> wrap in span)
+          const selectedText = selection.toString();
+          const range = selection.getRangeAt(0);
+          const span = document.createElement('span');
+          span.className = value;
+          range.deleteContents();
+          span.textContent = selectedText;
+          range.insertNode(span);
+          selection.removeAllRanges();
+        }
+        break;
+      case 'highlight':
+        if (value) {
+          const selectedText = selection.toString();
+          const range = selection.getRangeAt(0);
+          const span = document.createElement('span');
+          span.className = `${value} px-0.5 rounded`;
+          range.deleteContents();
+          span.textContent = selectedText;
+          range.insertNode(span);
+          selection.removeAllRanges();
+        }
+        break;
+      case 'align':
+        if (blockIndex >= 0 && value) {
+          const alignClass = value === 'center' ? 'text-center' : value === 'right' ? 'text-right' : 'text-left';
+          updateBlock(blockIndex, { 
+            properties: { ...blocks[blockIndex].properties, align: alignClass } 
+          });
+        }
+        break;
+      case 'link':
+        const url = prompt('Enter URL:');
+        if (url) {
+          document.execCommand('createLink', false, url);
+        }
+        break;
       default:
         break;
     }
-  }, []);
+  }, [blocks, changeBlockType, updateBlock]);
 
   return (
     <div ref={editorRef} className="max-w-4xl mx-auto px-8 py-12">
@@ -630,8 +695,9 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           
           return (
             <div 
-              key={block.id} 
-              className="group relative flex items-start gap-1 py-1 -ml-16 pl-16 rounded-lg hover:bg-kb-block-hover kb-transition"
+              key={block.id}
+              data-block-index={index}
+              className={`group relative flex items-start gap-1 py-1 -ml-16 pl-16 rounded-lg hover:bg-kb-block-hover kb-transition ${block.properties?.align || ''}`}
             >
               {/* Block Controls */}
               <div className="absolute left-2 top-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 kb-transition">
