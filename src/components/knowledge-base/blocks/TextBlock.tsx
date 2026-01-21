@@ -12,7 +12,7 @@ export const TextBlock: React.FC<TextBlockProps> = ({
   block,
   onUpdate,
   onKeyDown,
-  placeholder = "Type '/' for commands...",
+  placeholder = "",
 }) => {
   const ref = useRef<HTMLDivElement>(null);
 
