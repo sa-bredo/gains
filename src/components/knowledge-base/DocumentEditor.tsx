@@ -566,6 +566,10 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                 e.preventDefault();
                 deleteBlock(index);
               }
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                insertBlock(index, 'text');
+              }
             }} 
           />
         );
