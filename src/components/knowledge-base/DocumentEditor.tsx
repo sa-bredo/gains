@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Minus,
   Link,
+  ImageIcon,
 } from 'lucide-react';
 import { 
   Block, 
@@ -32,6 +33,7 @@ import {
   ListBlock,
   TableBlock,
 } from './blocks';
+import { ImageBlock } from './blocks/ImageBlock';
 import { SelectionToolbar } from './blocks/SelectionToolbar';
 import {
   DropdownMenu,
@@ -59,6 +61,7 @@ const blockTypeIcons: Record<BlockType, React.ElementType> = {
   table: Table,
   callout: MessageSquare,
   divider: Minus,
+  image: ImageIcon,
 };
 
 type SlashMenuItem = {
@@ -76,6 +79,7 @@ const slashMenuItems: SlashMenuItem[] = [
   { type: 'bulletList', label: 'Bullet List', description: 'Unordered list', icon: List },
   { type: 'numberedList', label: 'Numbered List', description: 'Ordered list', icon: ListOrdered },
   { type: 'todo', label: 'To-do', description: 'Checkbox item', icon: CheckSquare },
+  { type: 'image', label: 'Image', description: 'Upload or embed an image', icon: ImageIcon },
   { type: 'table', label: 'Table', description: 'Inline database table', icon: Table },
   { type: 'callout', label: 'Callout', description: 'Highlighted info box', icon: MessageSquare },
   { type: 'divider', label: 'Divider', description: 'Horizontal separator', icon: Minus },
@@ -592,6 +596,14 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           );
         }
         return null;
+      
+      case 'image':
+        return (
+          <ImageBlock 
+            block={block}
+            onUpdate={(updates) => updateBlock(index, updates)}
+          />
+        );
       
       default:
         return <TextBlock {...commonProps} />;
