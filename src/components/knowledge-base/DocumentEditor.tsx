@@ -32,6 +32,7 @@ import {
   ListBlock,
   TableBlock,
 } from './blocks';
+import { SelectionToolbar } from './blocks/SelectionToolbar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -235,6 +236,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   documents = [],
   onNavigateToDoc,
 }) => {
+  const editorRef = useRef<HTMLDivElement>(null);
   const [slashMenu, setSlashMenu] = useState<{
     isOpen: boolean;
     blockIndex: number;
@@ -596,8 +598,32 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     }
   };
 
+  const handleFormat = useCallback((format: string, value?: string) => {
+    // For now, log the format action - can be extended with rich text support
+    console.log('Format:', format, value);
+    
+    // Apply text formatting using document.execCommand (works for contentEditable)
+    switch (format) {
+      case 'bold':
+        document.execCommand('bold', false);
+        break;
+      case 'italic':
+        document.execCommand('italic', false);
+        break;
+      case 'underline':
+        document.execCommand('underline', false);
+        break;
+      case 'strikethrough':
+        document.execCommand('strikeThrough', false);
+        break;
+      default:
+        break;
+    }
+  }, []);
+
   return (
-    <div className="max-w-4xl mx-auto px-8 py-12">
+    <div ref={editorRef} className="max-w-4xl mx-auto px-8 py-12">
+      <SelectionToolbar containerRef={editorRef} onFormat={handleFormat} />
       <div className="space-y-1">
         {blocks.map((block, index) => {
           const Icon = blockTypeIcons[block.type];
