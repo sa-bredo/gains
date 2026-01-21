@@ -553,7 +553,16 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         );
       
       case 'divider':
-        return <DividerBlock />;
+        return (
+          <DividerBlock 
+            onKeyDown={(e) => {
+              if (e.key === 'Backspace' || e.key === 'Delete') {
+                e.preventDefault();
+                deleteBlock(index);
+              }
+            }} 
+          />
+        );
       
       case 'todo':
         return (
