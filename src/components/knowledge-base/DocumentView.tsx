@@ -40,6 +40,8 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState(document.title);
   const titleRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<NodeJS.Timeout>();
+  const lastSavedHtmlRef = useRef<string>('');
   
   // Convert blocks to HTML for TipTap
   const [htmlContent, setHtmlContent] = useState(() => blocksToHtml(document.blocks));
@@ -52,7 +54,9 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
   }, [document.title]);
 
   useEffect(() => {
-    setHtmlContent(blocksToHtml(document.blocks));
+    const newHtml = blocksToHtml(document.blocks);
+    setHtmlContent(newHtml);
+    lastSavedHtmlRef.current = newHtml;
   }, [document.id]); // Only reset when document changes
 
   useEffect(() => {
@@ -61,6 +65,15 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
       titleRef.current.select();
     }
   }, [isEditingTitle]);
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   const handleTitleSubmit = () => {
     setIsEditingTitle(false);
@@ -73,8 +86,21 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
 
   const handleContentUpdate = useCallback((html: string) => {
     setHtmlContent(html);
-    const blocks = htmlToBlocks(html);
-    onUpdateDocument({ blocks, updatedAt: new Date() });
+    
+    // Clear any pending debounce
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Debounce the save operation
+    debounceRef.current = setTimeout(() => {
+      // Only save if content actually changed
+      if (html !== lastSavedHtmlRef.current) {
+        lastSavedHtmlRef.current = html;
+        const blocks = htmlToBlocks(html);
+        onUpdateDocument({ blocks, updatedAt: new Date() });
+      }
+    }, 1000); // 1 second debounce
   }, [onUpdateDocument]);
 
   const handleIconChange = (icon: string) => {
