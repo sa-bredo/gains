@@ -66,7 +66,7 @@ export function useDocuments() {
       const { data: docs, error: docsError } = await supabase
         .from('kh_documents')
         .select('*')
-        .order('created_at', { ascending: true });
+        .order('doc_order', { ascending: true });
 
       if (docsError) throw docsError;
       if (!docs || docs.length === 0) return [];
@@ -195,6 +195,32 @@ export function useDeleteDocument() {
         .eq('id', id);
 
       if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kh_documents'] });
+    },
+  });
+}
+
+export function useReorderDocuments() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (updates: { id: string; doc_order: number; parent_id?: string | null }[]) => {
+      // Update each document's order
+      for (const update of updates) {
+        const updateData: { doc_order: number; parent_id?: string | null } = { doc_order: update.doc_order };
+        if (update.parent_id !== undefined) {
+          updateData.parent_id = update.parent_id;
+        }
+        
+        const { error } = await supabase
+          .from('kh_documents')
+          .update(updateData)
+          .eq('id', update.id);
+
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kh_documents'] });
