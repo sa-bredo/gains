@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, 
   Plus, 
-  FileText, 
+  FileText,
+  LogOut,
 } from 'lucide-react';
 import { Document } from './types';
 import { SidebarTreeNode } from './SidebarTreeNode';
@@ -15,6 +16,8 @@ interface SidebarProps {
   onCreateDoc: (parentId?: string) => void;
   onDeleteDoc: (id: string) => void;
   onRenameDoc: (id: string, title: string) => void;
+  onSignOut?: () => void;
+  userEmail?: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -24,6 +27,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCreateDoc,
   onDeleteDoc,
   onRenameDoc,
+  onSignOut,
+  userEmail,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -160,7 +165,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="p-2 border-t border-border">
+      <div className="p-2 border-t border-border space-y-1">
         <button
           onClick={() => onCreateDoc()}
           className="flex items-center gap-2 w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-kb-sidebar-hover rounded-lg kb-transition"
@@ -168,6 +173,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Plus size={16} />
           New document
         </button>
+        
+        {onSignOut && (
+          <div className="pt-2 border-t border-border mt-2">
+            {userEmail && (
+              <p className="px-3 py-1 text-xs text-muted-foreground truncate">{userEmail}</p>
+            )}
+            <button
+              onClick={onSignOut}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-kb-sidebar-hover rounded-lg kb-transition"
+            >
+              <LogOut size={16} />
+              Sign out
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );
