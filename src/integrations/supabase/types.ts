@@ -66,6 +66,7 @@ export type Database = {
           cover_image: string | null
           created_at: string
           created_by: string
+          doc_order: number
           icon: string | null
           id: string
           is_template: boolean
@@ -78,6 +79,7 @@ export type Database = {
           cover_image?: string | null
           created_at?: string
           created_by: string
+          doc_order?: number
           icon?: string | null
           id?: string
           is_template?: boolean
@@ -90,6 +92,7 @@ export type Database = {
           cover_image?: string | null
           created_at?: string
           created_by?: string
+          doc_order?: number
           icon?: string | null
           id?: string
           is_template?: boolean

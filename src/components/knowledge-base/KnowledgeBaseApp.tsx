@@ -3,7 +3,7 @@ import { Document } from './types';
 import { Sidebar } from './Sidebar';
 import { DocumentView } from './DocumentView';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useDocuments, useCreateDocument, useUpdateDocument, useDeleteDocument } from '@/hooks/useKnowledgeBase';
+import { useDocuments, useCreateDocument, useUpdateDocument, useDeleteDocument, useReorderDocuments } from '@/hooks/useKnowledgeBase';
 import { getDescendants } from './utils/documentTree';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,6 +17,7 @@ export const KnowledgeBaseApp: React.FC<KnowledgeBaseAppProps> = ({ userId }) =>
   const createDocument = useCreateDocument();
   const updateDocument = useUpdateDocument();
   const deleteDocument = useDeleteDocument();
+  const reorderDocuments = useReorderDocuments();
   
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const isMobile = useIsMobile();
@@ -118,6 +119,7 @@ export const KnowledgeBaseApp: React.FC<KnowledgeBaseAppProps> = ({ userId }) =>
           onCreateDoc={handleCreateDoc}
           onDeleteDoc={handleDeleteDoc}
           onRenameDoc={handleRenameDoc}
+          onReorderDocs={(updates) => reorderDocuments.mutate(updates)}
         />
       )}
 
