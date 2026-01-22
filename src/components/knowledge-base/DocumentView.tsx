@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   MoreHorizontal, 
   Star, 
@@ -6,10 +6,10 @@ import {
   History, 
   Settings,
   ChevronLeft,
-  FileText,
 } from 'lucide-react';
 import { Document, Block } from './types';
-import { DocumentEditor } from './DocumentEditor';
+import { TipTapEditor } from './editor/TipTapEditor';
+import { blocksToHtml, htmlToBlocks } from './editor/blockConverter';
 import { Breadcrumbs } from './Breadcrumbs';
 import {
   DropdownMenu,
@@ -40,6 +40,9 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState(document.title);
   const titleRef = useRef<HTMLInputElement>(null);
+  
+  // Convert blocks to HTML for TipTap
+  const [htmlContent, setHtmlContent] = useState(() => blocksToHtml(document.blocks));
 
   // Get child documents (subpages)
   const subpages = documents.filter(d => d.parentId === document.id);
@@ -47,6 +50,10 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
   useEffect(() => {
     setTitle(document.title);
   }, [document.title]);
+
+  useEffect(() => {
+    setHtmlContent(blocksToHtml(document.blocks));
+  }, [document.id]); // Only reset when document changes
 
   useEffect(() => {
     if (isEditingTitle && titleRef.current) {
@@ -64,9 +71,11 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
     }
   };
 
-  const handleBlocksChange = (blocks: Block[]) => {
+  const handleContentUpdate = useCallback((html: string) => {
+    setHtmlContent(html);
+    const blocks = htmlToBlocks(html);
     onUpdateDocument({ blocks, updatedAt: new Date() });
-  };
+  }, [onUpdateDocument]);
 
   const handleIconChange = (icon: string) => {
     onUpdateDocument({ icon });
@@ -76,7 +85,6 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
     if (docId) {
       onNavigate(docId);
     }
-    // For null (root), we could navigate to a "home" view, but for now just stay
   };
 
   return (
@@ -204,13 +212,14 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
           )}
         </div>
 
-        {/* Blocks */}
-        <DocumentEditor 
-          blocks={document.blocks} 
-          onBlocksChange={handleBlocksChange}
-          documents={documents}
-          onNavigateToDoc={onNavigate}
-        />
+        {/* TipTap Editor */}
+        <div className="max-w-4xl mx-auto px-8 py-4">
+          <TipTapEditor
+            content={htmlContent}
+            onUpdate={handleContentUpdate}
+            placeholder="Type '/' for commands..."
+          />
+        </div>
       </main>
     </div>
   );
