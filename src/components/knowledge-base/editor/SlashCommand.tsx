@@ -16,20 +16,23 @@ import {
   Code,
   Minus,
   ImageIcon,
+  FileText,
 } from 'lucide-react';
 
 interface CommandItem {
   title: string;
   description: string;
   icon: React.ElementType;
-  command: (editor: Editor, range: Range) => void;
+  command: (editor: Editor, range: Range, options?: { onCreateSubpage?: () => void }) => void;
+  category?: 'basic' | 'advanced';
 }
 
-const commands: CommandItem[] = [
+const baseCommands: CommandItem[] = [
   {
     title: 'Text',
     description: 'Plain text paragraph',
     icon: Type,
+    category: 'basic',
     command: (editor, range) => {
       editor.chain().focus().deleteRange(range).setParagraph().run();
     },
@@ -38,6 +41,7 @@ const commands: CommandItem[] = [
     title: 'Heading 1',
     description: 'Large section heading',
     icon: Heading1,
+    category: 'basic',
     command: (editor, range) => {
       editor.chain().focus().deleteRange(range).setHeading({ level: 1 }).run();
     },
@@ -46,6 +50,7 @@ const commands: CommandItem[] = [
     title: 'Heading 2',
     description: 'Medium section heading',
     icon: Heading2,
+    category: 'basic',
     command: (editor, range) => {
       editor.chain().focus().deleteRange(range).setHeading({ level: 2 }).run();
     },
@@ -54,6 +59,7 @@ const commands: CommandItem[] = [
     title: 'Heading 3',
     description: 'Small section heading',
     icon: Heading3,
+    category: 'basic',
     command: (editor, range) => {
       editor.chain().focus().deleteRange(range).setHeading({ level: 3 }).run();
     },
@@ -62,6 +68,7 @@ const commands: CommandItem[] = [
     title: 'Bullet List',
     description: 'Unordered list',
     icon: List,
+    category: 'basic',
     command: (editor, range) => {
       editor.chain().focus().deleteRange(range).toggleBulletList().run();
     },
@@ -70,6 +77,7 @@ const commands: CommandItem[] = [
     title: 'Numbered List',
     description: 'Ordered list',
     icon: ListOrdered,
+    category: 'basic',
     command: (editor, range) => {
       editor.chain().focus().deleteRange(range).toggleOrderedList().run();
     },
@@ -78,6 +86,7 @@ const commands: CommandItem[] = [
     title: 'Task List',
     description: 'Checkbox items',
     icon: CheckSquare,
+    category: 'basic',
     command: (editor, range) => {
       editor.chain().focus().deleteRange(range).toggleTaskList().run();
     },
@@ -86,6 +95,7 @@ const commands: CommandItem[] = [
     title: 'Quote',
     description: 'Blockquote',
     icon: Quote,
+    category: 'basic',
     command: (editor, range) => {
       editor.chain().focus().deleteRange(range).toggleBlockquote().run();
     },
@@ -94,6 +104,7 @@ const commands: CommandItem[] = [
     title: 'Code Block',
     description: 'Code snippet',
     icon: Code,
+    category: 'basic',
     command: (editor, range) => {
       editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
     },
@@ -102,6 +113,7 @@ const commands: CommandItem[] = [
     title: 'Divider',
     description: 'Horizontal line',
     icon: Minus,
+    category: 'basic',
     command: (editor, range) => {
       editor.chain().focus().deleteRange(range).setHorizontalRule().run();
     },
@@ -110,6 +122,7 @@ const commands: CommandItem[] = [
     title: 'Image',
     description: 'Embed an image',
     icon: ImageIcon,
+    category: 'basic',
     command: (editor, range) => {
       const url = window.prompt('Image URL');
       if (url) {
@@ -123,11 +136,33 @@ const commands: CommandItem[] = [
     title: 'Table',
     description: 'Insert a table',
     icon: Table,
+    category: 'basic',
     command: (editor, range) => {
       editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
     },
   },
 ];
+
+// Subpage command - needs callback
+const subpageCommand: CommandItem = {
+  title: 'Subpage',
+  description: 'Create a new subpage',
+  icon: FileText,
+  category: 'advanced',
+  command: (editor, range, options) => {
+    editor.chain().focus().deleteRange(range).run();
+    if (options?.onCreateSubpage) {
+      options.onCreateSubpage();
+    }
+  },
+};
+
+export const getCommands = (hasSubpage: boolean): CommandItem[] => {
+  if (hasSubpage) {
+    return [...baseCommands, subpageCommand];
+  }
+  return baseCommands;
+};
 
 interface CommandListProps {
   items: CommandItem[];
@@ -201,7 +236,7 @@ const CommandList = forwardRef<CommandListRef, CommandListProps>(
         <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Basic blocks
         </div>
-        {items.map((item, index) => {
+        {items.filter(i => i.category !== 'advanced').map((item, index) => {
           const Icon = item.icon;
           const isSelected = index === selectedIndex;
 
@@ -224,6 +259,37 @@ const CommandList = forwardRef<CommandListRef, CommandListProps>(
             </button>
           );
         })}
+        {items.some(i => i.category === 'advanced') && (
+          <>
+            <div className="px-2 py-1.5 mt-2 text-xs font-medium text-muted-foreground uppercase tracking-wide border-t border-border pt-2">
+              Advanced
+            </div>
+            {items.filter(i => i.category === 'advanced').map((item) => {
+              const actualIndex = items.indexOf(item);
+              const Icon = item.icon;
+              const isSelected = actualIndex === selectedIndex;
+
+              return (
+                <button
+                  key={item.title}
+                  data-index={actualIndex}
+                  onClick={() => selectItem(actualIndex)}
+                  className={`w-full flex items-center gap-3 px-2 py-2 rounded-lg text-left transition-colors ${
+                    isSelected ? 'bg-muted' : 'hover:bg-muted/50'
+                  }`}
+                >
+                  <div className="w-10 h-10 rounded-lg bg-muted/50 border border-border flex items-center justify-center flex-shrink-0">
+                    <Icon size={20} className="text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-foreground">{item.title}</div>
+                    <div className="text-xs text-muted-foreground truncate">{item.description}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </>
+        )}
       </div>
     );
   }
@@ -231,82 +297,93 @@ const CommandList = forwardRef<CommandListRef, CommandListProps>(
 
 CommandList.displayName = 'CommandList';
 
-export const SlashCommandExtension = Extension.create({
-  name: 'slashCommand',
+export interface SlashCommandOptions {
+  onCreateSubpage?: () => void;
+}
 
-  addOptions() {
-    return {
-      suggestion: {
-        char: '/',
-        command: ({ editor, range, props }: { editor: Editor; range: Range; props: CommandItem }) => {
-          props.command(editor, range);
-        },
-      } as Partial<SuggestionOptions>,
-    };
-  },
+export const createSlashCommandExtension = (options: SlashCommandOptions = {}) => {
+  const commands = getCommands(!!options.onCreateSubpage);
+  
+  return Extension.create({
+    name: 'slashCommand',
 
-  addProseMirrorPlugins() {
-    return [
-      Suggestion({
-        editor: this.editor,
-        ...this.options.suggestion,
-        items: ({ query }: { query: string }) => {
-          return commands.filter((item) =>
-            item.title.toLowerCase().includes(query.toLowerCase())
-          );
-        },
-        render: () => {
-          let component: ReactRenderer<CommandListRef> | null = null;
-          let popup: TippyInstance[] | null = null;
+    addOptions() {
+      return {
+        suggestion: {
+          char: '/',
+          command: ({ editor, range, props }: { editor: Editor; range: Range; props: CommandItem }) => {
+            props.command(editor, range, { onCreateSubpage: options.onCreateSubpage });
+          },
+        } as Partial<SuggestionOptions>,
+      };
+    },
 
-          return {
-            onStart: (props: SuggestionProps<CommandItem>) => {
-              component = new ReactRenderer(CommandList, {
-                props,
-                editor: props.editor,
-              });
+    addProseMirrorPlugins() {
+      return [
+        Suggestion({
+          editor: this.editor,
+          ...this.options.suggestion,
+          items: ({ query }: { query: string }) => {
+            return commands.filter((item) =>
+              item.title.toLowerCase().includes(query.toLowerCase())
+            );
+          },
+          render: () => {
+            let component: ReactRenderer<CommandListRef> | null = null;
+            let popup: TippyInstance[] | null = null;
 
-              if (!props.clientRect) return;
+            return {
+              onStart: (props: SuggestionProps<CommandItem>) => {
+                component = new ReactRenderer(CommandList, {
+                  props,
+                  editor: props.editor,
+                });
 
-              popup = tippy('body', {
-                getReferenceClientRect: props.clientRect as () => DOMRect,
-                appendTo: () => document.body,
-                content: component.element,
-                showOnCreate: true,
-                interactive: true,
-                trigger: 'manual',
-                placement: 'bottom-start',
-              });
-            },
+                if (!props.clientRect) return;
 
-            onUpdate(props: SuggestionProps<CommandItem>) {
-              component?.updateProps(props);
+                popup = tippy('body', {
+                  getReferenceClientRect: props.clientRect as () => DOMRect,
+                  appendTo: () => document.body,
+                  content: component.element,
+                  showOnCreate: true,
+                  interactive: true,
+                  trigger: 'manual',
+                  placement: 'bottom-start',
+                });
+              },
 
-              if (!props.clientRect) return;
+              onUpdate(props: SuggestionProps<CommandItem>) {
+                component?.updateProps(props);
 
-              popup?.[0]?.setProps({
-                getReferenceClientRect: props.clientRect as () => DOMRect,
-              });
-            },
+                if (!props.clientRect) return;
 
-            onKeyDown(props: { event: KeyboardEvent }) {
-              if (props.event.key === 'Escape') {
-                popup?.[0]?.hide();
-                return true;
-              }
+                popup?.[0]?.setProps({
+                  getReferenceClientRect: props.clientRect as () => DOMRect,
+                });
+              },
 
-              return component?.ref?.onKeyDown(props) ?? false;
-            },
+              onKeyDown(props: { event: KeyboardEvent }) {
+                if (props.event.key === 'Escape') {
+                  popup?.[0]?.hide();
+                  return true;
+                }
 
-            onExit() {
-              popup?.[0]?.destroy();
-              component?.destroy();
-            },
-          };
-        },
-      }),
-    ];
-  },
-});
+                return component?.ref?.onKeyDown(props) ?? false;
+              },
+
+              onExit() {
+                popup?.[0]?.destroy();
+                component?.destroy();
+              },
+            };
+          },
+        }),
+      ];
+    },
+  });
+};
+
+// Keep backwards compatibility
+export const SlashCommandExtension = createSlashCommandExtension();
 
 export default SlashCommandExtension;

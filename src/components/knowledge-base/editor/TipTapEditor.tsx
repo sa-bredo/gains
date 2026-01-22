@@ -15,7 +15,7 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
-import { SlashCommandExtension } from './SlashCommand';
+import { createSlashCommandExtension } from './SlashCommand';
 import {
   Bold,
   Italic,
@@ -40,6 +40,7 @@ import { cn } from '@/lib/utils';
 interface TipTapEditorProps {
   content: string;
   onUpdate: (html: string) => void;
+  onCreateSubpage?: () => void;
   placeholder?: string;
   className?: string;
   editable?: boolean;
@@ -74,6 +75,7 @@ const MenuButton: React.FC<{
 export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   content,
   onUpdate,
+  onCreateSubpage,
   placeholder = "Type '/' for commands...",
   className,
   editable = true,
@@ -142,7 +144,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           class: 'border border-border p-2',
         },
       }),
-      SlashCommandExtension,
+      createSlashCommandExtension({ onCreateSubpage }),
     ],
     content,
     editable,
