@@ -24,10 +24,11 @@ function dbToDocument(dbDoc: DbDocument, blocks: Block[]): Document {
 }
 
 // Convert database block to app Block type
-function dbToBlock(dbBlock: DbBlock): Block {
+function dbToBlock(dbBlock: DbBlock & { editor_id?: string | null }): Block {
   const properties = dbBlock.properties as Record<string, unknown> | null;
   return {
-    id: dbBlock.id,
+    // Use editor_id for stable TipTap mapping, fallback to uuid
+    id: dbBlock.editor_id || dbBlock.id,
     type: dbBlock.type as BlockType,
     content: dbBlock.content,
     properties: properties ? {
@@ -44,7 +45,7 @@ function dbToBlock(dbBlock: DbBlock): Block {
 }
 
 // Convert app Block to database format
-function blockToDb(block: Block, documentId: string, order: number): TablesInsert<'kh_blocks'> {
+function blockToDb(block: Block, documentId: string, order: number): TablesInsert<'kh_blocks'> & { editor_id: string } {
   return {
     document_id: documentId,
     type: block.type,
@@ -52,6 +53,8 @@ function blockToDb(block: Block, documentId: string, order: number): TablesInser
     properties: block.properties as Json,
     block_order: order,
     table_data: block.table as unknown as Json,
+    // Store stable editor_id for TipTap mapping
+    editor_id: block.id,
   };
 }
 

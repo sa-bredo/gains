@@ -20,6 +20,7 @@ export type Database = {
           content: string
           created_at: string
           document_id: string
+          editor_id: string | null
           id: string
           properties: Json | null
           table_data: Json | null
@@ -31,6 +32,7 @@ export type Database = {
           content?: string
           created_at?: string
           document_id: string
+          editor_id?: string | null
           id?: string
           properties?: Json | null
           table_data?: Json | null
@@ -42,6 +44,7 @@ export type Database = {
           content?: string
           created_at?: string
           document_id?: string
+          editor_id?: string | null
           id?: string
           properties?: Json | null
           table_data?: Json | null
