@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Document, createDefaultBlock, Block } from './types';
+import { Document } from './types';
 import { Sidebar } from './Sidebar';
 import { DocumentView } from './DocumentView';
-import { AuthGate } from './AuthGate';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useAuth, AuthProvider } from '@/hooks/useAuth';
 import { useDocuments, useCreateDocument, useUpdateDocument, useDeleteDocument } from '@/hooks/useKnowledgeBase';
 import { getDescendants } from './utils/documentTree';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const KnowledgeBaseContent: React.FC = () => {
-  const { user, signOut } = useAuth();
+interface KnowledgeBaseAppProps {
+  userId: string;
+}
+
+export const KnowledgeBaseApp: React.FC<KnowledgeBaseAppProps> = ({ userId }) => {
   const { data: documents = [], isLoading, error } = useDocuments();
   const createDocument = useCreateDocument();
   const updateDocument = useUpdateDocument();
@@ -31,13 +32,11 @@ const KnowledgeBaseContent: React.FC = () => {
   const activeDocument = documents.find(d => d.id === activeDocId);
 
   const handleCreateDoc = async (parentId?: string) => {
-    if (!user) return;
-    
     try {
       const result = await createDocument.mutateAsync({
         title: 'Untitled',
         parentId,
-        userId: user.id,
+        userId,
       });
       setActiveDocId(result.id);
       if (isMobile) setShowSidebar(false);
@@ -47,12 +46,10 @@ const KnowledgeBaseContent: React.FC = () => {
   };
 
   const handleDeleteDoc = async (id: string) => {
-    // Get all descendants to delete as well
     const descendants = getDescendants(documents, id);
     const idsToDelete = new Set([id, ...descendants.map(d => d.id)]);
     
     try {
-      // Delete all documents (children first, then parent)
       for (const docId of [...descendants.map(d => d.id).reverse(), id]) {
         await deleteDocument.mutateAsync(docId);
       }
@@ -113,7 +110,6 @@ const KnowledgeBaseContent: React.FC = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Sidebar */}
       {(showSidebar || !isMobile) && (
         <Sidebar
           documents={documents}
@@ -122,12 +118,9 @@ const KnowledgeBaseContent: React.FC = () => {
           onCreateDoc={handleCreateDoc}
           onDeleteDoc={handleDeleteDoc}
           onRenameDoc={handleRenameDoc}
-          onSignOut={signOut}
-          userEmail={user?.email}
         />
       )}
 
-      {/* Main Content */}
       {activeDocument ? (
         <DocumentView
           document={activeDocument}
@@ -153,16 +146,6 @@ const KnowledgeBaseContent: React.FC = () => {
         </div>
       )}
     </div>
-  );
-};
-
-export const KnowledgeBaseApp: React.FC = () => {
-  return (
-    <AuthProvider>
-      <AuthGate>
-        <KnowledgeBaseContent />
-      </AuthGate>
-    </AuthProvider>
   );
 };
 
