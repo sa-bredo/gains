@@ -6,6 +6,10 @@ import {
   History, 
   Settings,
   ChevronLeft,
+  Cloud,
+  CloudOff,
+  Check,
+  Loader2,
 } from 'lucide-react';
 import { Document, Block } from './types';
 import { TipTapEditor } from './editor/TipTapEditor';
@@ -17,6 +21,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
+
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 interface DocumentViewProps {
   document: Document;
@@ -29,6 +36,38 @@ interface DocumentViewProps {
 
 const EMOJI_OPTIONS = ['📄', '📝', '📋', '📊', '📈', '📉', '💡', '🎯', '🚀', '✨', '📚', '🗂️', '💼', '🔧', '⚙️', '🎨'];
 
+const SaveIndicator: React.FC<{ status: SaveStatus }> = ({ status }) => {
+  if (status === 'idle') return null;
+  
+  return (
+    <div className={cn(
+      "flex items-center gap-1.5 text-xs px-2 py-1 rounded-full transition-all duration-300",
+      status === 'saving' && "text-muted-foreground bg-muted/50",
+      status === 'saved' && "text-green-600 bg-green-500/10",
+      status === 'error' && "text-destructive bg-destructive/10"
+    )}>
+      {status === 'saving' && (
+        <>
+          <Loader2 size={12} className="animate-spin" />
+          <span>Saving...</span>
+        </>
+      )}
+      {status === 'saved' && (
+        <>
+          <Check size={12} />
+          <span>Saved</span>
+        </>
+      )}
+      {status === 'error' && (
+        <>
+          <CloudOff size={12} />
+          <span>Error</span>
+        </>
+      )}
+    </div>
+  );
+};
+
 export const DocumentView: React.FC<DocumentViewProps> = ({
   document,
   documents,
@@ -39,8 +78,10 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState(document.title);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const titleRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
+  const savedTimeoutRef = useRef<NodeJS.Timeout>();
   const lastSavedHtmlRef = useRef<string>('');
   
   // Convert blocks to HTML for TipTap
@@ -66,11 +107,14 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
     }
   }, [isEditingTitle]);
 
-  // Cleanup debounce on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
+      }
+      if (savedTimeoutRef.current) {
+        clearTimeout(savedTimeoutRef.current);
       }
     };
   }, []);
@@ -92,13 +136,34 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
       clearTimeout(debounceRef.current);
     }
     
+    // Show saving status immediately when typing starts
+    if (html !== lastSavedHtmlRef.current) {
+      setSaveStatus('saving');
+    }
+    
     // Debounce the save operation
     debounceRef.current = setTimeout(() => {
       // Only save if content actually changed
       if (html !== lastSavedHtmlRef.current) {
         lastSavedHtmlRef.current = html;
         const blocks = htmlToBlocks(html);
-        onUpdateDocument({ blocks, updatedAt: new Date() });
+        
+        try {
+          onUpdateDocument({ blocks, updatedAt: new Date() });
+          setSaveStatus('saved');
+          
+          // Clear saved status after 2 seconds
+          if (savedTimeoutRef.current) {
+            clearTimeout(savedTimeoutRef.current);
+          }
+          savedTimeoutRef.current = setTimeout(() => {
+            setSaveStatus('idle');
+          }, 2000);
+        } catch (error) {
+          setSaveStatus('error');
+        }
+      } else {
+        setSaveStatus('idle');
       }
     }, 1000); // 1 second debounce
   }, [onUpdateDocument]);
@@ -129,6 +194,7 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
           <span className="text-sm text-muted-foreground truncate max-w-xs">
             {document.title}
           </span>
+          <SaveIndicator status={saveStatus} />
         </div>
 
         <div className="flex items-center gap-1">
