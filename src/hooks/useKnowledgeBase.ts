@@ -46,7 +46,6 @@ function dbToBlock(dbBlock: DbBlock): Block {
 // Convert app Block to database format
 function blockToDb(block: Block, documentId: string, order: number): TablesInsert<'kh_blocks'> {
   return {
-    id: block.id,
     document_id: documentId,
     type: block.type,
     content: block.content,

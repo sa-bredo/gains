@@ -54,7 +54,11 @@ const MenuButton: React.FC<{
 }> = ({ onClick, isActive, disabled, children, title }) => (
   <button
     type="button"
-    onClick={onClick}
+    onMouseDown={(e) => {
+      // Prevent selection from collapsing (keeps heading/list commands reliable)
+      e.preventDefault();
+      if (!disabled) onClick();
+    }}
     disabled={disabled}
     title={title}
     className={cn(
@@ -416,6 +420,32 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           background-color: hsl(var(--muted));
           font-weight: bold;
           text-align: left;
+        }
+
+        /* Tailwind preflight resets heading sizes; define explicit heading styles */
+        .tiptap-editor-wrapper .ProseMirror h1,
+        .tiptap-editor-wrapper .ProseMirror h2,
+        .tiptap-editor-wrapper .ProseMirror h3 {
+          color: hsl(var(--foreground));
+          font-weight: 700;
+        }
+
+        .tiptap-editor-wrapper .ProseMirror h1 {
+          font-size: 1.875rem; /* ~text-3xl */
+          line-height: 2.25rem;
+          margin: 1.5rem 0 1rem;
+        }
+
+        .tiptap-editor-wrapper .ProseMirror h2 {
+          font-size: 1.5rem; /* ~text-2xl */
+          line-height: 2rem;
+          margin: 1.25rem 0 0.75rem;
+        }
+
+        .tiptap-editor-wrapper .ProseMirror h3 {
+          font-size: 1.25rem; /* ~text-xl */
+          line-height: 1.75rem;
+          margin: 1rem 0 0.5rem;
         }
       `}</style>
     </div>
