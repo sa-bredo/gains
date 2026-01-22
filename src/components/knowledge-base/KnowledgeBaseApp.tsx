@@ -127,6 +127,7 @@ export const KnowledgeBaseApp: React.FC<KnowledgeBaseAppProps> = ({ userId }) =>
           documents={documents}
           onUpdateDocument={handleUpdateDocument}
           onNavigate={handleSelectDoc}
+          onCreateSubpage={() => handleCreateDoc(activeDocument.id)}
           onBack={() => setShowSidebar(true)}
           isMobile={isMobile}
         />

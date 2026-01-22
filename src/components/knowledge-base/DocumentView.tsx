@@ -30,6 +30,7 @@ interface DocumentViewProps {
   documents: Document[];
   onUpdateDocument: (updates: Partial<Document>) => void;
   onNavigate: (docId: string) => void;
+  onCreateSubpage?: () => void;
   onBack?: () => void;
   isMobile?: boolean;
 }
@@ -73,6 +74,7 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
   documents,
   onUpdateDocument,
   onNavigate,
+  onCreateSubpage,
   onBack,
   isMobile = false,
 }) => {
@@ -309,6 +311,7 @@ export const DocumentView: React.FC<DocumentViewProps> = ({
           <TipTapEditor
             content={htmlContent}
             onUpdate={handleContentUpdate}
+            onCreateSubpage={onCreateSubpage}
             placeholder="Type '/' for commands..."
           />
         </div>
